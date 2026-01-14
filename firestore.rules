@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User can read/write their own projects
+    match /projects/{projectId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /charts/{chartId} {
+        allow create: if request.auth != null;
+        allow read, update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    match /export_events/{eventId} {
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+        allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+  }
+}
