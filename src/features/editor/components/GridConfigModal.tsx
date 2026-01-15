@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Project, GridConfig } from '@/types';
+import { Project, GridConfig, Chart } from '@/types';
 import { projectService } from '@/services/projectService';
 import { toast } from 'sonner';
 
@@ -85,7 +85,7 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
             if (oldCols !== newCols || oldRows !== newRows) {
                 // Import chartService
                 const { chartService } = await import('@/services/chartService');
-                const charts = await chartService.getChartsByProject(project.id);
+                const charts = await chartService.getProjectCharts(project.id);
 
                 const updatePromises = charts.map(async (chart) => {
                     const newX = Math.round((chart.module.x / oldCols) * newCols);
