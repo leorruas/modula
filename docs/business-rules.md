@@ -27,14 +27,52 @@ Após estabelecer o tamanho do Canvas, o usuário define o sistema de grid que d
 *   **Cálculo do Módulo**: O tamanho final de cada módulo é resultado dessa equação matemática.
 *   **Edição do Grid**: O sistema deve permitir a reconfiguração do grid (Colunas, Linhas, Margens e Gutter) a qualquer momento dentro do editor do projeto. Ajustes no grid não devem, idealmente, destruir layouts existentes, apenas reagrupar se necessário (ou manter posição absoluta se desejado).
 
-### 1.3. Paginação (Pagination)
-*   **Múltiplas Páginas**: Um projeto pode conter múltiplas páginas.
-*   **Formato Único**: Todas as páginas de um projeto seguem o mesmo Grid e Formato definidos no projeto.
-*   **Navegação**: O editor deve permitir navegar ou rolar entre as páginas.
+### 1.3. Páginas e Paginação
+
+*   **Multi-Página**: O canvas suporta múltiplas páginas para documentos longos.
+*   **Navegação**: Usar setas ou inputs de página para navegar entre páginas.
+*   **Criação de Página**: Adicionar novas páginas dinamicamente.
+*   **Exclusão de Página**: Somente se a página estiver vazia (sem gráficos).
 *   **Capítulos (Chapters)**: Páginas podem ser tratadas como Capítulos nomeados (ex: "Introdução", "Mercado"). Isso é configurável por projeto.
     *   **Visualização Robusta**: A gestão de capítulos deve ter uma visualização dedicada (ex: Dashboard de Capítulos), permitindo organizar múltiplos gráficos sem o caos visual da paginação linear.
 
-### 1.4. Exclusão e Reorganização
+### 1.4. Reconfiguração Dinâmica do Grid
+
+**Comportamento ao Alterar Grid (Colunas/Linhas):**
+
+Quando o usuário altera a configuração do grid (ex: de 12×8 para 10×10), **todos os gráficos existentes são automaticamente reposicionados proporcionalmente**.
+
+#### Regras de Reposicionamento Automático:
+
+1. **Cálculo Proporcional**: Posição e tamanho calculados como percentuais relativos ao grid total
+   - Exemplo: Chart em x=6 de 12 colunas → 50% → x=5 em 10 colunas
+
+2. **Fórmula de Recálculo**:
+   ```
+   newX = round((oldX / oldColumns) × newColumns)
+   newY = round((oldY / oldRows) × newRows)
+   newW = max(1, round((oldW / oldColumns) × newColumns))
+   newH = max(1, round((oldH / oldRows) × newRows))
+   ```
+
+3. **Clamping aos Limites**: Charts não podem ultrapassar bordas do novo grid
+   - `x` clamped: `max(0, min(newX, newColumns - newW))`
+   - `y` clamped: `max(0, min(newY, newRows - newH))`
+
+4. **Tamanho Mínimo**: Largura e altura sempre ≥ 1 módulo
+
+5. **Feedback Visual**: Toast mostra quantidade de gráficos reposicionados
+   - "Grid atualizado! 5 gráfico(s) reposicionado(s)"
+
+#### Casos Especiais:
+
+- **Grid aumentado**: Charts mantêm espaçamento proporcional, podem ganhar módulos extras
+- **Grid reduzido**: Charts encolhem proporcionalmente, respeitando mínimo de 1 módulo
+- **Mesmo grid**: Nenhum chart é alterado, toast padrão "Grid atualizado com sucesso"
+
+**Importante**: Alterações de margin/gutter NÃO disparam reposicionamento (apenas colunas/linhas).
+
+### 1.5. Exclusão e Reorganização
 *   **Excluir Página**: O usuário pode excluir páginas. Se a página contiver gráficos, o sistema deve solicitar confirmação. A exclusão da página remove permanentemente os gráficos nela contidos. O projeto deve ter no mínimo 1 página.
 *   **Excluir Capítulo**:
     *   **Remover Apenas Capítulo**: Remove a marcação do capítulo, mas mantém as páginas (que passam a pertencer ao capítulo anterior ou ficam sem capítulo).

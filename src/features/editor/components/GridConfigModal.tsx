@@ -67,9 +67,17 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                 margin,
                 gutter,
                 mode: gridMode,
-                fixedModuleWidth: gridMode === 'fixed' ? fixedWidth : undefined,
-                fixedModuleHeight: gridMode === 'fixed' ? fixedHeight : undefined
+                ...(gridMode === 'fixed' && fixedWidth && fixedHeight ? {
+                    fixedModuleWidth: fixedWidth,
+                    fixedModuleHeight: fixedHeight
+                } : {})
             };
+
+            // Remove undefined fields for flexible mode
+            if (gridMode === 'flexible') {
+                delete (newGridConfig as any).fixedModuleWidth;
+                delete (newGridConfig as any).fixedModuleHeight;
+            }
 
             await projectService.updateProject(project.id, {
                 gridConfig: newGridConfig,
