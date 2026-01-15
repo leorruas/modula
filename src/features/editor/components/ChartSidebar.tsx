@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { SimpleDataEditor } from './SimpleDataEditor';
 import { recommendChartType, getRecommendationReason } from '@/services/chartRecommendationService';
 import { generateMonochromaticPalette } from '@/utils/colors';
+import { COLOR_PRESETS, type ColorPresetKey } from '@/utils/chartTheme';
+import { IconSelectorModal } from './IconSelectorModal';
 
 interface ChartSidebarProps {
     projectId: string;
@@ -22,11 +24,17 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     const [notes, setNotes] = useState('');
     const [chartName, setChartName] = useState('');
     const [chartStatus, setChartStatus] = useState<'draft' | 'ready' | 'published'>('draft');
+    const [chartMode, setChartMode] = useState<'classic' | 'infographic'>('classic');
+    const [colorPreset, setColorPreset] = useState<ColorPresetKey>('vibrantModern');
 
     const [inputMode, setInputMode] = useState<'simple' | 'csv' | 'json'>('simple');
     const [csvInput, setCsvInput] = useState('');
     const [recommendedType, setRecommendedType] = useState<ChartType | null>(null);
     const [recommendationReason, setRecommendationReason] = useState('');
+
+    // Icon states
+    const [iconModalOpen, setIconModalOpen] = useState(false);
+    const [selectedIcon, setSelectedIcon] = useState<{ category: string; iconKey: string } | null>(null);
 
     const [dataInput, setDataInput] = useState(JSON.stringify({
         labels: ["A", "B", "C", "D"],
@@ -170,6 +178,9 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     setNotes(chart.notes || '');
                     setPalette(chart.style?.colorPalette || ['#000000']);
                     setFontFamily(chart.style?.fontFamily || 'sans-serif');
+                    if (chart.style?.mode) {
+                        setChartMode(chart.style.mode);
+                    }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
                     setChartStatus(chart.status || 'draft');
@@ -253,10 +264,21 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     w,
                     h
                 },
-                data: parsedData,
+                data: {
+                    ...parsedData,
+                    ...(selectedIcon ? {
+                        iconConfig: {
+                            category: selectedIcon.category,
+                            iconKey: selectedIcon.iconKey,
+                            enabled: true,
+                            position: 'left'
+                        }
+                    } : {})
+                },
                 style: {
                     colorPalette: palette,
-                    fontFamily
+                    fontFamily,
+                    mode: chartMode
                 }
             });
             triggerRefresh();
@@ -276,10 +298,21 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 type: chartType,
                 status: chartStatus,
                 notes,
-                data: parsedData,
+                data: {
+                    ...parsedData,
+                    ...(selectedIcon ? {
+                        iconConfig: {
+                            category: selectedIcon.category,
+                            iconKey: selectedIcon.iconKey,
+                            enabled: true,
+                            position: 'left'
+                        }
+                    } : {})
+                },
                 style: {
                     colorPalette: palette,
-                    fontFamily
+                    fontFamily,
+                    mode: chartMode
                 }
             });
             triggerRefresh();
@@ -459,9 +492,148 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     <option value="radar">Gráfico Radar</option>
                     <option value="mixed">Gráfico Misto</option>
                     <option value="histogram">Histograma</option>
+                    <option value="pictogram">📊 Pictograma (Ícones)</option>
                     <option value="boxplot">Boxplot</option>
                 </select>
             </div>
+
+            {/* Modo de Visualização - TOGGLE */}
+            <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#222' }}>
+                    Modo de Visualização
+                </label>
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '8px 12px',
+                    background: '#f5f5f5',
+                    borderRadius: 6
+                }}>
+                    <span style={{
+                        fontSize: 12,
+                        fontWeight: chartMode === 'classic' ? 600 : 400,
+                        color: chartMode === 'classic' ? '#222' : '#999'
+                    }}>
+                        📊 Clássico
+                    </span>
+                    <button
+                        onClick={() => setChartMode(chartMode === 'classic' ? 'infographic' : 'classic')}
+                        style={{
+                            position: 'relative',
+                            width: 44,
+                            height: 24,
+                            background: chartMode === 'infographic' ? '#00D9FF' : '#ccc',
+                            border: 'none',
+                            borderRadius: 12,
+                            cursor: 'pointer',
+                            transition: 'background 0.2s',
+                            padding: 0
+                        }}
+                    >
+                        <div style={{
+                            position: 'absolute',
+                            top: 2,
+                            left: chartMode === 'infographic' ? 22 : 2,
+                            width: 20,
+                            height: 20,
+                            background: 'white',
+                            borderRadius: '50%',
+                            transition: 'left 0.2s',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                        }} />
+                    </button>
+                    <span style={{
+                        fontSize: 12,
+                        fontWeight: chartMode === 'infographic' ? 600 : 400,
+                        color: chartMode === 'infographic' ? '#222' : '#999'
+                    }}>
+                        🎨 Infográfico
+                    </span>
+                </div>
+                <div style={{ fontSize: 11, color: '#666', marginTop: 6 }}>
+                    {chartMode === 'classic' ? 'Grid sutil, tipografia equilibrada' : 'Números gigantes, minimalista'}
+                </div>
+            </div>
+
+            {/* Preset de Cores */}
+            <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>
+                    Preset de Cores
+                </label>
+                <select
+                    value={colorPreset}
+                    onChange={(e) => {
+                        const preset = e.target.value as ColorPresetKey;
+                        setColorPreset(preset);
+                        setPalette(COLOR_PRESETS[preset].colors);
+                    }}
+                    style={{ width: '100%', padding: 8, fontSize: 13, borderRadius: 4, border: '1px solid #ccc' }}
+                >
+                    {Object.entries(COLOR_PRESETS).map(([key, preset]) => (
+                        <option key={key} value={key}>{preset.name}</option>
+                    ))}
+                </select>
+                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                    {COLOR_PRESETS[colorPreset].colors.slice(0, 5).map((color, i) => (
+                        <div
+                            key={i}
+                            style={{
+                                width: 24,
+                                height: 24,
+                                backgroundColor: color,
+                                borderRadius: 3,
+                                border: '1px solid #ddd'
+                            }}
+                        />
+                    ))}
+                </div>
+            </div>
+
+            {/* Icon Selector */}
+            {(chartType === 'bar' || chartType === 'pictogram') && (
+                <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#222' }}>
+                        Ícone (Opcional)
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => setIconModalOpen(true)}
+                        style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #ddd',
+                            borderRadius: 4,
+                            background: 'white',
+                            cursor: 'pointer',
+                            fontSize: 13,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                        }}
+                    >
+                        <span>{selectedIcon ? `${selectedIcon.iconKey} (${selectedIcon.category})` : 'Selecionar ícone...'}</span>
+                        <span style={{ fontSize: 18 }}>🎨</span>
+                    </button>
+                    {selectedIcon && (
+                        <button
+                            type="button"
+                            onClick={() => setSelectedIcon(null)}
+                            style={{
+                                marginTop: 6,
+                                fontSize: 11,
+                                color: '#ef4444',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: 0
+                            }}
+                        >
+                            ✕ Remover ícone
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -631,6 +803,16 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     </button>
                 )}
             </div>
+
+            {/* Icon Selector Modal */}
+            <IconSelectorModal
+                isOpen={iconModalOpen}
+                onClose={() => setIconModalOpen(false)}
+                onSelectIcon={(category, iconKey) => {
+                    setSelectedIcon({ category, iconKey });
+                }}
+                currentIcon={selectedIcon || undefined}
+            />
         </div>
     );
 }

@@ -1,5 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
 import { generateMonochromaticPalette } from '@/utils/colors';
 
 interface DonutChartProps {
@@ -14,19 +15,19 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
     const values = dataset.data;
     const labels = data.labels;
 
+    const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
-    const radius = Math.min(width, height) / 2 - 20;
-    const innerRadius = radius * 0.6;
+    const padding = isInfographic ? 40 : 20;
+    const outerRadius = (Math.min(width, height) / 2) - padding - (isInfographic ? 30 : 0);
+    const innerRadius = outerRadius * 0.6;
     const centerX = width / 2;
     const centerY = height / 2;
 
     let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
-    if (values.length > colors.length) {
-        if (colors.length === 1) {
-            colors = generateMonochromaticPalette(colors[0], values.length);
-        }
+    if (values.length > colors.length && colors.length === 1) {
+        colors = generateMonochromaticPalette(colors[0], values.length);
     }
-    const fontFamily = style?.fontFamily || 'sans-serif';
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
     let startAngle = 0;
 
@@ -37,10 +38,10 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                     const sliceAngle = (value / total) * 2 * Math.PI;
                     const endAngle = startAngle + sliceAngle;
 
-                    const x1 = radius * Math.cos(startAngle - Math.PI / 2);
-                    const y1 = radius * Math.sin(startAngle - Math.PI / 2);
-                    const x2 = radius * Math.cos(endAngle - Math.PI / 2);
-                    const y2 = radius * Math.sin(endAngle - Math.PI / 2);
+                    const x1 = outerRadius * Math.cos(startAngle - Math.PI / 2);
+                    const y1 = outerRadius * Math.sin(startAngle - Math.PI / 2);
+                    const x2 = outerRadius * Math.cos(endAngle - Math.PI / 2);
+                    const y2 = outerRadius * Math.sin(endAngle - Math.PI / 2);
 
                     const x3 = innerRadius * Math.cos(endAngle - Math.PI / 2);
                     const y3 = innerRadius * Math.sin(endAngle - Math.PI / 2);
@@ -51,18 +52,18 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
 
                     const pathData = [
                         `M ${x1} ${y1}`,
-                        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                        `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
                         `L ${x3} ${y3}`,
                         `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}`,
                         `Z`
                     ].join(' ');
 
+                    const percentage = ((value / total) * 100).toFixed(1);
                     const labelAngle = startAngle + sliceAngle / 2;
-                    const labelR = radius * 0.8; // Middle of ring
+                    const labelR = isInfographic ? outerRadius + 40 : (outerRadius + innerRadius) / 2;
                     const lx = labelR * Math.cos(labelAngle - Math.PI / 2);
                     const ly = labelR * Math.sin(labelAngle - Math.PI / 2);
 
-                    const currentStartAngle = startAngle;
                     startAngle += sliceAngle;
 
                     return (
@@ -70,29 +71,61 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                             <path
                                 d={pathData}
                                 fill={colors[i % colors.length]}
-                                stroke="#fff"
-                                strokeWidth="2"
+                                stroke={isInfographic ? 'none' : '#fff'}
+                                strokeWidth={isInfographic ? 0 : 2}
                             />
-                            {sliceAngle > 0.3 && (
+
+                            {isInfographic ? (
+                                <>
+                                    <line
+                                        x1={outerRadius * 0.9 * Math.cos(labelAngle - Math.PI / 2)}
+                                        y1={outerRadius * 0.9 * Math.sin(labelAngle - Math.PI / 2)}
+                                        x2={lx}
+                                        y2={ly}
+                                        stroke={CHART_THEME.colors.neutral.medium}
+                                        strokeWidth={1}
+                                        opacity={0.3}
+                                    />
+                                    <text
+                                        x={lx}
+                                        y={ly - 15}
+                                        textAnchor="middle"
+                                        fontSize={CHART_THEME.fontSizes.huge}
+                                        fontFamily={CHART_THEME.fonts.number}
+                                        fontWeight={CHART_THEME.fontWeights.black}
+                                        fill={CHART_THEME.colors.neutral.dark}
+                                    >
+                                        {percentage}%
+                                    </text>
+                                    <text
+                                        x={lx}
+                                        y={ly + 5}
+                                        textAnchor="middle"
+                                        fontSize={CHART_THEME.fontSizes.small}
+                                        fontFamily={fontFamily}
+                                        fontWeight={CHART_THEME.fontWeights.medium}
+                                        fill={CHART_THEME.colors.neutral.medium}
+                                    >
+                                        {labels[i]}
+                                    </text>
+                                </>
+                            ) : (
                                 <text
                                     x={lx}
                                     y={ly}
                                     textAnchor="middle"
                                     alignmentBaseline="middle"
-                                    fontSize="9"
+                                    fontSize={CHART_THEME.fontSizes.small}
                                     fontFamily={fontFamily}
                                     fill="#fff"
-                                    fontWeight="bold"
+                                    fontWeight={CHART_THEME.fontWeights.semibold}
                                 >
-                                    {labels[i]}
+                                    {`${labels[i]} ${percentage}%`}
                                 </text>
                             )}
                         </g>
                     );
                 })}
-                <text x={0} y={0} textAnchor="middle" alignmentBaseline="middle" fontSize={14} fontWeight="bold" fill="#333">
-                    {total}
-                </text>
             </g>
         </BaseChart>
     );

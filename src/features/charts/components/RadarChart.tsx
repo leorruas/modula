@@ -1,5 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
 
 interface RadarChartProps {
     width: number;
@@ -13,91 +14,114 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
     const values = dataset.data;
     const labels = data.labels;
 
-    const maxValue = Math.max(...values, 1);
+    const isInfographic = style?.mode === 'infographic';
+    const maxValue = Math.max(...values);
     const centerX = width / 2;
     const centerY = height / 2;
-    // Leave space for labels
-    const radius = Math.min(width, height) / 2 - 40;
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
+    const radius = Math.min(width, height) / 2 - padding;
 
-    const primaryColor = style?.colorPalette[0] || 'rgba(0,0,0,0.5)';
-    const strokeColor = style?.colorPalette[1] || '#333';
-    const fontFamily = style?.fontFamily || 'sans-serif';
+    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
-    const numAxes = labels.length;
-    const angleSlice = (2 * Math.PI) / numAxes;
-
-    // Calculate polygon points
-    const points = values.map((val, i) => {
-        const angle = i * angleSlice - Math.PI / 2; // Start from top
-        const r = (val / maxValue) * radius;
-        const x = centerX + r * Math.cos(angle);
-        const y = centerY + r * Math.sin(angle);
-        return `${x},${y}`;
-    }).join(' ');
+    const angleStep = (2 * Math.PI) / values.length;
 
     return (
         <BaseChart width={width} height={height} data={data} type="radar">
-            <g>
-                {/* Axes and Grid */}
-                {[0.25, 0.5, 0.75, 1].map((scale, s) => (
-                    <polygon
-                        key={s}
-                        points={labels.map((_, i) => {
-                            const angle = i * angleSlice - Math.PI / 2;
-                            const r = radius * scale;
-                            return `${centerX + r * Math.cos(angle)},${centerY + r * Math.sin(angle)}`;
-                        }).join(' ')}
+            <g transform={`translate(${centerX}, ${centerY})`}>
+                {/* Grid circles - only classic */}
+                {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => (
+                    <circle
+                        key={i}
+                        cx={0}
+                        cy={0}
+                        r={radius * fraction}
                         fill="none"
-                        stroke="#e0e0e0"
-                        strokeWidth="1"
+                        stroke={CHART_THEME.colors.neutral.lighter}
+                        strokeWidth={1}
+                        opacity={0.15}
                     />
                 ))}
 
-                {/* Axis Lines */}
-                {labels.map((label, i) => {
-                    const angle = i * angleSlice - Math.PI / 2;
-                    const x = centerX + radius * Math.cos(angle);
-                    const y = centerY + radius * Math.sin(angle);
-
-                    // Label position (slightly further out)
-                    const lx = centerX + (radius + 15) * Math.cos(angle);
-                    const ly = centerY + (radius + 15) * Math.sin(angle);
+                {/* Axes */}
+                {values.map((_, i) => {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const x = radius * Math.cos(angle);
+                    const y = radius * Math.sin(angle);
 
                     return (
-                        <g key={i}>
-                            <line x1={centerX} y1={centerY} x2={x} y2={y} stroke="#ddd" />
-                            <text
-                                x={lx}
-                                y={ly}
-                                textAnchor="middle"
-                                dominantBaseline="middle"
-                                fontSize="10"
-                                fontFamily={fontFamily}
-                                fill="#666"
-                            >
-                                {label}
-                            </text>
-                        </g>
+                        <line
+                            key={i}
+                            x1={0}
+                            y1={0}
+                            x2={x}
+                            y2={y}
+                            stroke={CHART_THEME.colors.neutral.medium}
+                            strokeWidth={1}
+                            opacity={isInfographic ? 0.1 : 0.3}
+                        />
                     );
                 })}
 
-                {/* Data Polygon */}
+                {/* Data polygon */}
                 <polygon
-                    points={points}
+                    points={values.map((value, i) => {
+                        const angle = i * angleStep - Math.PI / 2;
+                        const r = (value / maxValue) * radius;
+                        const x = r * Math.cos(angle);
+                        const y = r * Math.sin(angle);
+                        return `${x},${y}`;
+                    }).join(' ')}
                     fill={primaryColor}
-                    fillOpacity={0.4}
-                    stroke={strokeColor}
-                    strokeWidth={2}
+                    fillOpacity={0.3}
+                    stroke={primaryColor}
+                    strokeWidth={isInfographic ? 3 : 2}
                 />
 
-                {/* Data Points */}
-                {values.map((val, i) => {
-                    const angle = i * angleSlice - Math.PI / 2;
-                    const r = (val / maxValue) * radius;
-                    const x = centerX + r * Math.cos(angle);
-                    const y = centerY + r * Math.sin(angle);
+                {/* Data points and labels */}
+                {values.map((value, i) => {
+                    const angle = i * angleStep - Math.PI / 2;
+                    const r = (value / maxValue) * radius;
+                    const x = r * Math.cos(angle);
+                    const y = r * Math.sin(angle);
+                    const labelX = (radius + 20) * Math.cos(angle);
+                    const labelY = (radius + 20) * Math.sin(angle);
+
                     return (
-                        <circle key={i} cx={x} cy={y} r={3} fill={strokeColor} />
+                        <g key={i}>
+                            <circle
+                                cx={x}
+                                cy={y}
+                                r={isInfographic ? 6 : 4}
+                                fill={primaryColor}
+                                stroke="#fff"
+                                strokeWidth={2}
+                            />
+                            {isInfographic && (
+                                <text
+                                    x={x}
+                                    y={y - 12}
+                                    textAnchor="middle"
+                                    fontSize={CHART_THEME.fontSizes.huge}
+                                    fontFamily={CHART_THEME.fonts.number}
+                                    fontWeight={CHART_THEME.fontWeights.black}
+                                    fill={CHART_THEME.colors.neutral.dark}
+                                >
+                                    {value}
+                                </text>
+                            )}
+                            <text
+                                x={labelX}
+                                y={labelY}
+                                textAnchor="middle"
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
+                                fontFamily={fontFamily}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                fill={CHART_THEME.colors.neutral.dark}
+                            >
+                                {labels[i]}
+                            </text>
+                        </g>
                     );
                 })}
             </g>

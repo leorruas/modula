@@ -1,5 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
 
 interface ColumnChartProps {
     width: number;
@@ -13,19 +14,55 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
     const values = dataset.data;
     const labels = data.labels;
 
+    const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
-    const padding = 20;
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
     const colWidth = chartWidth / values.length;
-    const colGap = colWidth * 0.2;
+    const colGap = colWidth * 0.3;
 
-    const primaryColor = style?.colorPalette[0] || '#333';
-    const fontFamily = style?.fontFamily || 'sans-serif';
+    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
     return (
         <BaseChart width={width} height={height} data={data} type="column">
+            <defs>
+                <filter id="colShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation={CHART_THEME.effects.shadowBlur} />
+                    <feOffset dx="0" dy="2" result="offsetblur" />
+                    <feComponentTransfer>
+                        <feFuncA type="linear" slope={CHART_THEME.effects.shadowOpacity} />
+                    </feComponentTransfer>
+                    <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                <linearGradient id="colGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={primaryColor} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.3" />
+                </linearGradient>
+            </defs>
+
             <g transform={`translate(${padding}, ${padding})`}>
+                {/* Grid lines - only in classic mode */}
+                {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => {
+                    const y = chartHeight * fraction;
+                    return (
+                        <line
+                            key={i}
+                            x1={0}
+                            y1={y}
+                            x2={chartWidth}
+                            y2={y}
+                            stroke={CHART_THEME.colors.neutral.lighter}
+                            strokeWidth={1}
+                            opacity={0.15}
+                        />
+                    );
+                })}
+
                 {values.map((value, i) => {
                     const barH = (value / maxValue) * chartHeight;
                     const x = i * colWidth;
@@ -33,36 +70,56 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
 
                     return (
                         <g key={i}>
+                            {/* Label */}
                             <text
                                 x={x + (colWidth - colGap) / 2}
-                                y={chartHeight + 15}
+                                y={chartHeight + 20}
                                 textAnchor="middle"
-                                fontSize="10"
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
                                 fontFamily={fontFamily}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                fill={CHART_THEME.colors.neutral.dark}
                             >
                                 {labels[i]}
                             </text>
+
+                            {/* Column with gradient and shadow */}
                             <rect
                                 x={x}
                                 y={y}
                                 width={colWidth - colGap}
                                 height={barH}
-                                fill={primaryColor}
+                                fill="url(#colGradient)"
+                                rx={CHART_THEME.effects.borderRadius}
+                                filter="url(#colShadow)"
                             />
+
+                            {/* Value - GIANT in infographic mode */}
                             <text
                                 x={x + (colWidth - colGap) / 2}
-                                y={y - 5}
+                                y={y - (isInfographic ? 15 : 8)}
                                 textAnchor="middle"
-                                fontSize="10"
-                                fontFamily={fontFamily}
-                                fill="#666"
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.huge : CHART_THEME.fontSizes.medium}
+                                fontFamily={CHART_THEME.fonts.number}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
+                                fill={CHART_THEME.colors.neutral.dark}
                             >
                                 {value}
                             </text>
                         </g>
                     );
                 })}
-                <line x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="#000" />
+
+                {/* X-axis line */}
+                <line
+                    x1={0}
+                    y1={chartHeight}
+                    x2={chartWidth}
+                    y2={chartHeight}
+                    stroke={CHART_THEME.colors.neutral.medium}
+                    strokeWidth={CHART_THEME.strokeWidths.axis}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
+                />
             </g>
         </BaseChart>
     );

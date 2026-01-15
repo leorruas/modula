@@ -19,7 +19,7 @@ export interface ChartModule {
     h: number;
 }
 
-export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'custom';
+export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'pictogram' | 'custom';
 
 export interface ChartData {
     labels: string[];
@@ -29,6 +29,12 @@ export interface ChartData {
     }[];
     xAxisLabel?: string; // Optional X-axis label
     yAxisLabel?: string; // Optional Y-axis label
+    iconConfig?: {
+        category: string;
+        iconKey: string;
+        enabled: boolean;
+        position?: 'left' | 'right';
+    };
 }
 
 export type ChartStatus = 'draft' | 'ready' | 'published';
@@ -36,6 +42,7 @@ export type ChartStatus = 'draft' | 'ready' | 'published';
 export interface ChartStyle {
     colorPalette: string[];
     fontFamily: string;
+    mode?: 'classic' | 'infographic'; // Dual-mode system
 }
 
 export interface Chart {

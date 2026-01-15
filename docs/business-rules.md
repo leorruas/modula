@@ -101,35 +101,157 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
 9.  **Histograma**: Distribuição de frequência.
 10. **Boxplot**: Distribuição estatística e quartis.
 
-#### Comparativos e Híbridos
-11. **Comparativos**: Ranking, Antes vs Depois.
-12. **Mistos**: Combinação de Barras/Colunas com Linhas (ex: Pareto, Chuva vs Temperatura).
-13. **Radar**: Comparação multivariada.
+### 2.10. Recomendação Heurística de Gráficos (Chart Recommendation)
 
-### 2.6. Interação no Editor
-*   **Pan**: O usuário deve conseguir arrastar (Pan) o canvas segurando a tecla Espaço ou Shift.
-*   **Zoom**: Zoom in/out deve ser centrado no cursor ou no centro da tela.
-*   **Seleção**: Áreas vazias podem ser selecionadas para criação. Gráficos existentes podem ser selecionados para edição.
+*   **Análise de Dados**: Quando o usuário insere dados via CSV, o sistema deve analisar os padrões (ex: séries temporais, número de categorias, distribuição de valores) e sugerir o tipo de gráfico mais adequado.
+*   **Heurísticas Implementadas**:
+    *   **Boxplot**: Detecta múltiplos datasets numéricos (≥3) para comparação de distribuições.
+    *   **Histogram**: Detecta grande quantidade de valores numéricos únicos (≥10) para visualizar distribuição.
+    *   **Pie/Donut**: Detecta poucos valores (≤6) que somam 100% ou próximo.
+    *   **Line/Area**: Detecta séries temporais ou progressões ordenadas.
+    *   **Scatter**: Detecta datasets com valores dispersos (alta variância).
+    *   **Radar**: Detecta múltiplas métricas (3-8) para comparação multidimensional.
+    *   **Mixed**: Detecta 2+ datasets com valores em escalas muito diferentes.
+    *   **Bar/Column**: Fallback padrão para comparações categóricas.
+*   **Interface**: Exibir card de sugestão com botão "Aplicar Sugestão" logo abaixo da área de input CSV. A recomendação deve incluir uma breve justificativa (ex: "Série temporal detectada").
 
-### 2.10. Recomendação Inteligente de Gráficos
-O sistema deve sugerir automaticamente o tipo de gráfico mais adequado com base nos dados fornecidos (CSV/colagem), sem uso de IA. A recomendação é baseada em heurísticas:
+---
 
-#### Regras de Recomendação (por prioridade):
-1.  **Boxplot**: Se houver exatamente 5 datasets com rótulos contendo Min, Q1, Mediana, Q3, Max.
-2.  **Histograma**: Dataset único com muitos pontos (>8) e rótulo sugerindo "frequência" ou "distribuição".
-3.  **Pizza/Donut**: 
-    *   Dataset único com valores positivos
-    *   Dados somam ~100 (percentuais) OU
-    *   3-7 categorias (proporções/partes de um todo)
-4.  **Linha/Área**: Labels parecem datas (anos 1900-2099, formatos DD/MM, YYYY-MM, meses por extenso).
-    *   Múltiplos datasets positivos → Área (acumulado)
-    *   Caso contrário → Linha
-5.  **Dispersão**: Labels contêm "vs" ou "versus" (correlação).
-6.  **Radar**: 2+ datasets, 3-10 dimensões categóricas com keywords de habilidades/desempenho.
-7.  **Misto**: Dois datasets com escalas muito diferentes (razão > 5x).
-8.  **Barras**: Mais de 10 categorias (horizontal facilita leitura de labels longos).
-9.  **Colunas**: Padrão para comparação entre categorias.
+### 2.11. Sistema Dual-Mode: Clássico vs Infográfico 🎨
 
-#### Interface
-*   A sugestão é exibida em um alerta azul com botão "Aplicar Sugestão".
-*   A explicação contextual justifica a escolha (ex: "Dados temporais detectados").
+O sistema suporta **dois modos de visualização** por chart, permitindo flexibilidade entre análise técnica e impacto editorial.
+
+#### 2.11.1. Modos Disponíveis
+
+**Modo Clássico (default)**
+- Grid lines sutis (opacity 0.15)
+- Padding: 50px
+- Font sizes: 11-16px
+- Eixos bem definidos (opacity 0.3)
+- Ideal para: dashboards, relatórios técnicos
+
+**Modo Infográfico**
+- **Zero grid** (opacity 0)
+- **Padding: 100px** (espaçamento editorial)
+- **Hero numbers: 56-96px** (font-weight 900)
+- Eixos invisíveis (opacity 0.1)
+- Stroke grosso (3-4px em linhas)
+- Labels externos (Pie/Donut)
+- Ideal para: publicações, apresentações
+
+#### 2.11.2. UI Toggle
+
+**Implementação**: Toggle switch animado no ChartSidebar
+- Estados: "📊 Clássico" ↔ "🎨 Infográfico"
+- Visual: Cor cyan (#00D9FF) quando infográfico
+- Hint: Descrição dinâmica do modo selecionado
+- Salvamento: `chart.style.mode` no Firestore
+
+#### 2.11.3. Color Presets
+
+**4 Paletas Curadas**:
+
+1. **Editorial Pastel**: `#FF8A80, #FFB3AD, #F5E6D3, #B2DFDB, #FFCDD2`
+2. **Vibrant Modern** (default): `#00D9FF, #D4FF00, #00BFA6, #9C27B0, #FF6F00`
+3. **Classic Business**: `#2563eb, #10b981, #f59e0b, #ef4444, #8b5cf6`
+4. **Monochrome + Accent**: `#1a1a1a, #666666, #00D9FF, #999999, #cccccc`
+
+**UI**: Dropdown com preview (5 círculos coloridos 24x24px)
+
+#### 2.11.4. Charts com Dual-Mode
+
+**Todos os 12 tipos** implementam dual-mode:
+- Bar, Column, Line, Area, Pie, Donut
+- Scatter, Radar, Bubble, Histogram, Mixed, Boxplot
+
+**Diferenças visuais específicas**:
+- **Pie/Donut infográfico**: Labels externos, linhas conectoras, percentuais gigantes
+- **Line/Area infográfico**: Hero numbers nos pontos, stroke 4px
+- **Bar/Column infográfico**: Valores acima (não ao lado), padding generoso
+
+#### 2.11.5. Persistência
+
+```typescript
+interface ChartStyle {
+  colorPalette: string[];
+  fontFamily: string;
+  mode?: 'classic' | 'infographic';
+  colorPreset?: string;
+}
+```
+
+---
+
+### 2.12. Sistema de Ícones
+
+#### 2.12.1. Icon Library
+
+**Lucide React**: 18+ ícones em 6 categorias
+- 👥 **People**: person, people, user
+- 🎓 **Education**: student, book, school
+- 💼 **Business**: briefcase, chart, money
+- 💻 **Tech**: laptop, phone, server
+- 🏠 **Places**: home, building, factory
+- ⭐ **Symbols**: heart, star, award
+
+#### 2.12.2. IconSelectorModal
+
+**UI**: Modal 600px com:
+- **Header**: Título + botão fechar (×)
+- **Busca**: Input para filtrar ícones
+- **Tabs**: 6 categorias clicáveis
+- **Grid**: 6 colunas, preview 24x24px
+- **Footer**: Contador + botão Cancelar
+
+**Interação**:
+- Hover: Border cyan (#00D9FF)
+- Selecionado: Background cyan claro (#E6FAFF)
+- Click: Seleciona e fecha modal
+
+#### 2.12.3. Tipos com Ícones
+
+**Bar Chart**:
+- Ícone aparece à esquerda do label
+- Renderizado via `foreignObject` (SVG)
+- Tamanho: 16px
+
+**Pictogram Chart** (NOVO TIPO):
+- Ícones **repetidos** representam quantidades
+- Calcula `valuePerIcon` automaticamente
+- Layout: Grid multi-linhas (max 15 por linha)
+- Legenda: "Cada ícone = X unidades"
+
+#### 2.12.4. Persistência
+
+```typescript
+interface ChartData {
+  labels: string[];
+  datasets: Dataset[];
+  iconConfig?: {
+    category: string;
+    iconKey: string;
+    enabled: boolean;
+    position: 'left' | 'right';
+  };
+}
+```
+
+---
+
+## 3. Notificações (Toast)
+
+### 3.1. Configuração
+
+- **Posição**: `top-right` (não bloqueia botões inferiores)
+- **Close button**: Sim (`closeButton: true`)
+- **Rich colors**: Sim (verde success, vermelho error)
+- **Auto-dismiss**: 3-4 segundos
+- **Stack**: Empilha múltiplas notificações
+
+### 3.2. Casos de Uso
+
+- ✅ "Gráfico criado com sucesso!"
+- ✅ "Gráfico atualizado"
+- ✅ "Projeto salvo"
+- ❌ "Erro ao atualizar: JSON inválido"
+- ℹ️ Feedback de ações do usuário

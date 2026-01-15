@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { generateMonochromaticPalette } from '@/utils/colors';
+import { CHART_THEME } from '@/utils/chartTheme';
 
 interface PieChartProps {
     width: number;
@@ -14,22 +15,18 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
     const values = dataset.data;
     const labels = data.labels;
 
+    const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
-    const radius = Math.min(width, height) / 2 - 20;
+    const padding = isInfographic ? 40 : 20;
+    const radius = (Math.min(width, height) / 2) - padding - (isInfographic ? 30 : 0);
     const centerX = width / 2;
     const centerY = height / 2;
 
     let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
-    // If we have more values than colors, and especially if we only have 1 color, generate shades
-    if (values.length > colors.length) {
-        if (colors.length === 1) {
-            colors = generateMonochromaticPalette(colors[0], values.length);
-        } else {
-            // Repeat or interpolate? For now, repeat logic handles it below (i % colors.length)
-            // But for cleaner look, maybe generate more? Let's stick to simple generation if strictly 1 color provided.
-        }
+    if (values.length > colors.length && colors.length === 1) {
+        colors = generateMonochromaticPalette(colors[0], values.length);
     }
-    const fontFamily = style?.fontFamily || 'sans-serif';
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
     let startAngle = 0;
 
@@ -54,12 +51,15 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                         `Z`
                     ].join(' ');
 
+                    // Percentage
+                    const percentage = ((value / total) * 100).toFixed(1);
+
+                    // Label position
                     const labelAngle = startAngle + sliceAngle / 2;
-                    const labelR = radius * 0.7;
+                    const labelR = isInfographic ? radius + 40 : radius * 0.7;
                     const lx = labelR * Math.cos(labelAngle - Math.PI / 2);
                     const ly = labelR * Math.sin(labelAngle - Math.PI / 2);
 
-                    const currentStartAngle = startAngle;
                     startAngle += sliceAngle;
 
                     return (
@@ -67,20 +67,63 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                             <path
                                 d={pathData}
                                 fill={colors[i % colors.length]}
-                                stroke="#fff"
-                                strokeWidth="1"
+                                stroke={isInfographic ? 'none' : '#fff'}
+                                strokeWidth={isInfographic ? 0 : 2}
                             />
-                            <text
-                                x={lx}
-                                y={ly}
-                                textAnchor="middle"
-                                alignmentBaseline="middle"
-                                fontSize="10"
-                                fontFamily={fontFamily}
-                                fill="#fff"
-                            >
-                                {labels[i]}
-                            </text>
+
+                            {isInfographic ? (
+                                // Infographic mode: external labels with percentages
+                                <>
+                                    {/* Connector line */}
+                                    <line
+                                        x1={radius * 0.9 * Math.cos(labelAngle - Math.PI / 2)}
+                                        y1={radius * 0.9 * Math.sin(labelAngle - Math.PI / 2)}
+                                        x2={lx}
+                                        y2={ly}
+                                        stroke={CHART_THEME.colors.neutral.medium}
+                                        strokeWidth={1}
+                                        opacity={0.3}
+                                    />
+                                    {/* Percentage - HERO */}
+                                    <text
+                                        x={lx}
+                                        y={ly - 15}
+                                        textAnchor="middle"
+                                        fontSize={CHART_THEME.fontSizes.huge}
+                                        fontFamily={CHART_THEME.fonts.number}
+                                        fontWeight={CHART_THEME.fontWeights.black}
+                                        fill={CHART_THEME.colors.neutral.dark}
+                                    >
+                                        {percentage}%
+                                    </text>
+                                    {/* Label */}
+                                    <text
+                                        x={lx}
+                                        y={ly + 5}
+                                        textAnchor="middle"
+                                        fontSize={CHART_THEME.fontSizes.small}
+                                        fontFamily={fontFamily}
+                                        fontWeight={CHART_THEME.fontWeights.medium}
+                                        fill={CHART_THEME.colors.neutral.medium}
+                                    >
+                                        {labels[i]}
+                                    </text>
+                                </>
+                            ) : (
+                                // Classic mode: internal labels
+                                <text
+                                    x={lx}
+                                    y={ly}
+                                    textAnchor="middle"
+                                    alignmentBaseline="middle"
+                                    fontSize={CHART_THEME.fontSizes.small}
+                                    fontFamily={fontFamily}
+                                    fill="#fff"
+                                    fontWeight={CHART_THEME.fontWeights.semibold}
+                                >
+                                    {`${labels[i]}\n${percentage}%`}
+                                </text>
+                            )}
                         </g>
                     );
                 })}

@@ -17,6 +17,7 @@ import { RadarChart } from '@/features/charts/components/RadarChart';
 import { HistogramChart } from '@/features/charts/components/HistogramChart';
 import { MixedChart } from '@/features/charts/components/MixedChart';
 import { BoxplotChart } from '@/features/charts/components/BoxplotChart';
+import { PictogramChart } from '@/features/charts/components/PictogramChart';
 import { GenericChart } from '@/features/charts/components/GenericChart';
 
 
@@ -400,7 +401,10 @@ export function Canvas({ project }: CanvasProps) {
                             {/* Pass pointer-events: none to inner charts so they don't block mouse events on parent div, actually we want clicks. 
                                 But for Drag, parent catches it. 
                             */}
-                            <div style={{ width: '100%', height: '100%', pointerEvents: 'none' }}>
+                            <div
+                                key={`${chart.id}-${chart.style?.mode || 'classic'}-${chart.style?.colorPalette?.join(',') || 'default'}`}
+                                style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
+                            >
                                 {chart.type === 'bar' && <BarChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'column' && <ColumnChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'line' && <LineChart width={w} height={h} data={chart.data} style={chart.style} />}
@@ -412,6 +416,7 @@ export function Canvas({ project }: CanvasProps) {
                                 {chart.type === 'histogram' && <HistogramChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'mixed' && <MixedChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'boxplot' && <BoxplotChart width={w} height={h} data={chart.data} style={chart.style} />}
+                                {chart.type === 'pictogram' && <PictogramChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'area' && <AreaChart width={w} height={h} data={chart.data} style={chart.style} />}
                             </div>
 

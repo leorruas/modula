@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AuthProvider>
           {children}
-          <Toaster position="bottom-right" />
+          <Toaster position="top-right" closeButton richColors />
         </AuthProvider>
       </body>
     </html>

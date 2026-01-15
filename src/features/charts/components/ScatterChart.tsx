@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { LabelManager, Label } from '../utils/labelManager';
+import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
 
 interface ScatterChartProps {
     width: number;
@@ -12,72 +12,101 @@ interface ScatterChartProps {
 export function ScatterChart({ width, height, data, style }: ScatterChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
-    const labels = data.labels;
 
+    const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
-    const padding = 20;
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
 
-    const primaryColor = style?.colorPalette[0] || 'rgba(0,0,0,0.5)';
-    const fontFamily = style?.fontFamily || 'sans-serif';
-
-    // Pre-calculate positions to run collision detection
-    const rawLabels: Label[] = values.map((value, i) => {
-        const x = (i / (values.length - 1 || 1)) * chartWidth;
-        const y = chartHeight - ((value / maxValue) * chartHeight);
-
-        const text = labels[i];
-        const textWidth = text.length * 6;
-        const textHeight = 12;
-
-        return {
-            id: i.toString(),
-            x: x - textWidth / 2, // Centered
-            y: y - 8 - textHeight, // Above dot
-            width: textWidth,
-            height: textHeight,
-            text: text,
-            priority: value
-        };
-    });
-
-    const visibleLabels = LabelManager.resolveCollisions(rawLabels, chartWidth, chartHeight);
+    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
     return (
         <BaseChart width={width} height={height} data={data} type="scatter">
             <g transform={`translate(${padding}, ${padding})`}>
-                <line x1={0} y1={0} x2={0} y2={chartHeight} stroke="#ddd" />
-                <line x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="#ddd" />
+                {/* Grid - only classic */}
+                {!isInfographic && (
+                    <>
+                        {[0.25, 0.5, 0.75, 1].map((fraction, i) => (
+                            <line
+                                key={`h${i}`}
+                                x1={0}
+                                y1={chartHeight * fraction}
+                                x2={chartWidth}
+                                y2={chartHeight * fraction}
+                                stroke={CHART_THEME.colors.neutral.lighter}
+                                strokeWidth={1}
+                                opacity={0.15}
+                            />
+                        ))}
+                        {[0.25, 0.5, 0.75, 1].map((fraction, i) => (
+                            <line
+                                key={`v${i}`}
+                                x1={chartWidth * fraction}
+                                y1={0}
+                                x2={chartWidth * fraction}
+                                y2={chartHeight}
+                                stroke={CHART_THEME.colors.neutral.lighter}
+                                strokeWidth={1}
+                                opacity={0.15}
+                            />
+                        ))}
+                    </>
+                )}
 
+                {/* Data points */}
                 {values.map((value, i) => {
-                    const x = (i / (values.length - 1 || 1)) * chartWidth;
+                    const x = (i / (values.length - 1)) * chartWidth;
                     const y = chartHeight - ((value / maxValue) * chartHeight);
-                    const labelState = visibleLabels.find(l => l.id === i.toString());
 
                     return (
                         <g key={i}>
                             <circle
                                 cx={x}
                                 cy={y}
-                                r={4}
+                                r={isInfographic ? 8 : 5}
                                 fill={primaryColor}
+                                opacity={0.7}
+                                stroke="#fff"
+                                strokeWidth={2}
                             />
-                            {labelState?.visible && (
+                            {isInfographic && (
                                 <text
                                     x={x}
-                                    y={y - 8}
+                                    y={y - 15}
                                     textAnchor="middle"
-                                    fontSize="10"
-                                    fontFamily={fontFamily}
-                                    fill="#666"
+                                    fontSize={CHART_THEME.fontSizes.huge}
+                                    fontFamily={CHART_THEME.fonts.number}
+                                    fontWeight={CHART_THEME.fontWeights.black}
+                                    fill={CHART_THEME.colors.neutral.dark}
                                 >
-                                    {labelState.text}
+                                    {value}
                                 </text>
                             )}
                         </g>
                     );
                 })}
+
+                {/* Axes */}
+                <line
+                    x1={0}
+                    y1={chartHeight}
+                    x2={chartWidth}
+                    y2={chartHeight}
+                    stroke={CHART_THEME.colors.neutral.medium}
+                    strokeWidth={CHART_THEME.strokeWidths.axis}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
+                />
+                <line
+                    x1={0}
+                    y1={0}
+                    x2={0}
+                    y2={chartHeight}
+                    stroke={CHART_THEME.colors.neutral.medium}
+                    strokeWidth={CHART_THEME.strokeWidths.axis}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
+                />
             </g>
         </BaseChart>
     );

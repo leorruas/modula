@@ -14,8 +14,9 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
     const values = dataset.data;
     const labels = data.labels;
 
+    const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
-    const padding = CHART_THEME.padding.large;
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
 
@@ -32,8 +33,8 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
     return (
         <BaseChart width={width} height={height} data={data} type="line">
             <g transform={`translate(${padding}, ${padding})`}>
-                {/* Subtle horizontal grid lines */}
-                {[0.25, 0.5, 0.75, 1].map((fraction, i) => {
+                {/* Grid lines - only in classic mode */}
+                {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => {
                     const y = chartHeight * fraction;
                     return (
                         <line
@@ -43,13 +44,13 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
                             x2={chartWidth}
                             y2={y}
                             stroke={CHART_THEME.colors.neutral.lighter}
-                            strokeWidth={CHART_THEME.strokeWidths.grid}
-                            opacity={CHART_THEME.effects.gridOpacity}
+                            strokeWidth={CHART_THEME.strokeWidths.grid || 1}
+                            opacity={0.15}
                         />
                     );
                 })}
 
-                {/* Axes */}
+                {/* Axes - subtle in both modes, invisible in infographic */}
                 <line
                     x1={0}
                     y1={chartHeight}
@@ -57,7 +58,7 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
                     y2={chartHeight}
                     stroke={CHART_THEME.colors.neutral.medium}
                     strokeWidth={CHART_THEME.strokeWidths.axis}
-                    opacity={CHART_THEME.effects.axisOpacity}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
                 />
                 <line
                     x1={0}
@@ -66,14 +67,14 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
                     y2={chartHeight}
                     stroke={CHART_THEME.colors.neutral.medium}
                     strokeWidth={CHART_THEME.strokeWidths.axis}
-                    opacity={CHART_THEME.effects.axisOpacity}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
                 />
 
-                {/* Line with elegant stroke */}
+                {/* Line with elegant stroke - thicker in infographic */}
                 <polyline
                     fill="none"
                     stroke={primaryColor}
-                    strokeWidth={CHART_THEME.strokeWidths.line}
+                    strokeWidth={isInfographic ? 4 : CHART_THEME.strokeWidths.line}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     points={points}
@@ -85,14 +86,14 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
                     const y = chartHeight - ((value / maxValue) * chartHeight);
                     return (
                         <g key={i}>
-                            {/* Point */}
+                            {/* Point - larger in infographic */}
                             <circle
                                 cx={x}
                                 cy={y}
-                                r={4}
+                                r={isInfographic ? 6 : 4}
                                 fill="#fff"
                                 stroke={primaryColor}
-                                strokeWidth={2.5}
+                                strokeWidth={isInfographic ? 3 : 2.5}
                             />
 
                             {/* Label */}
@@ -100,23 +101,23 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
                                 x={x}
                                 y={chartHeight + 20}
                                 textAnchor="middle"
-                                fontSize={CHART_THEME.fontSizes.small}
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
                                 fontFamily={fontFamily}
-                                fontWeight={CHART_THEME.fontWeights.medium}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
                                 fill={CHART_THEME.colors.neutral.dark}
                             >
                                 {labels[i]}
                             </text>
 
-                            {/* Value above point */}
+                            {/* Value above point - GIANT in infographic */}
                             <text
                                 x={x}
-                                y={y - 12}
+                                y={y - (isInfographic ? 20 : 12)}
                                 textAnchor="middle"
-                                fontSize={CHART_THEME.fontSizes.small}
-                                fontFamily={CHART_THEME.fonts.value}
-                                fontWeight={CHART_THEME.fontWeights.semibold}
-                                fill={CHART_THEME.colors.neutral.medium}
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.huge : CHART_THEME.fontSizes.small}
+                                fontFamily={CHART_THEME.fonts.number}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
+                                fill={CHART_THEME.colors.neutral.dark}
                             >
                                 {value}
                             </text>

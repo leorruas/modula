@@ -1,5 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
 
 interface HistogramChartProps {
     width: number;
@@ -13,68 +14,106 @@ export function HistogramChart({ width, height, data, style }: HistogramChartPro
     const values = dataset.data;
     const labels = data.labels;
 
-    const maxValue = Math.max(...values, 1);
-    const padding = 20;
+    const isInfographic = style?.mode === 'infographic';
+    const maxValue = Math.max(...values);
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
     const chartWidth = width - padding * 2;
     const chartHeight = height - padding * 2;
-
-    // Histogram distinctive feature: no gap between bars
     const barWidth = chartWidth / values.length;
 
-    const primaryColor = style?.colorPalette[0] || '#333';
-    const fontFamily = style?.fontFamily || 'sans-serif';
+    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
     return (
         <BaseChart width={width} height={height} data={data} type="histogram">
-            <g transform={`translate(${padding}, ${padding})`}>
-                {/* Axis Lines */}
-                <line x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight} stroke="#333" strokeWidth={1} />
+            <defs>
+                <linearGradient id="histGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={primaryColor} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.3" />
+                </linearGradient>
+            </defs>
 
-                {/* Grid lines (horizontal) */}
-                {[0, 0.25, 0.5, 0.75, 1].map(t => (
+            <g transform={`translate(${padding}, ${padding})`}>
+                {/* Grid - only classic */}
+                {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => (
                     <line
-                        key={t}
+                        key={i}
                         x1={0}
-                        y1={chartHeight * (1 - t)}
+                        y1={chartHeight * fraction}
                         x2={chartWidth}
-                        y2={chartHeight * (1 - t)}
-                        stroke="#eee"
-                        strokeDasharray="4 4"
+                        y2={chartHeight * fraction}
+                        stroke={CHART_THEME.colors.neutral.lighter}
+                        strokeWidth={1}
+                        opacity={0.15}
                     />
                 ))}
 
+                {/* Histogram bars */}
                 {values.map((value, i) => {
-                    const barHeight = (value / maxValue) * chartHeight;
+                    const barH = (value / maxValue) * chartHeight;
                     const x = i * barWidth;
-                    const y = chartHeight - barHeight;
+                    const y = chartHeight - barH;
 
                     return (
                         <g key={i}>
                             <rect
                                 x={x}
                                 y={y}
-                                width={barWidth} // No gap
-                                height={barHeight}
-                                fill={primaryColor}
-                                stroke="white" // Separator
+                                width={barWidth - (isInfographic ? 4 : 2)}
+                                height={barH}
+                                fill="url(#histGradient)"
+                                stroke={isInfographic ? 'none' : '#fff'}
                                 strokeWidth={1}
                             />
-                            {/* Label Logic: Show every Nth label if too crowded */}
-                            {values.length < 12 || i % 2 === 0 ? (
+                            {isInfographic && (
                                 <text
                                     x={x + barWidth / 2}
-                                    y={chartHeight + 15}
+                                    y={y - 10}
                                     textAnchor="middle"
-                                    fontSize="10"
+                                    fontSize={CHART_THEME.fontSizes.huge}
+                                    fontFamily={CHART_THEME.fonts.number}
+                                    fontWeight={CHART_THEME.fontWeights.black}
+                                    fill={CHART_THEME.colors.neutral.dark}
+                                >
+                                    {value}
+                                </text>
+                            )}
+                            {labels[i] && (
+                                <text
+                                    x={x + barWidth / 2}
+                                    y={chartHeight + 20}
+                                    textAnchor="middle"
+                                    fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
                                     fontFamily={fontFamily}
-                                    fill="#666"
+                                    fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                    fill={CHART_THEME.colors.neutral.dark}
                                 >
                                     {labels[i]}
                                 </text>
-                            ) : null}
+                            )}
                         </g>
                     );
                 })}
+
+                {/* Axes */}
+                <line
+                    x1={0}
+                    y1={chartHeight}
+                    x2={chartWidth}
+                    y2={chartHeight}
+                    stroke={CHART_THEME.colors.neutral.medium}
+                    strokeWidth={CHART_THEME.strokeWidths.axis}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
+                />
+                <line
+                    x1={0}
+                    y1={0}
+                    x2={0}
+                    y2={chartHeight}
+                    stroke={CHART_THEME.colors.neutral.medium}
+                    strokeWidth={CHART_THEME.strokeWidths.axis}
+                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
+                />
             </g>
         </BaseChart>
     );
