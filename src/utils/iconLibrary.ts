@@ -71,7 +71,7 @@ export type IconKey<T extends IconCategoryKey> = keyof typeof ICON_CATEGORIES[T]
  */
 export function getIcon(category: IconCategoryKey, iconKey: string) {
     const categoryIcons = ICON_CATEGORIES[category].icons;
-    const iconData = categoryIcons[iconKey as keyof typeof categoryIcons];
+    const iconData = categoryIcons[iconKey as keyof typeof categoryIcons] as { component: any; label: string } | undefined;
     return iconData?.component;
 }
 
@@ -95,6 +95,6 @@ export function getIconComponent(category: string, iconKey: string) {
     const cat = ICON_CATEGORIES[category as keyof typeof ICON_CATEGORIES];
     if (!cat) return null;
 
-    const iconData = cat.icons[iconKey as keyof typeof cat.icons];
+    const iconData = cat.icons[iconKey as keyof typeof cat.icons] as { component: any; label: string } | undefined;
     return iconData?.component || null;
 }
