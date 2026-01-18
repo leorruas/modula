@@ -84,42 +84,9 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                 useChapters
             });
 
-            // Recalculate and reposition all charts proportionally
-            const oldCols = project.gridConfig.columns;
-            const oldRows = project.gridConfig.rows;
-            const newCols = finalColumns;
-            const newRows = finalRows;
-
-            if (oldCols !== newCols || oldRows !== newRows) {
-                // Import chartService
-                const { chartService } = await import('@/services/chartService');
-                const charts = await chartService.getProjectCharts(project.id);
-
-                const updatePromises = charts.map(async (chart) => {
-                    const newX = Math.round((chart.module.x / oldCols) * newCols);
-                    const newY = Math.round((chart.module.y / oldRows) * newRows);
-                    const newW = Math.max(1, Math.round((chart.module.w / oldCols) * newCols));
-                    const newH = Math.max(1, Math.round((chart.module.h / oldRows) * newRows));
-
-                    // Clamp to grid bounds
-                    const clampedX = Math.min(newX, newCols - newW);
-                    const clampedY = Math.min(newY, newRows - newH);
-
-                    await chartService.updateChart(chart.id, {
-                        module: {
-                            x: Math.max(0, clampedX),
-                            y: Math.max(0, clampedY),
-                            w: newW,
-                            h: newH
-                        }
-                    });
-                });
-
-                await Promise.all(updatePromises);
-                toast.success(`Grid atualizado! ${charts.length} gráfico(s) reposicionado(s)`);
-            } else {
-                toast.success("Grid atualizado com sucesso");
-            }
+            // Auto-repositioning DISABLED - was causing chart size bugs
+            // User must manually reposition charts after grid changes
+            toast.success("Grid atualizado! Reposicione manualmente os gráficos se necessário.");
 
             onUpdate();
             onClose();

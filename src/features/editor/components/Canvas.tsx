@@ -372,6 +372,19 @@ export function Canvas({ project }: CanvasProps) {
                     const w = module.w * moduleWidth + (module.w - 1) * gutterPx;
                     const h = module.h * moduleHeight + (module.h - 1) * gutterPx;
 
+                    // DEBUG: Log chart sizing
+                    if (chart.id === charts[0]?.id) {
+                        console.log('🔍 Chart Debug:', {
+                            moduleWH: `${module.w}x${module.h}`,
+                            modulePos: `(${module.x},${module.y})`,
+                            moduleWidth, moduleHeight,
+                            gutterPx,
+                            calculatedW: w,
+                            calculatedH: h
+                        });
+                    }
+
+
                     const validation = validationResults.find(v => v.chartId === chart.id);
                     const isSelected = editingChartId === chart.id;
 

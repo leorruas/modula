@@ -250,6 +250,14 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         const w = maxC - minC + 1;
         const h = maxR - minR + 1;
 
+        console.log('📐 Creating chart:', {
+            selectedModulesCount: selectedModules.length,
+            selectedModules,
+            minR, maxR, minC, maxC,
+            calculatedW: w,
+            calculatedH: h
+        });
+
         try {
             const parsedData = JSON.parse(dataInput);
             await chartService.createChart(projectId, {
@@ -285,7 +293,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             setSelection([]); // Clear selection after create
             toast.success("Gráfico criado com sucesso!");
         } catch (e) {
-            alert("JSON de dados inválido");
+            if (e instanceof SyntaxError) {
+                toast.error("JSON de dados inválido");
+            } else {
+                console.error('Error creating chart:', e);
+                toast.error(`Erro ao criar gráfico: ${e instanceof Error ? e.message : 'Erro desconhecido'}`);
+            }
         }
     };
 
@@ -294,7 +307,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         try {
             const parsedData = JSON.parse(dataInput);
             await chartService.updateChart(editingChartId, {
-                name: chartName || undefined,
+                ...(chartName ? { name: chartName } : {}), // Only update name if provided
                 type: chartType,
                 status: chartStatus,
                 notes,
@@ -319,7 +332,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             setEditingChartId(null); // Exit edit mode
             toast.success("Gráfico atualizado");
         } catch (e) {
-            alert("Erro ao atualizar: JSON inválido");
+            if (e instanceof SyntaxError) {
+                toast.error("JSON de dados inválido");
+            } else {
+                console.error('Error updating chart:', e);
+                toast.error(`Erro ao atualizar: ${e instanceof Error ? e.message : 'Erro desconhecido'}`);
+            }
         }
     };
 

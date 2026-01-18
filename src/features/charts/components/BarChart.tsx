@@ -1,7 +1,8 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
-import { getIcon } from '@/utils/iconLibrary';
+
+import { ensureDistinctColors } from '@/utils/colors';
 
 interface BarChartProps {
     width: number;
@@ -16,23 +17,30 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
     const labels = data.labels;
 
     const isInfographic = style?.mode === 'infographic';
-    const hasIcons = data.iconConfig?.enabled && data.iconConfig?.category && data.iconConfig?.iconKey;
+
 
     const maxValue = Math.max(...values);
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+
+
+    // Smart Margins
+    const basePadding = isInfographic ? CHART_THEME.padding.medium : CHART_THEME.padding.small;
+    const marginTop = basePadding;
+    const marginRight = basePadding;
+    const marginBottom = basePadding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
+    const marginLeft = basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 40);
+
+    const chartWidth = width - marginLeft - marginRight;
+    const chartHeight = height - marginTop - marginBottom;
     const barHeight = chartHeight / values.length;
     const barGap = barHeight * 0.3;
 
-    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
-    // Get icon component if enabled
-    const IconComponent = hasIcons ? getIcon(
-        data.iconConfig!.category as any,
-        data.iconConfig!.iconKey
-    ) : null;
+    // Color logic: ensure distinct colors if multiple bars
+    const baseColors = style?.colorPalette || [getChartColor(0)];
+    const computedColors = ensureDistinctColors(baseColors, values.length);
+
+
 
     return (
         <BaseChart width={width} height={height} data={data} type="bar">
@@ -48,13 +56,9 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                         <feMergeNode in="SourceGraphic" />
                     </feMerge>
                 </filter>
-                <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor={primaryColor} stopOpacity="0.8" />
-                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.3" />
-                </linearGradient>
             </defs>
 
-            <g transform={`translate(${padding}, ${padding})`}>
+            <g transform={`translate(${marginLeft}, ${marginTop})`}>
                 {/* Grid lines - only in classic mode */}
                 {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => {
                     const x = chartWidth * fraction;
@@ -80,20 +84,9 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                         <g key={i}>
                             {/* Icon + Label */}
                             <g>
-                                {hasIcons && IconComponent && (
-                                    <foreignObject
-                                        x={-35}
-                                        y={y + (barHeight - barGap) / 2 - 10}
-                                        width={20}
-                                        height={20}
-                                    >
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                                            <IconComponent size={16} color={CHART_THEME.colors.neutral.dark} strokeWidth={2} />
-                                        </div>
-                                    </foreignObject>
-                                )}
+
                                 <text
-                                    x={hasIcons ? -10 : -10}
+                                    x={-10}
                                     y={y + (barHeight - barGap) / 2}
                                     dy=".35em"
                                     textAnchor="end"
@@ -106,13 +99,14 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                                 </text>
                             </g>
 
-                            {/* Bar with gradient and shadow */}
+                            {/* Bar with color */}
                             <rect
                                 x={0}
                                 y={y}
                                 width={barW}
                                 height={barHeight - barGap}
-                                fill="url(#barGradient)"
+                                fill={computedColors[i % computedColors.length]}
+                                opacity={0.8}
                                 rx={CHART_THEME.effects.borderRadius}
                                 filter="url(#barShadow)"
                             />
@@ -160,14 +154,14 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                 )}
                 {data.yAxisLabel && (
                     <text
+                        transform="rotate(-90)"
                         x={-chartHeight / 2}
-                        y={-28}
+                        y={-marginLeft + 15} // Position relative to new left margin
                         textAnchor="middle"
                         fontSize={CHART_THEME.fontSizes.medium}
                         fontFamily={CHART_THEME.fonts.title}
                         fontWeight={CHART_THEME.fontWeights.semibold}
                         fill={CHART_THEME.colors.neutral.medium}
-                        transform={`rotate(-90, ${-chartHeight / 2}, -28)`}
                     >
                         {data.yAxisLabel}
                     </text>

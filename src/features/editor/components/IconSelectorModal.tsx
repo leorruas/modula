@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { getAllIcons, ICON_CATEGORIES, getIconComponent } from '@/utils/iconLibrary';
-import * as Icons from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { getAllIcons, ICON_CATEGORIES, getIconComponent, getAllLucideIconKeys } from '@/utils/iconLibrary';
+
 
 interface IconSelectorModalProps {
     isOpen: boolean;
@@ -12,17 +12,48 @@ interface IconSelectorModalProps {
 export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }: IconSelectorModalProps) {
     const [selectedCategory, setSelectedCategory] = useState<string>('people');
     const [searchQuery, setSearchQuery] = useState('');
+    const [visibleLimit, setVisibleLimit] = useState(200);
+
+    const allLucideIcons = useMemo(() => getAllLucideIconKeys(), []);
+    const categorizedIcons = getAllIcons();
 
     if (!isOpen) return null;
 
-    const allIcons = getAllIcons();
-    const categoryIcons = allIcons[selectedCategory as keyof typeof allIcons] || [];
+    // Determine which pool of icons to use
+    let sourceIcons: string[] = [];
+    if (selectedCategory === 'all') {
+        sourceIcons = allLucideIcons;
+    } else {
+        sourceIcons = categorizedIcons[selectedCategory as keyof typeof categorizedIcons] || [];
+    }
+
+    // Filter icons based on search query
+    // If searching, we might want to search ACROSS ALL categories if the user is in a category? 
+    // Or just search within current? The prompt implied "All" category for full search.
+    // Let's stick to searching within the selected category, but maybe switch to 'all' if user wants?
+    // Actually, widespread pattern is: if search is active, show results from everywhere? 
+    // The plan said: "When 'All' is selected or when searching, query against the entire LucideIcons set."
+
+    // Let's enforce: If there is a search query, we automatically search ALL icons, effectively behaving like 'all' category but filtered.
+    // Or we can keep the category selection but if search is present, maybe hint?
+    // Plan: "Ensure search filters the entire list." -> implied we search everything.
+
+    const isSearching = searchQuery.length > 0;
+    const iconsToFilter = (isSearching || selectedCategory === 'all') ? allLucideIcons : sourceIcons;
 
     const filteredIcons = searchQuery
-        ? categoryIcons.filter((icon: string) => icon.toLowerCase().includes(searchQuery.toLowerCase()))
-        : categoryIcons;
+        ? allLucideIcons.filter((icon: string) => icon.toLowerCase().includes(searchQuery.toLowerCase()))
+        : sourceIcons;
+
+    // Reset limit when query or category changes
+    // We can't do this easily in render, better to do in handlers or effects. 
+    // For now, let's just slice. We'll handle reset in onChange.
+
+    const visibleIcons = filteredIcons.slice(0, visibleLimit);
+    const hasMore = visibleIcons.length < filteredIcons.length;
 
     const categoryLabels: Record<string, string> = {
+        all: '🌐 Todos',
         people: '👥 Pessoas',
         education: '🎓 Educação',
         business: '💼 Negócios',
@@ -32,8 +63,37 @@ export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }
     };
 
     const handleSelect = (iconKey: string) => {
-        onSelectIcon(selectedCategory, iconKey);
+        // If we are in 'all' or searching, the category is technically 'all' or we find the original category?
+        // Simpler to just pass 'all' or the actual found category if we want to be precise.
+        // But getIconComponent now falls back to generic lookup, so passing 'all' or 'custom' works fine if we update it.
+        // To be safe and compatible with existing structure if it cares about category names for other things:
+        // Actually the backend/storage likely just stores string references.
+        // Let's pass 'all' if selectedCategory is all or searching.
+        const catToSave = (isSearching || selectedCategory === 'all') ? 'all' : selectedCategory;
+        onSelectIcon(catToSave, iconKey);
         onClose();
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        setVisibleLimit(100); // Reset limit on search
+        if (e.target.value.length > 0 && selectedCategory !== 'all') {
+            // Optional: Auto-switch to 'all'? No, let's just filter 'all' effectively as per logic above.
+            // Actually, the UI tabs might look confusing if we are in "People" but seeing results from "Tech".
+            // Let's just search within 'all' logic-wise but visually maybe switch tab?
+            // Or let's keep it simple: If searching, we display matches from ALL icons.
+            setSelectedCategory('all');
+        }
+    };
+
+    const handleCategoryChange = (cat: string) => {
+        setSelectedCategory(cat);
+        setSearchQuery(''); // Clear search when switching category? Or keep it? Clear is safer.
+        setVisibleLimit(100);
+    };
+
+    const handleLoadMore = () => {
+        setVisibleLimit(prev => prev + 100);
     };
 
     return (
@@ -94,9 +154,9 @@ export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }
                 <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
                     <input
                         type="text"
-                        placeholder="Buscar ícone..."
+                        placeholder="Buscar em todos os ícones..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={handleSearchChange}
                         style={{
                             width: '100%',
                             padding: '8px 12px',
@@ -115,10 +175,29 @@ export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }
                     borderBottom: '1px solid #f0f0f0',
                     overflowX: 'auto'
                 }}>
+                    {/* Add All option manually */}
+                    <button
+                        key="all"
+                        onClick={() => handleCategoryChange('all')}
+                        style={{
+                            padding: '6px 12px',
+                            border: selectedCategory === 'all' ? '2px solid #00D9FF' : '1px solid #ddd',
+                            borderRadius: 4,
+                            background: selectedCategory === 'all' ? '#E6FAFF' : 'white',
+                            cursor: 'pointer',
+                            fontSize: 12,
+                            fontWeight: selectedCategory === 'all' ? 600 : 400,
+                            color: selectedCategory === 'all' ? '#00A0CC' : '#666',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        {categoryLabels['all']}
+                    </button>
+
                     {Object.keys(ICON_CATEGORIES).map(cat => (
                         <button
                             key={cat}
-                            onClick={() => setSelectedCategory(cat)}
+                            onClick={() => handleCategoryChange(cat)}
                             style={{
                                 padding: '6px 12px',
                                 border: selectedCategory === cat ? '2px solid #00D9FF' : '1px solid #ddd',
@@ -147,61 +226,90 @@ export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }
                             Nenhum ícone encontrado
                         </div>
                     ) : (
-                        <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(6, 1fr)',
-                            gap: 12
-                        }}>
-                            {filteredIcons.map((iconKey: string) => {
-                                const IconComponent = getIconComponent(selectedCategory, iconKey);
-                                const isSelected = currentIcon?.category === selectedCategory && currentIcon?.iconKey === iconKey;
+                        <>
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(6, 1fr)',
+                                gap: 12
+                            }}>
+                                {visibleIcons.map((iconKey: string) => {
+                                    // Pass 'all' if category is 'all' to trigger safe fallback
+                                    const IconComponent = getIconComponent(selectedCategory === 'all' ? 'all' : selectedCategory, iconKey) || getIconComponent('all', iconKey);
+                                    const isSelected = currentIcon?.iconKey === iconKey; // Simple check purely on key name for visual feedback
 
-                                return (
+                                    if (!IconComponent) return null;
+
+                                    return (
+                                        <button
+                                            key={iconKey}
+                                            onClick={() => handleSelect(iconKey)}
+                                            style={{
+                                                padding: 16,
+                                                border: isSelected ? '2px solid #00D9FF' : '1px solid #e0e0e0',
+                                                borderRadius: 6,
+                                                background: isSelected ? '#E6FAFF' : 'white',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                gap: 8,
+                                                transition: 'all 0.2s',
+                                                height: 90
+                                            }}
+                                            title={iconKey}
+                                            onMouseEnter={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.style.borderColor = '#00D9FF';
+                                                    e.currentTarget.style.background = '#f9f9f9';
+                                                }
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                if (!isSelected) {
+                                                    e.currentTarget.style.borderColor = '#e0e0e0';
+                                                    e.currentTarget.style.background = 'white';
+                                                }
+                                            }}
+                                        >
+                                            <IconComponent size={24} strokeWidth={2} />
+                                            <span style={{
+                                                fontSize: 9,
+                                                color: '#666',
+                                                textAlign: 'center',
+                                                lineHeight: 1.2,
+                                                maxWidth: '100%',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical'
+                                            }}>
+                                                {iconKey}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {hasMore && (
+                                <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
                                     <button
-                                        key={iconKey}
-                                        onClick={() => handleSelect(iconKey)}
+                                        onClick={handleLoadMore}
                                         style={{
-                                            padding: 16,
-                                            border: isSelected ? '2px solid #00D9FF' : '1px solid #e0e0e0',
-                                            borderRadius: 6,
-                                            background: isSelected ? '#E6FAFF' : 'white',
+                                            padding: '8px 24px',
+                                            background: '#f0f0f0',
+                                            border: 'none',
+                                            borderRadius: 20,
+                                            color: '#666',
                                             cursor: 'pointer',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            gap: 8,
-                                            transition: 'all 0.2s'
-                                        }}
-                                        title={iconKey}
-                                        onMouseEnter={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.borderColor = '#00D9FF';
-                                                e.currentTarget.style.background = '#f9f9f9';
-                                            }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            if (!isSelected) {
-                                                e.currentTarget.style.borderColor = '#e0e0e0';
-                                                e.currentTarget.style.background = 'white';
-                                            }
+                                            fontSize: 14,
+                                            fontWeight: 500
                                         }}
                                     >
-                                        {IconComponent && <IconComponent size={24} strokeWidth={2} />}
-                                        <span style={{
-                                            fontSize: 9,
-                                            color: '#666',
-                                            textAlign: 'center',
-                                            lineHeight: 1.2,
-                                            maxWidth: '100%',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
-                                        }}>
-                                            {iconKey}
-                                        </span>
+                                        Carregar mais ícones...
                                     </button>
-                                );
-                            })}
-                        </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 
@@ -214,7 +322,7 @@ export function IconSelectorModal({ isOpen, onClose, onSelectIcon, currentIcon }
                     alignItems: 'center'
                 }}>
                     <div style={{ fontSize: 12, color: '#666' }}>
-                        {filteredIcons.length} ícone{filteredIcons.length !== 1 ? 's' : ''} disponíve{filteredIcons.length !== 1 ? 'is' : 'l'}
+                        {visibleIcons.length} de {filteredIcons.length} ícones
                     </div>
                     <button
                         onClick={onClose}

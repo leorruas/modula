@@ -1,7 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
-import { getIcon } from '@/utils/iconLibrary';
+import { getIcon, getIconComponent } from '@/utils/iconLibrary';
 
 interface PictogramChartProps {
     width: number;
@@ -19,17 +19,22 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
     const values = dataset.data;
     const labels = data.labels;
 
-    const padding = CHART_THEME.padding.large;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+    // Smart Margins for Pictogram
+    // Left needs space for labels (textAnchor=end at x=-10)
+    const marginLeft = 100;
+    const marginTop = 20;
+    const marginBottom = 20;
+    const marginRight = 20;
+
+    const chartWidth = width - marginLeft - marginRight;
+    const chartHeight = height - marginTop - marginBottom;
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
-    // Icon configuration
     const iconCategory = data.iconConfig?.category || 'people';
     const iconKey = data.iconConfig?.iconKey || 'person';
-    const IconComponent = getIcon(iconCategory as any, iconKey);
+    const IconComponent = getIconComponent(iconCategory, iconKey);
 
     // Calculate how many units each icon represents
     const maxValue = Math.max(...values);
@@ -42,7 +47,7 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
 
     return (
         <BaseChart width={width} height={height} data={data} type="pictogram">
-            <g transform={`translate(${padding}, ${padding})`}>
+            <g transform={`translate(${marginLeft}, ${marginTop})`}>
                 {values.map((value, rowIndex) => {
                     const iconCount = Math.round(value / valuePerIcon);
                     const y = rowIndex * rowHeight;
@@ -83,29 +88,17 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                 const iconY = y + row * (iconSize + iconGap) + 10;
 
                                 return (
-                                    <foreignObject
+                                    <IconComponent
                                         key={i}
-                                        x={x}
-                                        y={iconY}
-                                        width={iconSize}
-                                        height={iconSize}
-                                    >
-                                        <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            height: '100%',
-                                            width: '100%'
-                                        }}>
-                                            <IconComponent
-                                                size={iconSize - 4}
-                                                color={primaryColor}
-                                                strokeWidth={2}
-                                                fill={primaryColor}
-                                                fillOpacity={0.2}
-                                            />
-                                        </div>
-                                    </foreignObject>
+                                        x={x + 2}
+                                        y={iconY + 2}
+                                        width={iconSize - 4}
+                                        height={iconSize - 4}
+                                        color={primaryColor}
+                                        strokeWidth={2}
+                                        fill={primaryColor}
+                                        fillOpacity={0.2}
+                                    />
                                 );
                             })}
 
