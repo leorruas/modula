@@ -4,11 +4,12 @@ import { chartService } from '@/services/chartService';
 import { projectService } from '@/services/projectService';
 import { ChartType } from '@/types';
 import { toast } from 'sonner';
-import { SimpleDataEditor } from './SimpleDataEditor';
+import { DataEditorModal } from './DataEditorModal';
 import { recommendChartType, getRecommendationReason } from '@/services/chartRecommendationService';
 import { generateMonochromaticPalette } from '@/utils/colors';
 import { COLOR_PRESETS, type ColorPresetKey } from '@/utils/chartTheme';
 import { IconSelectorModal } from './IconSelectorModal';
+import { exportChartToPng } from '@/utils/exportUtils';
 
 interface ChartSidebarProps {
     projectId: string;
@@ -23,11 +24,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     const [fontFamily, setFontFamily] = useState('sans-serif');
     const [notes, setNotes] = useState('');
     const [chartName, setChartName] = useState('');
-    const [chartStatus, setChartStatus] = useState<'draft' | 'ready' | 'published'>('draft');
+
     const [chartMode, setChartMode] = useState<'classic' | 'infographic'>('classic');
     const [colorPreset, setColorPreset] = useState<ColorPresetKey>('vibrantModern');
 
-    const [inputMode, setInputMode] = useState<'simple' | 'csv' | 'json'>('simple');
+    const [inputMode, setInputMode] = useState<'csv' | 'json'>('csv');
     const [csvInput, setCsvInput] = useState('');
     const [recommendedType, setRecommendedType] = useState<ChartType | null>(null);
     const [recommendationReason, setRecommendationReason] = useState('');
@@ -35,6 +36,9 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     // Icon states
     const [iconModalOpen, setIconModalOpen] = useState(false);
     const [selectedIcon, setSelectedIcon] = useState<{ category: string; iconKey: string } | null>(null);
+
+    // Data Modal
+    const [dataModalOpen, setDataModalOpen] = useState(false);
 
     const [dataInput, setDataInput] = useState(JSON.stringify({
         labels: ["A", "B", "C", "D"],
@@ -183,8 +187,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
-                    setChartStatus(chart.status || 'draft');
-                    setInputMode('json');
+                    // inputMode was set to simple here, but now default is csv. Removing explicit set to simple.
                 }
             });
         }
@@ -192,7 +195,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
 
     const handleTypeChange = (newType: ChartType) => {
         setChartType(newType);
-        // Don't auto-load mock data - user can click "Carregar Exemplo" button
+
+        // Auto-select default icon for Pictogram if none selected
+        if (newType === 'pictogram' && !selectedIcon) {
+            setSelectedIcon({ category: 'people', iconKey: 'person' });
+        }
     };
 
     const parseCSV = (csv: string) => {
@@ -263,7 +270,6 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             await chartService.createChart(projectId, {
                 name: chartName || `Gráfico ${Date.now()}`,
                 type: chartType,
-                status: chartStatus,
                 notes,
                 page: activePage, // Assign current active page
                 module: {
@@ -309,7 +315,6 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             await chartService.updateChart(editingChartId, {
                 ...(chartName ? { name: chartName } : {}), // Only update name if provided
                 type: chartType,
-                status: chartStatus,
                 notes,
                 data: {
                     ...parsedData,
@@ -447,6 +452,117 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 </p>
             )}
 
+            {/* MOVED DATA INPUT TO TOP */}
+            <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#222' }}>Dados</label>
+                    <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
+                        <span
+                            onClick={() => setInputMode('csv')}
+                            style={{ cursor: 'pointer', fontWeight: inputMode === 'csv' ? 'bold' : 'normal', textDecoration: inputMode === 'csv' ? 'underline' : 'none', color: inputMode === 'csv' ? '#000' : '#888' }}
+                        >
+                            Importar CSV
+                        </span>
+                    </div>
+                </div>
+
+                {/* CSV Input Area (Always visible for Quick Import) */}
+                {inputMode === 'csv' && (
+                    <>
+                        <div style={{ marginBottom: 10 }}>
+                            <label
+                                htmlFor="csv-upload"
+                                style={{
+                                    display: 'block',
+                                    width: '100%',
+                                    border: '1px dashed #ccc',
+                                    padding: '20px',
+                                    textAlign: 'center',
+                                    cursor: 'pointer',
+                                    borderRadius: 4,
+                                    fontSize: 13,
+                                    color: '#666',
+                                    background: '#f9f9f9'
+                                }}
+                            >
+                                📂 Clique para fazer upload de CSV
+                            </label>
+                            <input
+                                id="csv-upload"
+                                type="file"
+                                accept=".csv"
+                                style={{ display: 'none' }}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            const text = event.target?.result as string;
+                                            setCsvInput(text);
+                                            parseCSV(text);
+                                        };
+                                        reader.readAsText(file);
+                                    }
+                                }}
+                            />
+                        </div>
+                        <textarea
+                            value={csvInput}
+                            onChange={(e) => {
+                                setCsvInput(e.target.value);
+                                parseCSV(e.target.value);
+                            }}
+                            placeholder="Categoria, Valor 1, Valor 2&#10;A, 10, 20&#10;B, 30, 40"
+                            style={{ width: '100%', height: 100, fontFamily: 'monospace', fontSize: 12, padding: 8, borderRadius: 4, border: '1px solid #ddd', marginBottom: 5 }}
+                        />
+                        <p style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
+                            Formato: Primeira linha cabeçalho, linhas seguintes dados. Ex: Categoria, Série A, Série B
+                        </p>
+                        {recommendedType && (
+                            <div style={{ marginTop: 10, padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 4 }}>
+                                <p style={{ fontSize: 12, color: '#0369a1', margin: '0 0 5px 0', fontWeight: 600 }}>
+                                    💡 Sugestão: {recommendedType === 'bar' ? 'Barras' : recommendedType === 'line' ? 'Linha' : recommendedType === 'pie' ? 'Pizza' : recommendedType}
+                                </p>
+                                <p style={{ fontSize: 11, color: '#0c4a6e', margin: 0 }}>
+                                    {recommendationReason}
+                                </p>
+                                <button
+                                    onClick={() => handleTypeChange(recommendedType)}
+                                    style={{ marginTop: 8, fontSize: 11, padding: '4px 8px', background: '#0284c7', color: 'white', border: 'none', borderRadius: 3, cursor: 'pointer' }}
+                                >
+                                    Aplicar Sugestão
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {/* Main Data Edit Action */}
+                <button
+                    onClick={() => setDataModalOpen(true)}
+                    style={{
+                        width: '100%',
+                        padding: '10px',
+                        marginTop: 10,
+                        background: 'white',
+                        border: '1px solid #ccc',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#333',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                >
+                    <span>Abrir Editor de Tabela</span>
+                    <span style={{ fontSize: 16 }}>↗</span>
+                </button>
+            </div>
+
             <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>Nome do Gráfico</label>
                 <input
@@ -458,18 +574,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>Status Editorial</label>
-                <select
-                    value={chartStatus}
-                    onChange={(e) => setChartStatus(e.target.value as any)}
-                    style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                >
-                    <option value="draft">🟡 Rascunho</option>
-                    <option value="ready">🟢 Pronto</option>
-                    <option value="published">🔵 Publicado</option>
-                </select>
-            </div>
+
 
             <div style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
@@ -608,11 +713,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 </div>
             </div>
 
-            {/* Icon Selector */}
-            {(chartType === 'bar' || chartType === 'pictogram') && (
+            {/* Icon Selector - Only for Pictogram */}
+            {chartType === 'pictogram' && (
                 <div style={{ marginBottom: 20 }}>
                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#222' }}>
-                        Ícone (Opcional)
+                        Ícone
                     </label>
                     <button
                         type="button"
@@ -633,23 +738,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         <span>{selectedIcon ? `${selectedIcon.iconKey} (${selectedIcon.category})` : 'Selecionar ícone...'}</span>
                         <span style={{ fontSize: 18 }}>🎨</span>
                     </button>
-                    {selectedIcon && (
-                        <button
-                            type="button"
-                            onClick={() => setSelectedIcon(null)}
-                            style={{
-                                marginTop: 6,
-                                fontSize: 11,
-                                color: '#ef4444',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                padding: 0
-                            }}
-                        >
-                            ✕ Remover ícone
-                        </button>
-                    )}
+                    {/* Icon is mandatory for Pictogram, so no remove button */}
                 </div>
             )}
 
@@ -722,79 +811,10 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 </select>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#222' }}>Dados</label>
-                    <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
-                        <span
-                            onClick={() => setInputMode('simple')}
-                            style={{ cursor: 'pointer', fontWeight: inputMode === 'simple' ? 'bold' : 'normal', textDecoration: inputMode === 'simple' ? 'underline' : 'none', color: inputMode === 'simple' ? '#000' : '#888' }}
-                        >
-                            Tabela
-                        </span>
-                        <span
-                            onClick={() => setInputMode('csv')}
-                            style={{ cursor: 'pointer', fontWeight: inputMode === 'csv' ? 'bold' : 'normal', textDecoration: inputMode === 'csv' ? 'underline' : 'none', color: inputMode === 'csv' ? '#000' : '#888' }}
-                        >
-                            CSV
-                        </span>
-                    </div>
-                </div>
 
-                {inputMode === 'simple' ? (
-                    <SimpleDataEditor
-                        data={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
-                        onChange={(newData) => setDataInput(JSON.stringify(newData, null, 2))}
-                    />
-                ) : inputMode === 'json' ? (
-                    <textarea
-                        value={dataInput}
-                        onChange={(e) => setDataInput(e.target.value)}
-                        style={{ width: '100%', height: 150, fontFamily: 'monospace', fontSize: 12, padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                    />
-                ) : (
-                    <>
-                        <textarea
-                            value={csvInput}
-                            onChange={(e) => {
-                                setCsvInput(e.target.value);
-                                parseCSV(e.target.value);
-                            }}
-                            placeholder="Categoria, Valor 1, Valor 2&#10;A, 10, 20&#10;B, 30, 40"
-                            style={{ width: '100%', height: 150, fontFamily: 'monospace', fontSize: 12, padding: 8, borderRadius: 4, border: '1px solid #ddd', marginBottom: 5 }}
-                        />
-                        <p style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
-                            Formato: Primeira linha cabeçalho, linhas seguintes dados. Ex: Categoria, Série A, Série B
-                        </p>
-                        {recommendedType && (
-                            <div style={{ marginTop: 10, padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 4 }}>
-                                <p style={{ fontSize: 12, color: '#0369a1', margin: '0 0 5px 0', fontWeight: 600 }}>
-                                    💡 Sugestão: {recommendedType === 'bar' ? 'Barras' : recommendedType === 'line' ? 'Linha' : recommendedType === 'pie' ? 'Pizza' : recommendedType}
-                                </p>
-                                <p style={{ fontSize: 11, color: '#0c4a6e', margin: 0 }}>
-                                    {recommendationReason}
-                                </p>
-                                <button
-                                    onClick={() => handleTypeChange(recommendedType)}
-                                    style={{ marginTop: 8, fontSize: 11, padding: '4px 8px', background: '#0284c7', color: 'white', border: 'none', borderRadius: 3, cursor: 'pointer' }}
-                                >
-                                    Aplicar Sugestão
-                                </button>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>Notas (Invisíveis)</label>
-                <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notas editoriais, contexto ou fontes..."
-                    style={{ width: '100%', height: 80, fontFamily: 'inherit', fontSize: 12, padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                />
-            </div>
+
+
 
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
                 {isEditing ? (
@@ -830,6 +850,13 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     setSelectedIcon({ category, iconKey });
                 }}
                 currentIcon={selectedIcon || undefined}
+            />
+
+            <DataEditorModal
+                isOpen={dataModalOpen}
+                onClose={() => setDataModalOpen(false)}
+                initialData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
+                onSave={(newData) => setDataInput(JSON.stringify(newData, null, 2))}
             />
         </div>
     );
