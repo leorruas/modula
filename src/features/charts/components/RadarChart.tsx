@@ -18,8 +18,11 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
     const maxValue = Math.max(...values);
     const centerX = width / 2;
     const centerY = height / 2;
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const radius = Math.min(width, height) / 2 - padding;
+    // Optimize space: Use specific safe margins instead of generic theme padding
+    // Classic: Needs space for labels (radius + 20) + text width (~15px)
+    // Infographic: Needs space for values on top (y - 12) + huge font (~40px)
+    const safeMargin = isInfographic ? 60 : 35;
+    const radius = Math.min(width, height) / 2 - safeMargin;
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
