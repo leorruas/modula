@@ -58,7 +58,7 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                 padding: '0 20px',
                 justifyContent: 'space-between',
                 backgroundColor: '#fff',
-                zIndex: 10
+                zIndex: 600
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <Link href="/" style={{ display: 'flex', alignItems: 'center', color: '#000' }}>
@@ -169,7 +169,7 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                                     border: '1px solid #e5e5e5',
                                     borderRadius: 6,
                                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    zIndex: 100,
+                                    zIndex: 1000,
                                     overflow: 'hidden',
                                     padding: '4px 0'
                                 }}>

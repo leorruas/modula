@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useEditorStore } from '@/store/editorStore';
+import { useUserStore } from '@/store/userStore';
 import { chartService } from '@/services/chartService';
 import { projectService } from '@/services/projectService';
+import { userPreferencesService } from '@/services/userPreferencesService';
 import { ChartType } from '@/types';
 import { toast } from 'sonner';
 import { DataEditorModal } from './DataEditorModal';
@@ -17,6 +19,7 @@ interface ChartSidebarProps {
 
 export function ChartSidebar({ projectId }: ChartSidebarProps) {
     const { selectedModules, triggerRefresh, setSelection, isPreviewMode, editingChartId, setEditingChartId, activePage } = useEditorStore();
+    const { user } = useUserStore();
     const [chartType, setChartType] = useState<ChartType>('bar');
     // Default palette
     const [palette, setPalette] = useState<string[]>(['#000000', '#666666', '#cccccc']);
@@ -26,6 +29,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     const [chartName, setChartName] = useState('');
 
     const [chartMode, setChartMode] = useState<'classic' | 'infographic'>('classic');
+    const [useGradient, setUseGradient] = useState(false);
     const [colorPreset, setColorPreset] = useState<ColorPresetKey>('vibrantModern');
 
     const [inputMode, setInputMode] = useState<'csv' | 'json'>('csv');
@@ -45,17 +49,37 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         datasets: [{ label: "Dataset 1", data: [10, 20, 15, 25] }]
     }, null, 2));
 
-    // Load project colors initially
+    // Load defaults and project data
     useEffect(() => {
-        if (!projectColorsLoaded) {
-            projectService.getProject(projectId).then(project => {
-                if (project && project.colors && project.colors.length > 0) {
-                    setPalette(project.colors);
+        const loadInitialData = async () => {
+            // 1. Get Project Data
+            const project = await projectService.getProject(projectId);
+            if (project && project.colors && project.colors.length > 0) {
+                setPalette(project.colors);
+            }
+
+            // If we are NOT editing a chart, apply defaults from project or user
+            if (!editingChartId) {
+                if (project?.defaultStyle) {
+                    // Apply Project Defaults
+                    if (project.defaultStyle.fontFamily) setFontFamily(project.defaultStyle.fontFamily);
+                    if (project.defaultStyle.mode) setChartMode(project.defaultStyle.mode);
+                    if (project.defaultStyle.useGradient !== undefined) setUseGradient(project.defaultStyle.useGradient);
+                } else if (user) {
+                    // Apply User Defaults if no project defaults
+                    const prefs = await userPreferencesService.getUserPreferences(user.uid);
+                    if (prefs?.defaultStyle) {
+                        if (prefs.defaultStyle.fontFamily) setFontFamily(prefs.defaultStyle.fontFamily);
+                        if (prefs.defaultStyle.mode) setChartMode(prefs.defaultStyle.mode);
+                        if (prefs.defaultStyle.useGradient !== undefined) setUseGradient(prefs.defaultStyle.useGradient);
+                    }
                 }
-                setProjectColorsLoaded(true);
-            });
-        }
-    }, [projectId, projectColorsLoaded]);
+            }
+            setProjectColorsLoaded(true);
+        };
+
+        loadInitialData();
+    }, [projectId, user, editingChartId]);
 
     // Mock Data Generator
     const getMockDataForType = (type: ChartType) => {
@@ -165,6 +189,15 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             };
         }
 
+        if (type === 'gauge') {
+            return {
+                labels: ["Meta"],
+                datasets: [
+                    { label: "Vendas", data: [75, 100] }
+                ]
+            };
+        }
+
         // Default
         return {
             labels,
@@ -185,9 +218,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     if (chart.style?.mode) {
                         setChartMode(chart.style.mode);
                     }
+                    if (chart.style?.useGradient !== undefined) {
+                        setUseGradient(chart.style.useGradient);
+                    }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
-                    // inputMode was set to simple here, but now default is csv. Removing explicit set to simple.
                 }
             });
         }
@@ -292,7 +327,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 style: {
                     colorPalette: palette,
                     fontFamily,
-                    mode: chartMode
+                    mode: chartMode,
+                    useGradient
                 }
             });
             triggerRefresh();
@@ -330,7 +366,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 style: {
                     colorPalette: palette,
                     fontFamily,
-                    mode: chartMode
+                    mode: chartMode,
+                    useGradient
                 }
             });
             triggerRefresh();
@@ -365,17 +402,40 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     // ... (imports and other functions are fine at top, this replaces the messed up block in body if it was there, effectively cleaning it up)
 
 
-    const saveProjectColors = async () => {
-        if (palette.length === 0) return;
+
+
+    const saveProjectDefaults = async () => {
         try {
-            // We need to update the project. Importing projectService inside the component
-            // to avoid circular dependencies or just using the service directly if available.
-            const { projectService } = await import('@/services/projectService');
-            await projectService.updateProject(projectId, { colors: palette });
-            toast.success("Cores salvas como padrão do projeto");
+            await projectService.updateProject(projectId, {
+                colors: palette,
+                defaultStyle: {
+                    fontFamily,
+                    mode: chartMode,
+                    useGradient
+                }
+            });
+            toast.success("Padrões salvos no projeto");
         } catch (e) {
             console.error(e);
-            toast.error("Erro ao salvar cores");
+            toast.error("Erro ao salvar padrões");
+        }
+    };
+
+    const saveUserDefaultPreferences = async () => {
+        if (!user) return;
+        try {
+            await userPreferencesService.saveUserPreferences(user.uid, {
+                defaultColors: palette,
+                defaultStyle: {
+                    fontFamily,
+                    mode: chartMode,
+                    useGradient
+                }
+            });
+            toast.success("Suas preferências foram salvas");
+        } catch (e) {
+            console.error(e);
+            toast.error("Erro ao salvar preferências");
         }
     };
 
@@ -425,15 +485,15 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         <div style={{
             position: 'fixed',
             right: 0,
-            top: 0,
+            top: 60, // Align below header
             bottom: 0,
             width: 320,
             background: '#f8f9fa',
             borderLeft: '1px solid #ddd',
-            padding: '80px 20px 20px 20px', // Top padding for header
+            padding: '20px', // Adjusted top padding since it's now below header
             boxShadow: '-5px 0 25px rgba(0,0,0,0.05)',
             overflowY: 'auto',
-            zIndex: 50,
+            zIndex: 500,
             transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
             transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', // Smooth slide
             opacity: isVisible ? 1 : 0
@@ -625,91 +685,49 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         <option value="mixed">Gráfico Misto</option>
                         <option value="histogram">Histograma</option>
                         <option value="pictogram">📊 Pictograma (Ícones)</option>
+                        <option value="gauge">🎯 Gráfico de Metas (Gauge)</option>
                         <option value="boxplot">Boxplot</option>
                     </select>
                 </div>
 
-                {/* Modo de Visualização */}
-                <div style={{ marginBottom: 0 }}>
-                    <label style={labelStyle}>Estilo Visual</label>
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        background: '#f8f9fa',
-                        borderRadius: 8,
-                        border: '1px solid #e9ecef'
-                    }}>
-                        <span style={{ fontSize: 13, color: '#444' }}>Infográfico?</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <span style={{ fontSize: 11, color: chartMode === 'classic' ? '#666' : '#bbb' }}>Clássico</span>
-                            <button
-                                onClick={() => setChartMode(chartMode === 'classic' ? 'infographic' : 'classic')}
-                                style={{
-                                    position: 'relative',
-                                    width: 44,
-                                    height: 24,
-                                    background: chartMode === 'infographic' ? '#0ea5e9' : '#cbd5e1',
-                                    border: 'none',
-                                    borderRadius: 12,
-                                    cursor: 'pointer',
-                                    transition: 'background 0.2s',
-                                    padding: 0
-                                }}
-                            >
-                                <div style={{
-                                    position: 'absolute',
-                                    top: 2,
-                                    left: chartMode === 'infographic' ? 22 : 2,
-                                    width: 20,
-                                    height: 20,
-                                    background: 'white',
-                                    borderRadius: '50%',
-                                    transition: 'left 0.2s',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                }} />
-                            </button>
-                            <span style={{ fontSize: 11, color: chartMode === 'infographic' ? '#0ea5e9' : '#bbb', fontWeight: chartMode === 'infographic' ? 600 : 400 }}>Sim</span>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* SEÇÃO 3: PECAS OPCIONAIS (ÍCONES) */}
-            {chartType === 'pictogram' && (
-                <div style={boxStyle}>
-                    <label style={labelStyle}>Ícone do Pictograma</label>
-                    <button
-                        type="button"
-                        onClick={() => setIconModalOpen(true)}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            border: '1px solid #ddd',
-                            borderRadius: 6,
-                            background: 'white',
-                            cursor: 'pointer',
-                            fontSize: 14,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            color: '#333'
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {selectedIcon && (
-                                <div style={{ width: 24, height: 24, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    {/* Small preview if we had the component here, but text is fine */}
-                                    <span style={{ fontSize: 14 }}>★</span>
-                                </div>
-                            )}
-                            <span>{selectedIcon ? selectedIcon.iconKey : 'Selecionar ícone...'}</span>
-                        </div>
-                        <span style={{ fontSize: 14, color: '#666' }}>Alterar</span>
-                    </button>
-                </div>
-            )}
+            {
+                chartType === 'pictogram' && (
+                    <div style={boxStyle}>
+                        <label style={labelStyle}>Ícone do Pictograma</label>
+                        <button
+                            type="button"
+                            onClick={() => setIconModalOpen(true)}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                border: '1px solid #ddd',
+                                borderRadius: 6,
+                                background: 'white',
+                                cursor: 'pointer',
+                                fontSize: 14,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                color: '#333'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                {selectedIcon && (
+                                    <div style={{ width: 24, height: 24, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        {/* Small preview if we had the component here, but text is fine */}
+                                        <span style={{ fontSize: 14 }}>★</span>
+                                    </div>
+                                )}
+                                <span>{selectedIcon ? selectedIcon.iconKey : 'Selecionar ícone...'}</span>
+                            </div>
+                            <span style={{ fontSize: 14, color: '#666' }}>Alterar</span>
+                        </button>
+                    </div>
+                )
+            }
 
             {/* SEÇÃO 4: CORES */}
             <div style={boxStyle}>
@@ -783,41 +801,189 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     </select>
                 </div>
 
+                {/* Infographic Mode Toggle */}
                 <div style={{ marginTop: 16 }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#f8f9fa',
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ fontSize: 13, color: '#444' }}>Infográfico?</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 11, color: chartMode === 'classic' ? '#666' : '#bbb' }}>Clássico</span>
+                            <button
+                                onClick={() => setChartMode(chartMode === 'classic' ? 'infographic' : 'classic')}
+                                style={{
+                                    position: 'relative',
+                                    width: 44,
+                                    height: 24,
+                                    background: chartMode === 'infographic' ? '#0ea5e9' : '#cbd5e1',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    padding: 0
+                                }}
+                            >
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    left: chartMode === 'infographic' ? 22 : 2,
+                                    width: 20,
+                                    height: 20,
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    transition: 'left 0.2s',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }} />
+                            </button>
+                            <span style={{ fontSize: 11, color: chartMode === 'infographic' ? '#0ea5e9' : '#bbb', fontWeight: chartMode === 'infographic' ? 600 : 400 }}>Sim</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Gradient Effect Toggle */}
+                <div style={{ marginTop: 10 }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#f8f9fa',
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ fontSize: 13, color: '#444' }}>Efeito Gradiente?</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 11, color: !useGradient ? '#666' : '#bbb' }}>Não</span>
+                            <button
+                                onClick={() => setUseGradient(!useGradient)}
+                                style={{
+                                    position: 'relative',
+                                    width: 44,
+                                    height: 24,
+                                    background: useGradient ? '#8b5cf6' : '#cbd5e1',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    padding: 0
+                                }}
+                            >
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    left: useGradient ? 22 : 2,
+                                    width: 20,
+                                    height: 20,
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    transition: 'left 0.2s',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }} />
+                            </button>
+                            <span style={{ fontSize: 11, color: useGradient ? '#8b5cf6' : '#bbb', fontWeight: useGradient ? 600 : 400 }}>Sim</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Save Buttons */}
+                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <button
-                        onClick={saveProjectColors}
+                        onClick={saveProjectDefaults}
                         style={{
                             width: '100%',
                             padding: '8px',
                             background: 'none',
-                            border: '1px dashed #bbb',
+                            border: '1px dashed #0ea5e9',
                             borderRadius: 6,
-                            color: '#666',
+                            color: '#0ea5e9',
                             fontSize: 12,
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            fontWeight: 500
                         }}
                     >
-                        Salvar como Padrão do Projeto
+                        Salvar no Projeto
+                    </button>
+                    <button
+                        onClick={saveUserDefaultPreferences}
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            background: 'none',
+                            border: '1px dashed #8b5cf6',
+                            borderRadius: 6,
+                            color: '#8b5cf6',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            fontWeight: 500
+                        }}
+                    >
+                        Salvar Minhas Preferências
                     </button>
                 </div>
             </div>
 
             {/* AÇÕES FINAIS */}
-            <div style={{ paddingBottom: 40 }}>
+            <div style={{ paddingBottom: 20 }}>
                 {isEditing ? (
-                    <div style={{ display: 'flex', gap: 10 }}>
-                        <button
-                            onClick={handleDelete}
-                            style={{ flex: 1, padding: '12px', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-                        >
-                            Excluir
-                        </button>
-                        <button
-                            onClick={handleUpdate}
-                            style={{ flex: 2, padding: '12px', background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
-                        >
-                            Salvar Alterações
-                        </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={handleDelete}
+                                style={{ flex: 1, padding: '12px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+                            >
+                                Excluir
+                            </button>
+                            <button
+                                onClick={handleUpdate}
+                                style={{ flex: 2, padding: '12px', background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
+                            >
+                                Salvar Alterações
+                            </button>
+                        </div>
+
+                        {/* Direct Export Action in Sidebar */}
+                        <div style={{ marginTop: 10, borderTop: '1px solid #e5e5e5', paddingTop: 20 }}>
+                            <label style={labelStyle}>Ações do Gráfico</label>
+                            <button
+                                onClick={() => exportChartToPng(editingChartId, { removeWhitespace: true })}
+                                style={{
+                                    width: '100%',
+                                    padding: '12px',
+                                    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                                    color: '#334155',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: 8,
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                    fontSize: 14,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 8,
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.1)';
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'none';
+                                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
+                                    e.currentTarget.style.borderColor = '#e2e8f0';
+                                }}
+                            >
+                                <span style={{ fontSize: 18 }}>🖼️</span>
+                                Exportar este Gráfico (PNG)
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <button
@@ -845,6 +1011,6 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 initialData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
                 onSave={(newData) => setDataInput(JSON.stringify(newData, null, 2))}
             />
-        </div>
+        </div >
     );
 }
