@@ -37,14 +37,20 @@
 
 19) queria poder fazer pan com a rodinha do mouse. [check] 
 
-20) a gente tem que adicionar uma descrição do projeto antes do login. 
+20) a gente tem que adicionar uma descrição do projeto antes do login. [check]
 
-21) tinhamos um efeito de gradiente radial nos gráficos que sumiu. queria que eles fossem opcionais, colocados lá na sidebar. 
+21) tinhamos um efeito de gradiente radial nos gráficos que sumiu. queria que eles fossem opcionais, colocados lá na sidebar. [check]
 
-22) o canvas não precisa ser tão grande se vamos ver só uma página por vez... 
+22) o canvas não precisa ser tão grande se vamos ver só uma página por vez... [check]
 
-23) preciso de um gráfico simples para metas, tipo uma meta foi atingida ou não em quantos por cento, qual você indica? 
+23) preciso de um gráfico simples para metas, tipo uma meta foi atingida ou não em quantos por cento, qual você indica? [check]
 
-24) qual a diferença do pictograma para infográfico e clássico? precisamos fazer isso. 
+24) qual a diferença do pictograma e gráfico de metas para infográfico e clássico? precisamos fazer isso. [check]
+
+25) [RESOLVIDO] tem uns gráficos no modo infográfico que eles usam espaço a mais que o que foi definido no grid pelo usuário.
+
+26) [RESOLVIDO] agora que sidebar aparece quando clica no gráfico, não é possível para o usuário exportar PNG, porque o botão fica logo abaixo da sidebar.
+
+27) o grafico gauge no modo infografico ficou feio, muito cheio... 
 ------
-usa as skills de debug, build, construction e documentation pra criar um plano? 
+usa as skills de debug, construction e documentation pra criar um plano?

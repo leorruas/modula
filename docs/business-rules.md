@@ -137,6 +137,13 @@ O sistema deve oferecer um modo de visualização limpa para simular o resultado
     *   Fonte serifada (Georgia) para rótulos de eixo
     *   Posicionamento centralizado e legível
     *   Cor neutra (#666) para não competir com dados
+    *   Cor neutra (#666) para não competir com dados
+
+### 2.8.5. Efeitos Premium de Gradiente e Sombra
+*   **Gradientes**: Todos os gráficos suportam gradientes premium quando `style.useGradient` é verdadeiro.
+    *   **Radiais**: (Pie, Bubble, Radar, Scatter) Usam transição de 100% → 85% → 60% de opacidade para profundidade 3D.
+    *   **Lineares**: (Column, Bar, Area, Histogram, Mixed) Usam transição de 100% → 70%.
+*   **Sombras (Depth)**: Aplicado um filtro SVG `chartShadow` (drop-shadow sutil) aos elementos de dados para destacar o gráfico do canvas.
 
 ### 2.9 Tipos de Gráficos
 O sistema deve suportar uma ampla gama de visualizações para cobrir necessidades editoriais:
@@ -151,6 +158,7 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   *Variações*: Simples, Empilhada.
 5.  **Pizza (Pie)**: Distribuição proporcional.
 6.  **Donut**: Variação da Pizza com centro vazado.
+7.  **Gauge (Goal Chart)**: Visualização de metas e atingimento percentual.
 
 #### Analíticos
 7.  **Dispersão (Scatter)**: Correlação entre duas variáveis.
@@ -223,8 +231,15 @@ O sistema suporta **dois modos de visualização** por chart, permitindo flexibi
 
 **Diferenças visuais específicas**:
 - **Pie/Donut infográfico**: Labels externos, linhas conectoras, percentuais gigantes
-- **Line/Area infográfico**: Hero numbers nos pontos, stroke 4px
-- **Bar/Column infográfico**: Valores acima (não ao lado), padding generoso
+- **Line/Area infográfico**: Hero numbers nos pontos, stroke 4px. Margens aumentadas (Top: 60px) para evitar corte de números.
+- **Bar/Column infográfico**: Valores à direita (Bar) ou acima (Column). Padding generoso (Margin Right: 80px, Left: 140px em Bar) para labels e números gigantes.
+- **Pie/Donut infográfico**: Labels externos, linhas conectoras, percentuais gigantes. Padding aumentado para 80px para garantir que labels externos fiquem dentro do módulo.
+- **Pictogram**:
+    - *Clássico*: Ícones funcionais, legenda técnica "Cada ícone = X".
+    - *Infográfico*: Ícones expandidos, tipografia de destaque para o valor total.
+- **Gauge**:
+    - *Clássico*: Arco moderado, legenda de progresso absoluta (ex: "75 de 100").
+    - *Infográfico*: Arco dominante, foco total no percentual central (Hero number).
 
 #### 2.11.5. Persistência
 
@@ -291,7 +306,14 @@ interface ChartData {
     position: 'left' | 'right';
   };
 }
-```
+
+#### 2.12.5. Lógica do Gráfico de Gauge (Metas)
+- **Estrutura de Dados**: Espera ao menos um valor no dataset.
+    - 1 valor: Interpretado como Valor Atual (Meta padrão = 100).
+    - 2 valores: `[Valor Atual, Meta]`.
+- **Cálculo**: `(Atual / Meta) * 100` limitado entre 0 e 100%.
+- **Visual**: Arco semi-circular de 180 graus com valor central em destaque.
+    - *Modo Infográfico*: O valor central é tratado como **Hero Number** (96px), dominando a composição. Legendas de "Atual de Meta" são omitidas para reduzir ruído visual.
 
 ---
 
@@ -312,3 +334,14 @@ interface ChartData {
 - ✅ "Projeto salvo"
 - ❌ "Erro ao atualizar: JSON inválido"
 - ℹ️ Feedback de ações do usuário
+
+---
+
+### 2.13. Hierarquia de Carregamento de Estilos (Style Priority)
+Para garantir consistência e agilidade, o sistema carrega estilos seguindo esta ordem de precedência:
+
+1.  **Estilo do Gráfico (Editando)**: Se o usuário estiver editando um gráfico, as configurações salvas nele são mantidas.
+2.  **Padrão do Projeto**: Novos gráficos herdam o `defaultStyle` definido no objeto do `Project`.
+3.  **Preferências do Usuário**: Se o projeto não tem padrões, o sistema busca o `defaultStyle` no perfil do usuário (`/users/{userId}/preferences`).
+4.  **Sistema (Hardcoded Fallback)**: Se nenhuma preferência for encontrada, o sistema aplica o modo "Classic" com variações de Cinza.
+

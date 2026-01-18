@@ -25,34 +25,17 @@ The interface uses a strictly neutral palette to avoid competing with the artwor
     *   **Selection/Focus**: `#3b82f6` (System Blue - used only for active states)
     *   **Infographic Mode**: `#00D9FF` (Cyan - specific branding for this mode)
 
-### Chart Palettes
-Charts follow curated themes found in `src/utils/chartTheme.ts`.
-
-#### Palette 1: Editorial Pastel (Soft, Print-like)
-*   Coral: `#FF8A80`
-*   Salmon: `#FFB3AD`
-*   Beige: `#F5E6D3`
-*   Tea Green: `#B2DFDB`
-*   Light Pink: `#FFCDD2`
-
-#### Palette 2: Vibrant Modern (Digital, Screen-first)
-*   Cyan: `#00D9FF`
-*   Lime: `#D4FF00`
-*   Turquoise: `#00BFA6`
-*   Purple: `#9C27B0`
-*   Orange: `#FF6F00`
-
-#### Palette 3: Classic Business (Trustworthy)
-*   Blue: `#2563eb`
-*   Emerald: `#10b981`
-*   Amber: `#f59e0b`
-*   Red: `#ef4444`
-*   Violet: `#8b5cf6`
+#### Palettes: Full Range (18 Presets)
+O sistema agora oferece 18 paletas segmentadas por intenção editorial (Economist, Financial Times, Guardian, Vibrant, Pastel, CB-Safe, etc.), acessíveis via `src/utils/chartTheme.ts`.
 
 #### Maximum Color Usage Rule
 For **Pictograms, Histograms, Mixed Charts, and Bubble Charts**, the system maximizes the use of the palette.
 *   Instead of a single primary color, these charts cycle through the entire selected palette.
 *   **Purpose**: To create more vibrant and distinguishable data points, especially in infographic modes.
+
+#### Hierarquia de Aplicação (Loading Hierarchy)
+Os estilos seguem a precedência: **Edição do Gráfico > Padrão do Projeto > Preferências do Usuário > Fallback do Sistema**.
+
 
 ---
 
@@ -95,10 +78,25 @@ The core layout engine.
 *   **Padding Large**: `24px`
 *   **Sidebar Width**: `320px` (Fixed)
 
+### Layering & Stacking
+The interface uses a depth-based layering system to ensure controls never overlap content unexpectedly.
+*   **Surface**: The infinite gray canvas.
+*   **Paper**: The white A4/A3/A5 page.
+*   **Interaction Layer**: Selection outlines and chart handles.
+*   **Control Layer**: The fixed right Sidebar and Header.
+*   **Overlay Layer**: Dropdowns and Modals (always utilize portals/high z-index).
+
 ### Chart Specific Optimizations
 *   **Radar Chart**:
     *   **Classic Margin**: `35px` (Maximized size, fitting only labels).
     *   **Infographic Margin**: `60px` (Accommodates large "Hero" values on top).
+*   **Bar Chart (Infographic)**:
+    *   **Margin Right**: `80px` (Space for huge numbers).
+    *   **Margin Left**: `140px` (Space for large category labels).
+*   **Line/Area Charts (Infographic)**:
+    *   **Margin Top**: `60px` (Prevents hero numbers from clipping at the top).
+*   **Pie/Donut Charts (Infographic)**:
+    *   **Padding**: `80px` (Space for external labels and huge percentages).
 
 ---
 
@@ -108,17 +106,40 @@ The core layout engine.
 The design uses shadows very sparingly, primarily for depth in editing modes ("lifting" an object).
 *   **Drop Shadow**: `0 4px 12px rgba(0,0,0,0.1)` (Modals, Popovers)
 *   **Chart Shadow**: `0 4px 20px rgba(0,0,0,0.1)` (Page container)
-*   **Effect Shadow**: `shadowOpacity: 0.03` (Very subtle shadow on chart bars)
+*   **Premium Effects Shadow**: Filtro SVG `chartShadow` aplicado aos elementos de dados (STD Deviation: 3, Slope: 0.1).
+*   **Gradients Premium**:
+    *   **Radiais**: Opacidade 1.0 → 0.85 → 0.6.
+    *   **Lineares**: Opacidade 1.0 → 0.7.
+
 
 ### Radius
 *   **Small**: `4px` (Inputs, Buttons)
 *   **Medium**: `6px` (Cards, Groups)
 *   **Large**: `8px - 12px` (Modals)
-*   **Round**: `50%` (Circular Actions)
+*   **Round**: `50%` (Circular Actions, Gauges)
 
 ---
 
-## 5. Components
+## 5. Specific Chart Guidelines
+
+### Gauge Chart (Goal Chart)
+- **Concept**: Visualizes progress toward a single numerical target.
+- **Center Value**: Bold, large percentage centered within the semi-circle.
+- **Stroke**: Thick, rounded linecaps for both track and progress.
+- **Sub-Labels**: Secondary text below the percentage showing absolute values (e.g., "75 of 100").
+- **Premium Touch**: Subtle drop shadows on the progress arc and vibrant gradients.
+- **Mode Differences**:
+    - *Classic*: Stroke: 12-16px, Center Value: 32px, Sub-labels: visible.
+    - *Infographic*: Stroke: 24-32px, Center Value: 56px+ (Hero Number), Sub-labels: hidden for maximum impact.
+
+### Pictogram Chart
+- **Mode Differences**:
+    - *Classic*: Icon size: 24px, row-based labels, legend visible.
+    - *Infographic*: Icon size: 36px, larger gaps, labels bolded, focus on large "Hero" values if applicable.
+
+---
+
+## 6. Components
 
 ### Buttons
 *   **Primary**: Black background, White text, no border.

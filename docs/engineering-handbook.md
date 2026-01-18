@@ -5,6 +5,7 @@
 ### Business Rules Consistency
 *   **Single Source of Truth**: The `docs/business-rules.md` file is the source of truth for all functional requirements.
 *   **Update Rule**: Any change to the system's logic, constraints, or features MUST be recorded in `docs/business-rules.md` before or immediately parallel to implementation.
+*   **Approval Protocol**: Spontaneous implementation of new features during research, documentation, or debugging tasks is FORBIDDEN. All significant code changes must be proposed in `implementation_plan.md` and approved by the user before execution.
 *   **Traceability**: Code changes should reflect the rules defined in the documentation.
 
 ## Code Standards
@@ -21,6 +22,15 @@
 ### Component Architecture
 *   **Modals & Overlays**: Always use React Portals (`ReactDOM.createPortal`) for modals, tooltips, and overlays to escape the stacking context ('z-index wars') of parent containers.
 *   **Component Isolation**: Sidebar components should handle their own visibility logic but rely on global stores for data.
+
+### Z-Index Hierarchy
+To maintain a predictable stacking order, follow these tiers:
+*   **Level 0 (Base)**: Canvas, Grids, Backgrounds.
+*   **Level 10-100**: Active elements on Canvas (Charts, Selections).
+*   **Level 500**: Sidebars and fixed panels.
+*   **Level 600**: Primary Header and navigation bars.
+*   **Level 1000**: Dropdowns, Tooltips, and Modals.
+*   **Level 9999**: Global Toast notifications and critical system overlays.
 
 ## Third-Party Libraries
 *   **Input Strictness**: Do not assume libraries behave like browsers.
