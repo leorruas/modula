@@ -5,7 +5,7 @@ interface EditorState {
     startSelection: { r: number, c: number } | null;
     isSelecting: boolean;
     refreshTrigger: number;
-    editorMode: 'rehearsal' | 'publication';
+    isPreviewMode: boolean; // Replaces editorMode
     activePage: number;
     editingChartId: string | null;
     searchQuery: string;
@@ -19,7 +19,7 @@ interface EditorState {
     setStartSelection: (start: { r: number, c: number } | null) => void;
     setIsSelecting: (isSelecting: boolean) => void;
     triggerRefresh: () => void;
-    setEditorMode: (mode: 'rehearsal' | 'publication') => void;
+    setIsPreviewMode: (isPreview: boolean) => void; // New setter
     setIsChapterViewOpen: (isOpen: boolean) => void;
 }
 
@@ -28,7 +28,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     startSelection: null,
     isSelecting: false,
     refreshTrigger: 0,
-    editorMode: 'rehearsal',
+    isPreviewMode: false,
     activePage: 1,
     editingChartId: null,
     searchQuery: '',
@@ -38,7 +38,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     setStartSelection: (startSelection) => set({ startSelection }),
     setIsSelecting: (isSelecting) => set({ isSelecting }),
     triggerRefresh: () => set(state => ({ refreshTrigger: state.refreshTrigger + 1 })),
-    setEditorMode: (editorMode) => set({ editorMode }),
+    setIsPreviewMode: (isPreviewMode) => set({ isPreviewMode }),
     setActivePage: (activePage) => set({ activePage, selectedModules: [], isChapterViewOpen: false }), // Close chapter view on navigation
     setEditingChartId: (editingChartId) => set({ editingChartId, selectedModules: [] }),
     setSearchQuery: (searchQuery) => set({ searchQuery }),

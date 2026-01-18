@@ -31,14 +31,20 @@
 
 15) [RESOLVIDO] tem que expandir os ícones, a gente precisa demais ícones. [check] 
 
-17) a gente precisa melhorar o layout da sidebar. primeiro que é estranho ela terminar no meio da página. ela poderia cocupar a altura inteira. e também começar a segmentar melhor o blocos, em boxes. 
+17) [RESOLVIDO] a gente precisa melhorar o layout da sidebar e modal de ícones (Boxes, Full Height, Portals). [check] 
 
-18) a gente pode retirar o rehearsal, publication na barra de ferramentas. 
+18) a gente pode retirar o rehearsal, publication na barra de ferramentas. talvez colocar um preview do gráfico sem exportar. [check] 
 
-19) queria poder fazer pan com a rodinha do mouse. 
+19) queria poder fazer pan com a rodinha do mouse. [check] 
 
 20) a gente tem que adicionar uma descrição do projeto antes do login. 
 
 21) tinhamos um efeito de gradiente radial nos gráficos que sumiu. queria que eles fossem opcionais, colocados lá na sidebar. 
+
+22) o canvas não precisa ser tão grande se vamos ver só uma página por vez... 
+
+23) preciso de um gráfico simples para metas, tipo uma meta foi atingida ou não em quantos por cento, qual você indica? 
+
+24) qual a diferença do pictograma para infográfico e clássico? precisamos fazer isso. 
 ------
 usa as skills de debug, build, construction e documentation pra criar um plano? 

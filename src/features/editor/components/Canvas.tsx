@@ -48,7 +48,7 @@ export function Canvas({ project }: CanvasProps) {
 
     const {
         refreshTrigger,
-        editorMode,
+        isPreviewMode, // Replaced editorMode
         activePage,
         setActivePage,
         setEditingChartId,
@@ -188,7 +188,7 @@ export function Canvas({ project }: CanvasProps) {
             return;
         }
 
-        if (editorMode === 'publication') return;
+        if (isPreviewMode) return;
 
         // If chart exists, don't allow new selection
         if (hasChart && !editingChartId) {
@@ -379,8 +379,8 @@ export function Canvas({ project }: CanvasProps) {
                     position: 'absolute'
                 }}
             >
-                {/* Grid Layer */}
-                <GridSystem project={project} width={widthPx} height={heightPx} activeCharts={activeCharts} />
+                {/* Grid Layer - Hidden in Preview Mode */}
+                {!isPreviewMode && <GridSystem project={project} width={widthPx} height={heightPx} activeCharts={activeCharts} />}
 
                 {/* Content Layer (Charts) */}
                 {/* Content Layer (Charts) */}
@@ -417,12 +417,16 @@ export function Canvas({ project }: CanvasProps) {
                                 position: 'absolute',
                                 left: x, top: y, width: w, height: h,
                                 pointerEvents: 'auto',
-                                cursor: editorMode === 'publication' ? 'default' : 'move', // Cursor indicate draggable
+                                cursor: isPreviewMode ? 'default' : 'move', // Cursor indicate draggable
                                 zIndex: isInteracting ? 100 : (isSelected ? 50 : 10),
                                 transition: isInteracting ? 'none' : 'all 0.2s cubic-bezier(0.2, 0, 0, 1)'
                             }}
                             onMouseDown={(e) => {
-                                if (editorMode === 'publication') return;
+                                if (isPreviewMode) return;
+
+                                // Only handle left click for selection/moving
+                                if (e.button !== 0) return;
+
                                 e.stopPropagation();
                                 setEditingChartId(chart.id);
                                 // Start Moving
@@ -465,7 +469,7 @@ export function Canvas({ project }: CanvasProps) {
                             )}
 
                             {/* Resize Handle */}
-                            {isSelected && editorMode !== 'publication' && (
+                            {isSelected && !isPreviewMode && (
                                 <div
                                     style={{
                                         position: 'absolute',
@@ -481,6 +485,9 @@ export function Canvas({ project }: CanvasProps) {
                                         zIndex: 101
                                     }}
                                     onMouseDown={(e) => {
+                                        // Only handle left click for resizing
+                                        if (e.button !== 0) return;
+
                                         e.stopPropagation();
                                         // Start Resizing
                                         setInteractionMode('resizing');
@@ -491,8 +498,10 @@ export function Canvas({ project }: CanvasProps) {
                                 />
                             )}
 
-                            {/* Validation Overlay per Chart */}
-                            {editorMode === 'publication' && validation && (
+                            {/* Validation Overlay per Chart - Option: Show in edit mode or specific validation mode? 
+                                For now, hide in clean preview 
+                            */}
+                            {!isPreviewMode && validation && (
                                 <div style={{
                                     position: 'absolute',
                                     top: -10,
@@ -669,7 +678,7 @@ export function Canvas({ project }: CanvasProps) {
 
             {/* ... Validation Summary ... */}
             {
-                editorMode === 'publication' && validationResults.length > 0 && (
+                !isPreviewMode && validationResults.length > 0 && (
                     <div style={{
                         position: 'absolute',
                         top: 20,
@@ -720,26 +729,39 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
         moduleHeight = availableHeight / rows;
     }
 
-    const { selectedModules, startSelection, isSelecting, setStartSelection, setIsSelecting, setSelection, editorMode, editingChartId } = useEditorStore();
+    const { selectedModules, startSelection, isSelecting, setStartSelection, setIsSelecting, setSelection, isPreviewMode, editingChartId } = useEditorStore();
+
+    const selectionRef = useRef(selectedModules);
+    selectionRef.current = selectedModules;
+
+    const potentialDeselectRef = useRef<{ r: number, c: number } | null>(null);
 
     const handleMouseDown = (r: number, c: number, e: React.MouseEvent) => {
-        if (editorMode === 'publication') return; // Locked in publication
+        if (isPreviewMode) return; // Locked in preview
 
         // Enforce Single Chart Per Page
-        // activeCharts contains charts for this page.
         if (activeCharts.length > 0 && !editingChartId) {
-            // Block visual selection if a chart already exists and we are not editing one
             return;
         }
 
         e.stopPropagation();
+
+        // Check for potential deselect (if clicking the single currently selected module)
+        if (selectionRef.current.length === 1 &&
+            selectionRef.current[0].r === r &&
+            selectionRef.current[0].c === c) {
+            potentialDeselectRef.current = { r, c };
+        } else {
+            potentialDeselectRef.current = null;
+        }
+
         setStartSelection({ r, c });
         setIsSelecting(true);
         setSelection([{ r, c }]);
     };
 
     const handleMouseEnter = (r: number, c: number) => {
-        if (editorMode === 'publication') return; // Locked
+        if (isPreviewMode) return; // Locked
         if (isSelecting && startSelection) {
             const minR = Math.min(startSelection.r, r);
             const maxR = Math.max(startSelection.r, r);
@@ -757,7 +779,20 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
     };
 
     const handleMouseUp = () => {
-        if (editorMode === 'publication') return;
+        if (isPreviewMode) return;
+
+        // Logic to finalize deselect if we didn't drag
+        if (potentialDeselectRef.current) {
+            const current = selectionRef.current;
+            // If selection is still just 1 item and matches the target, it means no drag expanded it
+            if (current.length === 1 &&
+                current[0].r === potentialDeselectRef.current.r &&
+                current[0].c === potentialDeselectRef.current.c) {
+                setSelection([]);
+            }
+            potentialDeselectRef.current = null;
+        }
+
         setIsSelecting(false);
         setStartSelection(null);
     };
@@ -790,7 +825,7 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
                             stroke={isSelected(r, c) ? "rgba(0, 0, 255, 0.5)" : "rgba(0,0,0,0.05)"}
                             onMouseDown={(e) => handleMouseDown(r, c, e as any)}
                             onMouseEnter={() => handleMouseEnter(r, c)}
-                            style={{ cursor: editorMode === 'publication' ? 'default' : 'pointer', transition: 'fill 0.1s' }}
+                            style={{ cursor: isPreviewMode ? 'default' : 'pointer', transition: 'fill 0.1s' }}
                         />
                     ))
                 )}

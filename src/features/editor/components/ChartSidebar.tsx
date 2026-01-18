@@ -16,7 +16,7 @@ interface ChartSidebarProps {
 }
 
 export function ChartSidebar({ projectId }: ChartSidebarProps) {
-    const { selectedModules, triggerRefresh, setSelection, editorMode, editingChartId, setEditingChartId, activePage } = useEditorStore();
+    const { selectedModules, triggerRefresh, setSelection, isPreviewMode, editingChartId, setEditingChartId, activePage } = useEditorStore();
     const [chartType, setChartType] = useState<ChartType>('bar');
     // Default palette
     const [palette, setPalette] = useState<string[]>(['#000000', '#666666', '#cccccc']);
@@ -417,8 +417,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         marginBottom: 10
     };
 
-    if (editorMode === 'publication') {
-        return null;
+    if (isPreviewMode) {
+        return null; // Return null effectively hides the component. Or we could animate it out.
     }
 
     return (

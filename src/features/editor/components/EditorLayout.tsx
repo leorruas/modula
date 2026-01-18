@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Project } from '@/types';
 import Link from 'next/link';
-import { ArrowLeft, Settings, FileText, Image as ImageIcon, Archive } from 'lucide-react';
+import { ArrowLeft, Settings, FileText, Image as ImageIcon, Archive, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEditorStore } from '@/store/editorStore';
 import { ChartSidebar } from './ChartSidebar';
@@ -41,7 +41,7 @@ function ExportPngButton({ onClose }: { onClose: () => void }) {
 }
 
 export function EditorLayout({ project, children }: EditorLayoutProps) {
-    const { editorMode, setEditorMode, isChapterViewOpen, setIsChapterViewOpen, triggerRefresh } = useEditorStore();
+    const { isPreviewMode, setIsPreviewMode, isChapterViewOpen, setIsChapterViewOpen, triggerRefresh } = useEditorStore();
     const router = useRouter();
     const [isGridModalOpen, setIsGridModalOpen] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
@@ -87,6 +87,28 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                         }}
                     >
                         <LayoutGrid size={16} />
+                    </button>
+
+                    {/* Preview Toggle */}
+                    <button
+                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                        title={isPreviewMode ? "Sair do Preview" : "Visualizar Preview"}
+                        style={{
+                            padding: '8px 12px', // Slightly wider
+                            borderRadius: 6,
+                            border: `1px solid ${isPreviewMode ? '#000' : '#e5e5e5'}`,
+                            background: isPreviewMode ? '#000' : 'white',
+                            color: isPreviewMode ? 'white' : '#000',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            fontSize: 13,
+                            fontWeight: 500
+                        }}
+                    >
+                        {isPreviewMode ? <EyeOff size={16} /> : <Eye size={16} />}
+                        <span>Preview</span>
                     </button>
 
                     <button
