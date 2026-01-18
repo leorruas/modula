@@ -6,13 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "changelog": "node .agent/skills/changelog/update-changelog.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "clsx": "^2.1.1",
+    "file-saver": "^2.0.5",
     "firebase": "^12.7.0",
     "jspdf": "^4.0.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.562.0",
     "next": "16.1.1",
     "react": "19.2.3",
@@ -22,6 +25,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
