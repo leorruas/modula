@@ -53,6 +53,7 @@ export function HistogramChart({ width, height, data, style }: HistogramChartPro
                     const barH = (value / maxValue) * chartHeight;
                     const x = i * barWidth;
                     const y = chartHeight - barH;
+                    const barColor = style?.colorPalette?.[i % (style.colorPalette?.length || 1)] || getChartColor(i);
 
                     return (
                         <g key={i}>
@@ -61,7 +62,8 @@ export function HistogramChart({ width, height, data, style }: HistogramChartPro
                                 y={y}
                                 width={barWidth - (isInfographic ? 4 : 2)}
                                 height={barH}
-                                fill="url(#histGradient)"
+                                fill={barColor}
+                                fillOpacity={0.8}
                                 stroke={isInfographic ? 'none' : '#fff'}
                                 strokeWidth={1}
                             />

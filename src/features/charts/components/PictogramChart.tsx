@@ -51,6 +51,8 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                 {values.map((value, rowIndex) => {
                     const iconCount = Math.round(value / valuePerIcon);
                     const y = rowIndex * rowHeight;
+                    // Get color for this specific row/category
+                    const rowColor = style?.colorPalette?.[rowIndex % (style.colorPalette?.length || 1)] || getChartColor(rowIndex);
 
                     return (
                         <g key={rowIndex}>
@@ -94,9 +96,9 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                         y={iconY + 2}
                                         width={iconSize - 4}
                                         height={iconSize - 4}
-                                        color={primaryColor}
+                                        color={rowColor}
                                         strokeWidth={2}
-                                        fill={primaryColor}
+                                        fill={rowColor}
                                         fillOpacity={0.2}
                                     />
                                 );

@@ -49,6 +49,7 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
                     const x = (i / (values.length - 1)) * chartWidth;
                     const y = chartHeight - ((value / maxValue) * chartHeight);
                     const radius = isInfographic ? (value / maxValue) * 40 + 10 : (value / maxValue) * 30 + 5;
+                    const bubbleColor = style?.colorPalette?.[i % (style.colorPalette?.length || 1)] || primaryColor;
 
                     return (
                         <g key={i}>
@@ -56,9 +57,9 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
                                 cx={x}
                                 cy={y}
                                 r={radius}
-                                fill={primaryColor}
+                                fill={bubbleColor}
                                 opacity={0.5}
-                                stroke={primaryColor}
+                                stroke={bubbleColor}
                                 strokeWidth={2}
                             />
                             <text

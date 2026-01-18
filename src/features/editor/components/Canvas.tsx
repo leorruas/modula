@@ -23,7 +23,9 @@ import { GenericChart } from '@/features/charts/components/GenericChart';
 
 import { ValidationService, ValidationResult } from '@/services/validationService';
 import { PDFExportService } from '@/services/pdfExportService';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Minus } from 'lucide-react';
+
+
 import { toast } from 'sonner';
 
 interface CanvasProps {
@@ -599,10 +601,70 @@ export function Canvas({ project }: CanvasProps) {
             </div>
 
             {/* Scale Controls */}
-            <div style={{ position: 'absolute', bottom: 20, right: 20, background: 'white', padding: 8, borderRadius: 4, boxShadow: '0 2px 10px rgba(0,0,0,0.1)', display: 'flex', gap: 8 }}>
-                <button onClick={() => setScale(s => Math.max(0.1, s - 0.1))}>-</button>
-                <span>{Math.round(scale * 100)}%</span>
-                <button onClick={() => setScale(s => Math.min(5, s + 0.1))}>+</button>
+            <div style={{
+                position: 'absolute',
+                bottom: 24,
+                right: 24,
+                background: 'white',
+                padding: '4px 6px',
+                borderRadius: 8,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                border: '1px solid #e5e5e5',
+                zIndex: 50
+            }}>
+                <button
+                    onClick={() => setScale(s => Math.max(0.1, s - 0.1))}
+                    style={{
+                        padding: 6,
+                        borderRadius: 6,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#4b5563',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                    <Minus size={16} />
+                </button>
+
+                <span style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#374151',
+                    minWidth: 44,
+                    textAlign: 'center',
+                    fontVariantNumeric: 'tabular-nums'
+                }}>
+                    {Math.round(scale * 100)}%
+                </span>
+
+                <button
+                    onClick={() => setScale(s => Math.min(5, s + 0.1))}
+                    style={{
+                        padding: 6,
+                        borderRadius: 6,
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        color: '#4b5563',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                    <Plus size={16} />
+                </button>
             </div>
 
             {/* ... Validation Summary ... */}

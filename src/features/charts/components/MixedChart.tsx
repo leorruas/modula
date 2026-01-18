@@ -53,6 +53,7 @@ export function MixedChart({ width, height, data, style }: MixedChartProps) {
                     const barHeight = (value / maxValue) * chartHeight;
                     const x = i * slotWidth + (slotWidth - barWidth) / 2;
                     const y = chartHeight - barHeight;
+                    const barColor = style?.colorPalette?.[i % (style.colorPalette?.length || 1)] || color1;
 
                     return (
                         <g key={`bar-${i}`}>
@@ -61,7 +62,7 @@ export function MixedChart({ width, height, data, style }: MixedChartProps) {
                                 y={y}
                                 width={barWidth}
                                 height={barHeight}
-                                fill={color1}
+                                fill={barColor}
                             />
                             <text
                                 x={i * slotWidth + slotWidth / 2}

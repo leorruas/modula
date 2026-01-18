@@ -397,95 +397,106 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
 
     // Logic for rendering View
     const isEditing = !!editingChartId;
+    const isVisible = isEditing || selectedModules.length > 0;
+
+    // Common style for section boxes
+    const boxStyle: React.CSSProperties = {
+        background: '#fff',
+        border: '1px solid #e0e0e0',
+        borderRadius: 12,
+        padding: 20,
+        marginBottom: 20,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
+    };
+
+    const labelStyle: React.CSSProperties = {
+        display: 'block',
+        fontSize: 13,
+        fontWeight: 600,
+        color: '#222',
+        marginBottom: 10
+    };
 
     if (editorMode === 'publication') {
-        return (
-            <div style={{
-                position: 'absolute', right: 0, top: 60, bottom: 0, width: 300,
-                background: '#f9f9f9', borderLeft: '1px solid #ddd', padding: 20,
-                display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', color: '#999'
-            }}>
-                <p>Modo Publicação</p>
-                <p style={{ fontSize: 12 }}>Edição Bloqueada</p>
-            </div>
-        );
-    }
-
-    // If not editing and nothing selected, show instructions
-    if (!isEditing && selectedModules.length === 0) {
-        return (
-            <div style={{
-                position: 'absolute', right: 0, top: 60, bottom: 0, width: 300,
-                background: '#f9f9f9', borderLeft: '1px solid #ddd', padding: 20,
-                display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#999', textAlign: 'center', fontSize: 13
-            }}>
-                <p>Selecione uma área no grid para criar um gráfico ou clique em um gráfico existente para editar.</p>
-            </div>
-        );
+        return null;
     }
 
     return (
         <div style={{
-            position: 'absolute',
+            position: 'fixed',
             right: 0,
-            top: 60,
+            top: 0,
             bottom: 0,
-            width: 300,
-            background: 'white',
+            width: 320,
+            background: '#f8f9fa',
             borderLeft: '1px solid #ddd',
-            padding: 20,
-            boxShadow: '-2px 0 10px rgba(0,0,0,0.05)',
-            overflowY: 'auto'
+            padding: '80px 20px 20px 20px', // Top padding for header
+            boxShadow: '-5px 0 25px rgba(0,0,0,0.05)',
+            overflowY: 'auto',
+            zIndex: 50,
+            transform: isVisible ? 'translateX(0)' : 'translateX(100%)',
+            transition: 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)', // Smooth slide
+            opacity: isVisible ? 1 : 0
         }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
                 {isEditing && (
-                    <button onClick={() => setEditingChartId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18 }}>←</button>
+                    <button onClick={() => setEditingChartId(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#666' }}>←</button>
                 )}
-                <h2 style={{ fontSize: 20, fontFamily: 'Georgia, serif', margin: 0, color: '#000' }}>
-                    {isEditing ? 'Editar Gráfico' : 'Adicionar Gráfico'}
+                <h2 style={{ fontSize: 24, fontFamily: 'Georgia, serif', margin: 0, color: '#000' }}>
+                    {isEditing ? 'Editar Gráfico' : 'Novo Gráfico'}
                 </h2>
             </div>
 
             {!isEditing && (
-                <p style={{ fontSize: 13, color: '#333', marginBottom: 20 }}>
-                    Área Selecionada: <span style={{ fontWeight: 600 }}>{selectedModules.length} módulos</span>
-                </p>
+                <div style={{ ...boxStyle, background: '#eef2ff', border: '1px solid #c7d2fe' }}>
+                    <p style={{ fontSize: 13, color: '#3730a3', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span>✨</span>
+                        <span style={{ fontWeight: 600 }}>{selectedModules.length} módulos selecionados</span>
+                    </p>
+                </div>
             )}
 
-            {/* MOVED DATA INPUT TO TOP */}
-            <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#222' }}>Dados</label>
+            {/* SEÇÃO 1: DADOS */}
+            <div style={boxStyle}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <label style={labelStyle}>Dados do Gráfico</label>
                     <div style={{ display: 'flex', gap: 10, fontSize: 12 }}>
                         <span
                             onClick={() => setInputMode('csv')}
-                            style={{ cursor: 'pointer', fontWeight: inputMode === 'csv' ? 'bold' : 'normal', textDecoration: inputMode === 'csv' ? 'underline' : 'none', color: inputMode === 'csv' ? '#000' : '#888' }}
+                            style={{ cursor: 'pointer', fontWeight: inputMode === 'csv' ? 600 : 400, textDecoration: inputMode === 'csv' ? 'underline' : 'none', color: inputMode === 'csv' ? '#000' : '#888' }}
                         >
-                            Importar CSV
+                            CSV Rápido
                         </span>
                     </div>
                 </div>
 
-                {/* CSV Input Area (Always visible for Quick Import) */}
+                {/* CSV Input Area */}
                 {inputMode === 'csv' && (
                     <>
                         <div style={{ marginBottom: 10 }}>
                             <label
                                 htmlFor="csv-upload"
                                 style={{
-                                    display: 'block',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
                                     width: '100%',
                                     border: '1px dashed #ccc',
-                                    padding: '20px',
+                                    padding: '16px',
                                     textAlign: 'center',
                                     cursor: 'pointer',
-                                    borderRadius: 4,
+                                    borderRadius: 8,
                                     fontSize: 13,
                                     color: '#666',
-                                    background: '#f9f9f9'
+                                    background: '#f9f9f9',
+                                    transition: 'background 0.2s'
                                 }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f0f0'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = '#f9f9f9'}
                             >
-                                📂 Clique para fazer upload de CSV
+                                <span style={{ fontSize: 20, marginBottom: 4 }}>📂</span>
+                                <span>Upload CSV</span>
                             </label>
                             <input
                                 id="csv-upload"
@@ -513,22 +524,19 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                 parseCSV(e.target.value);
                             }}
                             placeholder="Categoria, Valor 1, Valor 2&#10;A, 10, 20&#10;B, 30, 40"
-                            style={{ width: '100%', height: 100, fontFamily: 'monospace', fontSize: 12, padding: 8, borderRadius: 4, border: '1px solid #ddd', marginBottom: 5 }}
+                            style={{ width: '100%', height: 100, fontFamily: 'monospace', fontSize: 12, padding: 10, borderRadius: 6, border: '1px solid #ddd', marginBottom: 8, resize: 'vertical' }}
                         />
-                        <p style={{ fontSize: 11, color: '#666', fontStyle: 'italic' }}>
-                            Formato: Primeira linha cabeçalho, linhas seguintes dados. Ex: Categoria, Série A, Série B
-                        </p>
                         {recommendedType && (
-                            <div style={{ marginTop: 10, padding: 10, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 4 }}>
-                                <p style={{ fontSize: 12, color: '#0369a1', margin: '0 0 5px 0', fontWeight: 600 }}>
-                                    💡 Sugestão: {recommendedType === 'bar' ? 'Barras' : recommendedType === 'line' ? 'Linha' : recommendedType === 'pie' ? 'Pizza' : recommendedType}
+                            <div style={{ marginTop: 10, padding: 12, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 6 }}>
+                                <p style={{ fontSize: 12, color: '#0369a1', margin: '0 0 6px 0', fontWeight: 600 }}>
+                                    💡 Recomendação: {recommendedType === 'bar' ? 'Barras' : recommendedType === 'line' ? 'Linha' : recommendedType === 'pie' ? 'Pizza' : recommendedType}
                                 </p>
-                                <p style={{ fontSize: 11, color: '#0c4a6e', margin: 0 }}>
+                                <p style={{ fontSize: 11, color: '#0c4a6e', margin: 0, lineHeight: 1.4 }}>
                                     {recommendationReason}
                                 </p>
                                 <button
                                     onClick={() => handleTypeChange(recommendedType)}
-                                    style={{ marginTop: 8, fontSize: 11, padding: '4px 8px', background: '#0284c7', color: 'white', border: 'none', borderRadius: 3, cursor: 'pointer' }}
+                                    style={{ marginTop: 8, fontSize: 11, padding: '6px 10px', background: '#0284c7', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
                                 >
                                     Aplicar Sugestão
                                 </button>
@@ -537,7 +545,6 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     </>
                 )}
 
-                {/* Main Data Edit Action */}
                 <button
                     onClick={() => setDataModalOpen(true)}
                     style={{
@@ -546,303 +553,283 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         marginTop: 10,
                         background: 'white',
                         border: '1px solid #ccc',
-                        borderRadius: 4,
+                        borderRadius: 6,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6,
+                        gap: 8,
                         fontSize: 13,
                         fontWeight: 600,
                         color: '#333',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        transition: 'all 0.2s'
                     }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#999'; e.currentTarget.style.background = '#fcfcfc'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#ccc'; e.currentTarget.style.background = 'white'; }}
                 >
-                    <span>Abrir Editor de Tabela</span>
-                    <span style={{ fontSize: 16 }}>↗</span>
+                    <span>Editor Avançado</span>
+                    <span style={{ fontSize: 14 }}>↗</span>
                 </button>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>Nome do Gráfico</label>
-                <input
-                    type="text"
-                    value={chartName}
-                    onChange={(e) => setChartName(e.target.value)}
-                    placeholder="Ex: Evolução de Vendas"
-                    style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                />
-            </div>
-
-
-
-            <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#222' }}>Tipo</label>
-                    <button
-                        type="button"
-                        onClick={() => {
-                            const mock = getMockDataForType(chartType);
-                            setDataInput(JSON.stringify(mock, null, 2));
-                            toast.success("Dados de exemplo carregados!");
-                        }}
-                        style={{
-                            fontSize: 11,
-                            padding: '4px 8px',
-                            background: '#f0f0f0',
-                            border: '1px solid #ccc',
-                            borderRadius: 3,
-                            cursor: 'pointer',
-                            color: '#333'
-                        }}
-                    >
-                        💡 Carregar Exemplo
-                    </button>
+            {/* SEÇÃO 2: TIPO E CONFIGURAÇÃO */}
+            <div style={boxStyle}>
+                <div style={{ marginBottom: 16 }}>
+                    <label style={labelStyle}>Nome do Gráfico</label>
+                    <input
+                        type="text"
+                        value={chartName}
+                        onChange={(e) => setChartName(e.target.value)}
+                        placeholder="Ex: Evolução de Vendas"
+                        style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14 }}
+                    />
                 </div>
-                <select
-                    value={chartType}
-                    onChange={(e) => handleTypeChange(e.target.value as ChartType)}
-                    style={{ width: '100%', padding: 8, marginTop: 5, borderRadius: 4, border: '1px solid #ddd' }}
-                >
-                    <option value="bar">Gráfico de Barras</option>
-                    <option value="column">Gráfico de Colunas</option>
-                    <option value="line">Gráfico de Linha</option>
-                    <option value="area">Gráfico de Área</option>
-                    <option value="pie">Gráfico de Pizza</option>
-                    <option value="donut">Gráfico Donut</option>
-                    <option value="scatter">Gráfico de Dispersão</option>
-                    <option value="bubble">Gráfico de Bolhas</option>
-                    <option value="radar">Gráfico Radar</option>
-                    <option value="mixed">Gráfico Misto</option>
-                    <option value="histogram">Histograma</option>
-                    <option value="pictogram">📊 Pictograma (Ícones)</option>
-                    <option value="boxplot">Boxplot</option>
-                </select>
-            </div>
 
-            {/* Modo de Visualização - TOGGLE */}
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#222' }}>
-                    Modo de Visualização
-                </label>
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '8px 12px',
-                    background: '#f5f5f5',
-                    borderRadius: 6
-                }}>
-                    <span style={{
-                        fontSize: 12,
-                        fontWeight: chartMode === 'classic' ? 600 : 400,
-                        color: chartMode === 'classic' ? '#222' : '#999'
-                    }}>
-                        📊 Clássico
-                    </span>
-                    <button
-                        onClick={() => setChartMode(chartMode === 'classic' ? 'infographic' : 'classic')}
-                        style={{
-                            position: 'relative',
-                            width: 44,
-                            height: 24,
-                            background: chartMode === 'infographic' ? '#00D9FF' : '#ccc',
-                            border: 'none',
-                            borderRadius: 12,
-                            cursor: 'pointer',
-                            transition: 'background 0.2s',
-                            padding: 0
-                        }}
-                    >
-                        <div style={{
-                            position: 'absolute',
-                            top: 2,
-                            left: chartMode === 'infographic' ? 22 : 2,
-                            width: 20,
-                            height: 20,
-                            background: 'white',
-                            borderRadius: '50%',
-                            transition: 'left 0.2s',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                        }} />
-                    </button>
-                    <span style={{
-                        fontSize: 12,
-                        fontWeight: chartMode === 'infographic' ? 600 : 400,
-                        color: chartMode === 'infographic' ? '#222' : '#999'
-                    }}>
-                        🎨 Infográfico
-                    </span>
-                </div>
-                <div style={{ fontSize: 11, color: '#666', marginTop: 6 }}>
-                    {chartMode === 'classic' ? 'Grid sutil, tipografia equilibrada' : 'Números gigantes, minimalista'}
-                </div>
-            </div>
-
-            {/* Preset de Cores */}
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>
-                    Preset de Cores
-                </label>
-                <select
-                    value={colorPreset}
-                    onChange={(e) => {
-                        const preset = e.target.value as ColorPresetKey;
-                        setColorPreset(preset);
-                        setPalette(COLOR_PRESETS[preset].colors);
-                    }}
-                    style={{ width: '100%', padding: 8, fontSize: 13, borderRadius: 4, border: '1px solid #ccc' }}
-                >
-                    {Object.entries(COLOR_PRESETS).map(([key, preset]) => (
-                        <option key={key} value={key}>{preset.name}</option>
-                    ))}
-                </select>
-                <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                    {COLOR_PRESETS[colorPreset].colors.slice(0, 5).map((color, i) => (
-                        <div
-                            key={i}
-                            style={{
-                                width: 24,
-                                height: 24,
-                                backgroundColor: color,
-                                borderRadius: 3,
-                                border: '1px solid #ddd'
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <label style={labelStyle}>Tipo de Visualização</label>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const mock = getMockDataForType(chartType);
+                                setDataInput(JSON.stringify(mock, null, 2));
+                                toast.success("Dados de exemplo carregados!");
                             }}
-                        />
-                    ))}
+                            style={{
+                                fontSize: 11,
+                                padding: '4px 8px',
+                                background: '#f1f5f9',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: 4,
+                                cursor: 'pointer',
+                                color: '#475569'
+                            }}
+                        >
+                            Carregar Exemplo
+                        </button>
+                    </div>
+                    <select
+                        value={chartType}
+                        onChange={(e) => handleTypeChange(e.target.value as ChartType)}
+                        style={{ width: '100%', padding: '10px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14, background: 'white' }}
+                    >
+                        <option value="bar">Gráfico de Barras</option>
+                        <option value="column">Gráfico de Colunas</option>
+                        <option value="line">Gráfico de Linha</option>
+                        <option value="area">Gráfico de Área</option>
+                        <option value="pie">Gráfico de Pizza</option>
+                        <option value="donut">Gráfico Donut</option>
+                        <option value="scatter">Gráfico de Dispersão</option>
+                        <option value="bubble">Gráfico de Bolhas</option>
+                        <option value="radar">Gráfico Radar</option>
+                        <option value="mixed">Gráfico Misto</option>
+                        <option value="histogram">Histograma</option>
+                        <option value="pictogram">📊 Pictograma (Ícones)</option>
+                        <option value="boxplot">Boxplot</option>
+                    </select>
+                </div>
+
+                {/* Modo de Visualização */}
+                <div style={{ marginBottom: 0 }}>
+                    <label style={labelStyle}>Estilo Visual</label>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#f8f9fa',
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ fontSize: 13, color: '#444' }}>Infográfico?</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 11, color: chartMode === 'classic' ? '#666' : '#bbb' }}>Clássico</span>
+                            <button
+                                onClick={() => setChartMode(chartMode === 'classic' ? 'infographic' : 'classic')}
+                                style={{
+                                    position: 'relative',
+                                    width: 44,
+                                    height: 24,
+                                    background: chartMode === 'infographic' ? '#0ea5e9' : '#cbd5e1',
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    padding: 0
+                                }}
+                            >
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    left: chartMode === 'infographic' ? 22 : 2,
+                                    width: 20,
+                                    height: 20,
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    transition: 'left 0.2s',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }} />
+                            </button>
+                            <span style={{ fontSize: 11, color: chartMode === 'infographic' ? '#0ea5e9' : '#bbb', fontWeight: chartMode === 'infographic' ? 600 : 400 }}>Sim</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* Icon Selector - Only for Pictogram */}
+            {/* SEÇÃO 3: PECAS OPCIONAIS (ÍCONES) */}
             {chartType === 'pictogram' && (
-                <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#222' }}>
-                        Ícone
-                    </label>
+                <div style={boxStyle}>
+                    <label style={labelStyle}>Ícone do Pictograma</label>
                     <button
                         type="button"
                         onClick={() => setIconModalOpen(true)}
                         style={{
                             width: '100%',
-                            padding: '10px 12px',
+                            padding: '12px',
                             border: '1px solid #ddd',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             background: 'white',
                             cursor: 'pointer',
-                            fontSize: 13,
+                            fontSize: 14,
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'space-between'
+                            justifyContent: 'space-between',
+                            color: '#333'
                         }}
                     >
-                        <span>{selectedIcon ? `${selectedIcon.iconKey} (${selectedIcon.category})` : 'Selecionar ícone...'}</span>
-                        <span style={{ fontSize: 18 }}>🎨</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {selectedIcon && (
+                                <div style={{ width: 24, height: 24, background: '#f0f0f0', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {/* Small preview if we had the component here, but text is fine */}
+                                    <span style={{ fontSize: 14 }}>★</span>
+                                </div>
+                            )}
+                            <span>{selectedIcon ? selectedIcon.iconKey : 'Selecionar ícone...'}</span>
+                        </div>
+                        <span style={{ fontSize: 14, color: '#666' }}>Alterar</span>
                     </button>
-                    {/* Icon is mandatory for Pictogram, so no remove button */}
                 </div>
             )}
 
-            <div style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#222' }}>Paleta de Cores</label>
-                    <div style={{ display: 'flex', gap: 5 }}>
-                        <button
-                            onClick={saveProjectColors}
-                            style={{ background: 'none', border: 'none', color: '#666', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
-                            title="Salvar como padrão do projeto"
-                        >
-                            Salvar no Projeto
-                        </button>
-                        <button
-                            onClick={generatePalette}
-                            style={{ background: 'none', border: 'none', color: '#666', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
-                            title="Gerar tons monocromáticos"
-                        >
-                            Gerar Tons
-                        </button>
-                        <button
-                            onClick={addColor}
-                            style={{ background: 'none', border: 'none', color: '#000', fontSize: 18, cursor: 'pointer', padding: 0 }}
-                            title="Adicionar cor"
-                        >
-                            +
-                        </button>
+            {/* SEÇÃO 4: CORES */}
+            <div style={boxStyle}>
+                <label style={labelStyle}>Cores e Tema</label>
+
+                <div style={{ marginBottom: 16 }}>
+                    <span style={{ fontSize: 12, color: '#666', marginBottom: 6, display: 'block' }}>Preset Rápido</span>
+                    <select
+                        value={colorPreset}
+                        onChange={(e) => {
+                            const preset = e.target.value as ColorPresetKey;
+                            setColorPreset(preset);
+                            setPalette(COLOR_PRESETS[preset].colors);
+                        }}
+                        style={{ width: '100%', padding: '8px', fontSize: 13, borderRadius: 6, border: '1px solid #ddd', background: 'white' }}
+                    >
+                        {Object.entries(COLOR_PRESETS).map(([key, preset]) => (
+                            <option key={key} value={key}>{preset.name}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, color: '#666' }}>Paleta Atual</span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={generatePalette} style={{ fontSize: 11, color: '#0ea5e9', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Gerar Tons</button>
+                            <button onClick={addColor} style={{ fontSize: 12, width: 20, height: 20, background: '#f0f0f0', border: '1px solid #ddd', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {palette.map((color, index) => (
+                            <div key={index} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                                <div style={{ width: 32, height: 32, borderRadius: 6, overflow: 'hidden', border: '1px solid #ddd', flexShrink: 0 }}>
+                                    <input
+                                        type="color"
+                                        value={color}
+                                        onChange={(e) => updateColor(index, e.target.value)}
+                                        style={{ width: '150%', height: '150%', transform: 'translate(-25%, -25%)', cursor: 'pointer', border: 'none', padding: 0 }}
+                                    />
+                                </div>
+                                <input
+                                    type="text"
+                                    value={color}
+                                    onChange={(e) => updateColor(index, e.target.value)}
+                                    style={{ flex: 1, padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: 13, fontFamily: 'monospace' }}
+                                />
+                                {palette.length > 1 && (
+                                    <button
+                                        onClick={() => removeColor(index)}
+                                        style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 18, padding: 0 }}
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                    {palette.map((color, index) => (
-                        <div key={index} style={{ display: 'flex', gap: 10 }}>
-                            <input
-                                type="color"
-                                value={color}
-                                onChange={(e) => updateColor(index, e.target.value)}
-                                style={{ width: 40, height: 36, padding: 0, border: 'none', cursor: 'pointer' }}
-                            />
-                            <input
-                                type="text"
-                                value={color}
-                                onChange={(e) => updateColor(index, e.target.value)}
-                                style={{ flex: 1, padding: 8, border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
-                            />
-                            {palette.length > 1 && (
-                                <button
-                                    onClick={() => removeColor(index)}
-                                    style={{ border: 'none', background: 'none', color: '#999', cursor: 'pointer' }}
-                                >
-                                    ✕
-                                </button>
-                            )}
-                        </div>
-                    ))}
+                <div style={{ marginTop: 16 }}>
+                    <label style={labelStyle}>Tipografia</label>
+                    <select
+                        value={fontFamily}
+                        onChange={(e) => setFontFamily(e.target.value)}
+                        style={{ width: '100%', padding: '8px', fontSize: 13, borderRadius: 6, border: '1px solid #ddd', background: 'white' }}
+                    >
+                        <option value="sans-serif">Sem Serifa (Sans Serif)</option>
+                        <option value="serif">Com Serifa (Serif)</option>
+                        <option value="monospace">Monoespaçada (Monospace)</option>
+                    </select>
+                </div>
+
+                <div style={{ marginTop: 16 }}>
+                    <button
+                        onClick={saveProjectColors}
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            background: 'none',
+                            border: '1px dashed #bbb',
+                            borderRadius: 6,
+                            color: '#666',
+                            fontSize: 12,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Salvar como Padrão do Projeto
+                    </button>
                 </div>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600, color: '#222' }}>Tipografia</label>
-                <select
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value)}
-                    style={{ width: '100%', padding: 8, borderRadius: 4, border: '1px solid #ddd' }}
-                >
-                    <option value="sans-serif">Sem Serifa (Sans Serif)</option>
-                    <option value="serif">Com Serifa (Serif)</option>
-                    <option value="monospace">Monoespaçada (Monospace)</option>
-                </select>
-            </div>
-
-
-
-
-
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+            {/* AÇÕES FINAIS */}
+            <div style={{ paddingBottom: 40 }}>
                 {isEditing ? (
-                    <>
+                    <div style={{ display: 'flex', gap: 10 }}>
                         <button
                             onClick={handleDelete}
-                            style={{ flex: 1, padding: '12px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
+                            style={{ flex: 1, padding: '12px', background: '#fee2e2', color: '#b91c1c', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
                         >
                             Excluir
                         </button>
                         <button
                             onClick={handleUpdate}
-                            style={{ flex: 2, padding: '12px', background: 'black', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
+                            style={{ flex: 2, padding: '12px', background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 14 }}
                         >
-                            Salvar
+                            Salvar Alterações
                         </button>
-                    </>
+                    </div>
                 ) : (
                     <button
                         onClick={handleCreate}
-                        style={{ width: '100%', padding: '12px', background: 'black', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 500 }}
+                        style={{ width: '100%', padding: '14px', background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                     >
                         Criar Gráfico
                     </button>
                 )}
             </div>
 
-            {/* Icon Selector Modal */}
+            {/* Modals outside the layout boxes */}
             <IconSelectorModal
                 isOpen={iconModalOpen}
                 onClose={() => setIconModalOpen(false)}
