@@ -12,7 +12,11 @@ The interface uses a strictly neutral palette to avoid competing with the artwor
 *   **Canvas Background**: `#e0e0e0` (Darker neutral to define page boundaries)
 *   **Page Background**: `#ffffff` (Pure white)
 *   **Sidebar/Modal Background**: `#ffffff`
-    *   **Usage Rule**: Use Sidebar for quick configs/selection. Use Modals for complex interactions (Grid, Data Table, Icon Selector).
+    *   **Usage Rule**: Use Sidebar for main configuration (always available). Use Modals for extensive libraries (like Icons) or complex data entry.
+*   **Section Boxes**: `#ffffff` (White container on gray background)
+    *   Used in Sidebars to group related controls.
+    *   Border: `1px solid #e0e0e0`
+    *   Shadow: `0 2px 8px rgba(0,0,0,0.02)`
 *   **Text Primary**: `#111111` (Near black, sharp)
 *   **Text Secondary**: `#666666` (Subtle metadata)
 *   **Borders/Dividers**: `#e5e5e5` (Very subtle)
@@ -44,6 +48,11 @@ Charts follow curated themes found in `src/utils/chartTheme.ts`.
 *   Amber: `#f59e0b`
 *   Red: `#ef4444`
 *   Violet: `#8b5cf6`
+
+#### Maximum Color Usage Rule
+For **Pictograms, Histograms, Mixed Charts, and Bubble Charts**, the system maximizes the use of the palette.
+*   Instead of a single primary color, these charts cycle through the entire selected palette.
+*   **Purpose**: To create more vibrant and distinguishable data points, especially in infographic modes.
 
 ---
 
@@ -84,7 +93,12 @@ The core layout engine.
 *   **Padding Small**: `8px`
 *   **Padding Medium**: `16px`
 *   **Padding Large**: `24px`
-*   **Sidebar Width**: `300px` (Fixed)
+*   **Sidebar Width**: `320px` (Fixed)
+
+### Chart Specific Optimizations
+*   **Radar Chart**:
+    *   **Classic Margin**: `35px` (Maximized size, fitting only labels).
+    *   **Infographic Margin**: `60px` (Accommodates large "Hero" values on top).
 
 ---
 
@@ -134,6 +148,7 @@ The design uses shadows very sparingly, primarily for depth in editing modes ("l
 ### Purpose
 *   **Feedback**: Every click must have immediate visual feedback.
 *   **Fluidity**: Elements should glide, not jump.
+*   **Enter/Exit**: Modals should fade/scale in (`scaleIn 0.2s`). Sidebars should slide in (`translateX`).
 
 ---
 

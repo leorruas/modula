@@ -78,6 +78,25 @@ Quando o usuário altera a configuração do grid (ex: de 12×8 para 10×10), **
     *   **Remover Apenas Capítulo**: Remove a marcação do capítulo, mas mantém as páginas (que passam a pertencer ao capítulo anterior ou ficam sem capítulo).
     *   **Remover Capítulo e Páginas**: Exclui o capítulo e todas as páginas associadas a ele.
 
+### 1.6. Modo de Pré-visualização (Preview Mode) 👁️
+O sistema deve oferecer um modo de visualização limpa para simular o resultado final da exportação:
+*   **Acesso**: Botão "Toggle" na barra de ferramentas superior (ícone de Olho).
+*   **Comportamento**:
+    *   Oculta linhas de grid, guias de seleção e alças de redimensionamento.
+    *   Oculta a Sidebar de edição.
+    *   Desabilita interações de seleção e arraste de gráficos.
+    *   Exibe o layout exatamente como será impresso/exportado.
+*   **Saída**: O usuário clica novamente no botão para retornar ao modo de edição.
+
+### 1.7. Interação Avançada com o Canvas 🖱️
+
+*   **Pan com Rodinha (Middle Click)**: 
+    *   O usuário deve conseguir fazer panning (arrastar o canvas) usando o botão do meio do mouse (roda).
+    *   **Comportamento Universal**: Esta ação deve funcionar incondicionalmente, mesmo que o cursor esteja posicionado sobre um gráfico (o gráfico não deve capturar o clique para seleção neste caso).
+*   **Deseleção de Grid (Toggle)**:
+    *   Clicar em um módulo de grid já selecionado (sem arrastar) deve limpar a seleção atual.
+    *   Isso permite um "Undo" rápido de seleções indesejadas sem precisar clicar fora.
+
 ## 2. Motor de Gráficos (Chart Engine)
 
 ### 2.1. Ocupação Modular
@@ -148,7 +167,7 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   **Pie/Donut**: Detecta poucos valores (≤6) que somam 100% ou próximo.
     *   **Line/Area**: Detecta séries temporais ou progressões ordenadas.
     *   **Scatter**: Detecta datasets com valores dispersos (alta variância).
-    *   **Radar**: Detecta múltiplas métricas (3-8) para comparação multidimensional.
+    *   **Radar**: Detecta múltiplas métricas (3-8). Otimizado para ocupar o máximo de espaço modular disponível (Margens: 35px Classic / 60px Infographic).
     *   **Mixed**: Detecta 2+ datasets com valores em escalas muito diferentes.
     *   **Bar/Column**: Fallback padrão para comparações categóricas.
 *   **Interface**: Exibir card de sugestão com botão "Aplicar Sugestão" logo abaixo da área de input CSV. A recomendação deve incluir uma breve justificativa (ex: "Série temporal detectada").

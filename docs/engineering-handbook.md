@@ -18,6 +18,10 @@
 *   **Global State**: Use Zustand stores for state shared across features.
 *   **Refresh Pattern**: When a global action (e.g., updating settings in a modal) requires a reload of page-level data, expose a `refreshTrigger` number in the store. Components should subscribe to this trigger in their `useEffect` dependencies to re-execute data fetching logic. This avoids page reloads.
 
+### Component Architecture
+*   **Modals & Overlays**: Always use React Portals (`ReactDOM.createPortal`) for modals, tooltips, and overlays to escape the stacking context ('z-index wars') of parent containers.
+*   **Component Isolation**: Sidebar components should handle their own visibility logic but rely on global stores for data.
+
 ## Third-Party Libraries
 *   **Input Strictness**: Do not assume libraries behave like browsers.
     *   *Example*: `jsPDF` does not understand CSS font stacks ("Helvetica, Arial"). Use strict, single values ("Helvetica").
