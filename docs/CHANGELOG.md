@@ -6,14 +6,21 @@ All notable changes to this project will be documented in this file.
 
 ### ✨ New Features
 
+- **editor:** improve icon selector UX in chart sidebar ([42dc613](https://github.com/leorruas/modula/commit/42dc61319b364b5cba919809b096f27c303b5d17)) - *2026-01-18 10:44*
 - automatic chart repositioning on grid changes ([56338af](https://github.com/leorruas/modula/commit/56338afe7146070fee4cd43805f9c1d0c8c0b65d)) - *2026-01-15 18:44*
 - complete dual-mode infographic system ([4ca63ab](https://github.com/leorruas/modula/commit/4ca63ab2f9d5e0abbbfd4a9f35c13e20da0eaf40)) - *2026-01-14 21:22*
 
 ### 🐛 Bug Fixes
 
+- **charts:** resolve icon rendering issues and remove from bar chart ([4422b4b](https://github.com/leorruas/modula/commit/4422b4b9b8a49e77138cf3cacbe15fd4cb28a5f1)) - *2026-01-18 10:44*
 - remove undefined fields from gridConfig for Firestore ([867bea6](https://github.com/leorruas/modula/commit/867bea6ab61ce5754a065fa2c500add880846128)) - *2026-01-15 18:50*
 - correct chartService method name in grid repositioning ([1c69d60](https://github.com/leorruas/modula/commit/1c69d6073cce198797202de65482e44eba6b1a73)) - *2026-01-15 18:45*
 - TypeScript build errors in iconLibrary ([25ed42c](https://github.com/leorruas/modula/commit/25ed42c7a24af479a0f8165d47943c9a50c05d9d)) - *2026-01-14 21:27*
+
+### 🔧 Chores
+
+- update documentation and miscellaneous files ([1c2d833](https://github.com/leorruas/modula/commit/1c2d833115e05067a499a0055865099be94e7d8f)) - *2026-01-18 10:44*
+- **tooling:** add changelog generation skill ([f09966b](https://github.com/leorruas/modula/commit/f09966bd731b84e0fea5040d7e16b5ac8cca5026)) - *2026-01-18 10:44*
 
 ### Other Changes
 
