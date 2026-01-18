@@ -16,9 +16,17 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
 
     const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+
+
+    // Smart Margins
+    const basePadding = isInfographic ? CHART_THEME.padding.medium : CHART_THEME.padding.small;
+    const marginTop = basePadding;
+    const marginRight = basePadding;
+    const marginBottom = basePadding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
+    const marginLeft = basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
+
+    const chartWidth = width - marginLeft - marginRight;
+    const chartHeight = height - marginTop - marginBottom;
 
     const points = values.map((value, i) => {
         const x = (i / (values.length - 1)) * chartWidth;
@@ -47,7 +55,7 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                 </linearGradient>
             </defs>
 
-            <g transform={`translate(${padding}, ${padding})`}>
+            <g transform={`translate(${marginLeft}, ${marginTop})`}>
                 {/* Grid - only classic */}
                 {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => (
                     <line

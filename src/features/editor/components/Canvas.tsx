@@ -62,26 +62,45 @@ export function Canvas({ project }: CanvasProps) {
     const [validationResults, setValidationResults] = useState<ValidationResult[]>([]);
 
     // A4 dimensions in mm (standard reference)
-    // We'll use 1mm = 3.7795px (96 DPI) approx, but for simplicity let's assume a base unit
+    // We'll use 1mm = 3.7795px (96 DPI) approx
     const PIXELS_PER_MM = 3.78;
-    const PAGE_WIDTH_MM = project.gridConfig.pageFormat === 'A4' ? 210 : 297;
-    const PAGE_HEIGHT_MM = project.gridConfig.pageFormat === 'A4' ? 297 : 210;
+    const isLandscape = project.gridConfig.orientation === 'landscape';
+
+    // Determine Base Dimensions based on Format (assuming A4 default if unknown)
+    const formatBaseW = project.gridConfig.pageFormat === 'A3' ? 297 : (project.gridConfig.pageFormat === 'A5' ? 148 : 210);
+    const formatBaseH = project.gridConfig.pageFormat === 'A3' ? 420 : (project.gridConfig.pageFormat === 'A5' ? 210 : 297);
+
+    // Swap if Landscape
+    const PAGE_WIDTH_MM = isLandscape ? Math.max(formatBaseW, formatBaseH) : Math.min(formatBaseW, formatBaseH);
+    const PAGE_HEIGHT_MM = isLandscape ? Math.min(formatBaseW, formatBaseH) : Math.max(formatBaseW, formatBaseH);
 
     const widthPx = PAGE_WIDTH_MM * PIXELS_PER_MM;
     const heightPx = PAGE_HEIGHT_MM * PIXELS_PER_MM;
 
     // Grid calculations for chart placement
-    const { columns, rows, margin, gutter, mode, fixedModuleWidth, fixedModuleHeight } = project.gridConfig;
+    const { columns: cfgColumns, rows: cfgRows, margin, gutter, mode, fixedModuleWidth, fixedModuleHeight } = project.gridConfig;
     const marginPx = margin * PIXELS_PER_MM;
     const gutterPx = gutter * PIXELS_PER_MM;
 
     let moduleWidth: number;
     let moduleHeight: number;
+    let columns: number;
+    let rows: number;
 
     if (mode === 'fixed' && fixedModuleWidth && fixedModuleHeight) {
+        // Fixed: calculate grid based on module size
+        // IMPORTANT: fixedModuleWidth is in mm
         moduleWidth = fixedModuleWidth * PIXELS_PER_MM;
         moduleHeight = fixedModuleHeight * PIXELS_PER_MM;
+
+        const availW = widthPx - (2 * marginPx);
+        const availH = heightPx - (2 * marginPx);
+        columns = Math.max(1, Math.floor((availW + gutterPx) / (moduleWidth + gutterPx)));
+        rows = Math.max(1, Math.floor((availH + gutterPx) / (moduleHeight + gutterPx)));
     } else {
+        // Flexible: use saved cols/rows, calculate module size
+        columns = cfgColumns;
+        rows = cfgRows;
         const availableWidth = widthPx - (2 * marginPx) - ((columns - 1) * gutterPx);
         moduleWidth = availableWidth / columns;
         const availableHeight = heightPx - (2 * marginPx) - ((rows - 1) * gutterPx);
@@ -391,6 +410,7 @@ export function Canvas({ project }: CanvasProps) {
                     return (
                         <div
                             key={chart.id}
+                            id={`chart-container-${chart.id}`}
                             style={{
                                 position: 'absolute',
                                 left: x, top: y, width: w, height: h,
@@ -624,11 +644,19 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
     const gutterPx = gutter * PIXELS_PER_MM;
 
     // Calculate module size
-    const availableWidth = width - (2 * marginPx) - ((columns - 1) * gutterPx);
-    const moduleWidth = availableWidth / columns;
+    let moduleWidth: number;
+    let moduleHeight: number;
 
-    const availableHeight = height - (2 * marginPx) - ((rows - 1) * gutterPx);
-    const moduleHeight = availableHeight / rows;
+    if (project.gridConfig.mode === 'fixed' && project.gridConfig.fixedModuleWidth && project.gridConfig.fixedModuleHeight) {
+        moduleWidth = project.gridConfig.fixedModuleWidth * PIXELS_PER_MM;
+        moduleHeight = project.gridConfig.fixedModuleHeight * PIXELS_PER_MM;
+    } else {
+        const availableWidth = width - (2 * marginPx) - ((columns - 1) * gutterPx);
+        moduleWidth = availableWidth / columns;
+
+        const availableHeight = height - (2 * marginPx) - ((rows - 1) * gutterPx);
+        moduleHeight = availableHeight / rows;
+    }
 
     const { selectedModules, startSelection, isSelecting, setStartSelection, setIsSelecting, setSelection, editorMode, editingChartId } = useEditorStore();
 

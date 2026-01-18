@@ -7,6 +7,7 @@ import { Project } from '@/types';
 import { EditorLayout } from '@/features/editor/components/EditorLayout';
 import { Canvas } from '@/features/editor/components/Canvas';
 import { useUserStore } from '@/store/userStore';
+import { useEditorStore } from '@/store/editorStore';
 
 export default function EditorPage() {
     const params = useParams();
@@ -14,11 +15,13 @@ export default function EditorPage() {
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const { user } = useUserStore();
+    const { refreshTrigger } = useEditorStore();
 
     useEffect(() => {
         async function load() {
             if (!projectId) return;
             try {
+                // setLoading(true); // Optional: if we want to show loading spinner on refresh
                 const data = await projectService.getProject(projectId);
                 setProject(data);
             } catch (e) {
@@ -28,7 +31,7 @@ export default function EditorPage() {
             }
         }
         load();
-    }, [projectId]);
+    }, [projectId, refreshTrigger]);
 
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>;
     if (!project) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Project not found</div>;

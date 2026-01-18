@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Project } from '@/types';
 import Link from 'next/link';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { ArrowLeft, Settings, FileText, Image as ImageIcon, Archive } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEditorStore } from '@/store/editorStore';
 import { ChartSidebar } from './ChartSidebar';
@@ -13,17 +13,40 @@ interface EditorLayoutProps {
     children: ReactNode;
 }
 
-// ... existing code
-
 import { ChapterDashboard } from './ChapterDashboard';
 import { LayoutGrid } from 'lucide-react';
 
-// ...
+import { exportChartToPng } from '@/utils/exportUtils';
+import { useBulkExport } from '../hooks/useBulkExport';
+import { BulkExportProgressModal } from './BulkExportProgressModal';
+
+function ExportPngButton({ onClose }: { onClose: () => void }) {
+    const { editingChartId } = useEditorStore();
+
+    if (!editingChartId) return null;
+
+    return (
+        <button
+            onClick={() => {
+                exportChartToPng(editingChartId, { removeWhitespace: true });
+                onClose();
+            }}
+            style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, background: 'none', borderTop: '1px solid #eee', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', cursor: 'pointer', color: '#333', display: 'flex', alignItems: 'center', gap: 8 }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#f9f9f9'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+        >
+            <ImageIcon size={16} /> Gráfico Selecionado (PNG)
+        </button>
+    );
+}
 
 export function EditorLayout({ project, children }: EditorLayoutProps) {
-    const { editorMode, setEditorMode, isChapterViewOpen, setIsChapterViewOpen } = useEditorStore();
+    const { editorMode, setEditorMode, isChapterViewOpen, setIsChapterViewOpen, triggerRefresh } = useEditorStore();
     const router = useRouter();
     const [isGridModalOpen, setIsGridModalOpen] = useState(false);
+    const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+
+    const { isExporting, progress, currentAction, startBulkExport, exportQueue, handleChartReady } = useBulkExport(project);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -83,57 +106,94 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                         <Settings size={16} />
                     </button>
 
-                    <div style={{ background: '#f0f0f0', padding: 4, borderRadius: 6, display: 'flex', gap: 4 }}>
+                    {/* Export Menu */}
+                    <div style={{ position: 'relative' }}>
                         <button
-                            onClick={() => setEditorMode('rehearsal')}
+                            onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
                             style={{
-                                padding: '4px 8px',
-                                borderRadius: 4,
-                                border: 'none',
-                                background: editorMode === 'rehearsal' ? 'white' : 'transparent',
-                                boxShadow: editorMode === 'rehearsal' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                padding: '6px 12px',
+                                borderRadius: 6,
+                                border: '1px solid #e5e5e5',
+                                background: 'white',
                                 fontSize: 12,
                                 cursor: 'pointer',
-                                fontWeight: 500
+                                fontWeight: 500,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                color: '#333'
                             }}
                         >
-                            Rehearsal
+                            <span>Exportar</span>
+                            {/* Chevron Down */}
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M6 9l6 6 6-6" />
+                            </svg>
                         </button>
-                        <button
-                            onClick={() => setEditorMode('publication')}
-                            style={{
-                                padding: '4px 8px',
-                                borderRadius: 4,
-                                border: 'none',
-                                background: editorMode === 'publication' ? 'black' : 'transparent',
-                                color: editorMode === 'publication' ? 'white' : 'inherit',
-                                boxShadow: editorMode === 'publication' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                                fontSize: 12,
-                                cursor: 'pointer',
-                                fontWeight: 500
-                            }}
-                        >
-                            Publication
-                        </button>
-                    </div>
 
-                    <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('trigger-pdf-export'))}
-                        style={{
-                            padding: '6px 12px',
-                            borderRadius: 6,
-                            border: '1px solid #e5e5e5',
-                            background: 'white',
-                            fontSize: 12,
-                            cursor: 'pointer',
-                            fontWeight: 500,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                        }}
-                    >
-                        Exportar PDF
-                    </button>
+                        {isExportMenuOpen && (
+                            <>
+                                <div
+                                    style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                                    onClick={() => setIsExportMenuOpen(false)}
+                                />
+                                <div style={{
+                                    position: 'absolute',
+                                    right: 0,
+                                    top: '100%',
+                                    marginTop: 4,
+                                    width: 220,
+                                    background: 'white',
+                                    border: '1px solid #e5e5e5',
+                                    borderRadius: 6,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                    zIndex: 100,
+                                    overflow: 'hidden',
+                                    padding: '4px 0'
+                                }}>
+                                    {/* BULK EXPORT DISABLED
+                                    <button
+                                        onClick={() => {
+                                            startBulkExport({ type: 'project' }, 'png');
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: '#333', display: 'flex', alignItems: 'center', gap: 8 }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9f9f9'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <Archive size={16} /> Exportar Projeto (ZIP/PNG)
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            startBulkExport({ type: 'project' }, 'pdf');
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, background: 'none', border: 'none', cursor: 'pointer', color: '#333', display: 'flex', alignItems: 'center', gap: 8 }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9f9f9'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <Archive size={16} /> Exportar Projeto (ZIP/PDF)
+                                    </button>
+                                    */}
+
+                                    <button
+                                        onClick={() => {
+                                            window.dispatchEvent(new CustomEvent('trigger-pdf-export'));
+                                            setIsExportMenuOpen(false);
+                                        }}
+                                        style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, background: 'none', borderTop: '1px solid #eee', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', cursor: 'pointer', color: '#333', display: 'flex', alignItems: 'center', gap: 8 }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9f9f9'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                    >
+                                        <FileText size={16} /> Página Atual (PDF)
+                                    </button>
+
+                                    <ExportPngButton onClose={() => setIsExportMenuOpen(false)} />
+                                </div>
+                            </>
+                        )}
+                    </div>
 
                     <div style={{ height: 20, width: 1, background: '#e5e5e5' }} />
                     <div style={{ fontSize: 12, color: '#666' }}>
@@ -147,18 +207,35 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
 
                 {/* Dashboard Overlay */}
                 {isChapterViewOpen && (
-                    <ChapterDashboard project={project} onClose={() => setIsChapterViewOpen(false)} />
+                    <ChapterDashboard
+                        project={project}
+                        onClose={() => setIsChapterViewOpen(false)}
+                        onExportChapter={(index, title, format) => startBulkExport({ type: 'chapter', chapterIndex: index, chapterTitle: title }, format)}
+                    />
                 )}
 
                 <ChartSidebar projectId={project.id} />
+
+                {/* Bulk Export Progress */}
+                <BulkExportProgressModal
+                    isOpen={isExporting}
+                    progress={progress}
+                    currentAction={currentAction}
+                    exportQueue={exportQueue}
+                    onChartReady={handleChartReady}
+                />
             </main>
 
             <GridConfigModal
                 isOpen={isGridModalOpen}
                 onClose={() => setIsGridModalOpen(false)}
                 project={project}
-                onUpdate={() => router.refresh()}
+                onUpdate={() => {
+                    triggerRefresh();
+                    router.refresh();
+                }}
             />
         </div>
     );
 }
+

@@ -37,8 +37,6 @@ export interface ChartData {
     };
 }
 
-export type ChartStatus = 'draft' | 'ready' | 'published';
-
 export interface ChartStyle {
     colorPalette: string[];
     fontFamily: string;
@@ -55,7 +53,6 @@ export interface Chart {
     data: ChartData;
     style?: ChartStyle;
     notes?: string;
-    status: ChartStatus;
     page: number; // Added page number (1-based)
     createdAt: number;
     updatedAt: number;

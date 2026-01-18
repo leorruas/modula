@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { generateMonochromaticPalette } from '@/utils/colors';
+import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 import { CHART_THEME } from '@/utils/chartTheme';
 
 interface PieChartProps {
@@ -17,14 +17,19 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
-    const padding = isInfographic ? 40 : 20;
-    const radius = (Math.min(width, height) / 2) - padding - (isInfographic ? 30 : 0);
+    // Infographic needs space for external labels (approx 50px). Classic uses internal labels (10px padding).
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.small;
+    const radius = (Math.min(width, height) / 2) - padding;
     const centerX = width / 2;
     const centerY = height / 2;
 
     let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
-    if (values.length > colors.length && colors.length === 1) {
-        colors = generateMonochromaticPalette(colors[0], values.length);
+    if (values.length > colors.length) {
+        if (colors.length === 1) {
+            colors = generateMonochromaticPalette(colors[0], values.length);
+        } else {
+            colors = ensureDistinctColors(colors, values.length);
+        }
     }
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 

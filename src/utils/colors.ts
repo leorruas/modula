@@ -1,44 +1,76 @@
-export function hexToRgb(hex: string) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-export function rgbToHex(r: number, g: number, b: number) {
-    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-export function generateMonochromaticPalette(baseColor: string, steps: number = 5): string[] {
-    const rgb = hexToRgb(baseColor);
-    if (!rgb) return [baseColor];
-
-    const palette = [];
-
-    // Strategy: Generate tints (lighter) and shades (darker)
-    // For simplicity, let's fade to white/transparent or darken.
-    // A nice monochromatic scale often goes from Dark to Light.
-
-    // Let's generate from base color towards white for now (Tints)
-    // except if base is very light?
-
-    for (let i = 0; i < steps; i++) {
-        // Linear interpolation towards white
-        // factor 0 = base color
-        // factor 1 = white
-        const factor = i / (steps); // 0, 0.2, 0.4 ... 
-
-        // We want the base color to be the first or middle?
-        // Usually index 0 = strong, index N = light
-
-        const r = Math.round(rgb.r + (255 - rgb.r) * (factor * 0.8)); // Don't go fully white
-        const g = Math.round(rgb.g + (255 - rgb.g) * (factor * 0.8));
-        const b = Math.round(rgb.b + (255 - rgb.b) * (factor * 0.8));
-
-        palette.push(rgbToHex(r, g, b));
+/**
+ * Generates an array of distinct colors based on a base palette.
+ * If the needed count exceeds the palette length, it generates interpolations/variations.
+ */
+export function ensureDistinctColors(basePalette: string[], count: number): string[] {
+    if (count <= basePalette.length) {
+        return basePalette.slice(0, count);
     }
 
-    return palette;
+    const extendedPalette = [...basePalette];
+
+    // We neeed (count - basePalette.length) more colors.
+    // Strategy: Mix existing colors or lighten/darken them.
+    // Simple strategy: repeat palette with 0.7 opacity, then 0.4.
+    // Or better: hex mix. 
+
+    // Using a simple algorithm to generate variations:
+    // Cycle through base palette and modify brightness/saturation?
+    // Since we don't have a huge color lib, let's use a simple hex manipulation loop.
+
+    let k = 0;
+    while (extendedPalette.length < count) {
+        const baseColor = basePalette[k % basePalette.length];
+
+        // Generate a variation. 
+        // Let's prepend a value to make it look like a distinct hex if it's #RRGGBB
+        // Use a simple hash-based variation or just alternate shading?
+        // Let's rely on standard colors if base is short.
+
+        // BETTER APPROACH: Just cycle for now as requested "app should use max colors possible".
+        // The user said: "if user has more colors in charts, app should use max colors possible... if he wants one color he can delete others".
+        // This implies: if I have 10 slices, and 5 colors in palette, USE ALL 5, then repeat? 
+        // OR generate 10? The user said "use max colors possible". 
+        // If I have 3 items and 10 colors, use 3 distinct colors.
+        // If I have 10 items and 3 colors, I MUST generate more or just cycle?
+        // "se um usuário tem mais cores no gráficos, o app deveria usar o máximo de cores possível"
+        // It sounds like: Don't limit the colors to the palette size if data > palette.
+
+        // Let's assuming "Generating variations" is better than repeating.
+        // Just alternating slightly for now to ensure visual distinction.
+        // Quick & dirty hex variation:
+        extendedPalette.push(adjustBrightness(baseColor, (k % 2 === 0 ? 20 : -20)));
+        k++;
+    }
+
+    return extendedPalette;
+}
+
+function adjustBrightness(col: string, amt: number) {
+    let usePound = false;
+    if (col[0] == "#") {
+        col = col.slice(1);
+        usePound = true;
+    }
+    const num = parseInt(col, 16);
+    let r = (num >> 16) + amt;
+    if (r > 255) r = 255;
+    else if (r < 0) r = 0;
+    let b = ((num >> 8) & 0x00FF) + amt;
+    if (b > 255) b = 255;
+    else if (b < 0) b = 0;
+    let g = (num & 0x0000FF) + amt;
+    if (g > 255) g = 255;
+    else if (g < 0) g = 0;
+    return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+}
+
+export function generateMonochromaticPalette(baseColor: string, count: number): string[] {
+    const colors = [];
+    for (let i = 0; i < count; i++) {
+        // Simple lightening/darkening approach
+        const amt = Math.floor(((i - count / 2) / count) * 100);
+        colors.push(adjustBrightness(baseColor, amt));
+    }
+    return colors;
 }

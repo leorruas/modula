@@ -42,6 +42,19 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
 
     if (!isOpen) return null;
 
+    // Calculate preview for fixed mode
+    const getFixedModePreview = () => {
+        if (gridMode !== 'fixed') return null;
+        const availW = project.gridConfig.width - (2 * margin);
+        const availH = project.gridConfig.height - (2 * margin);
+        const cols = Math.max(1, Math.floor((availW + gutter) / (fixedWidth + gutter)));
+        const rows = Math.max(1, Math.floor((availH + gutter) / (fixedHeight + gutter)));
+        return { cols, rows };
+    };
+
+    const preview = getFixedModePreview();
+    const showWarning = preview && (preview.cols < 4 || preview.rows < 4 || preview.cols > 20 || preview.rows > 20);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
@@ -54,8 +67,15 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
             if (gridMode === 'fixed') {
                 const availW = project.gridConfig.width - (2 * margin);
                 const availH = project.gridConfig.height - (2 * margin);
+
+                // Fixed Grid Calculation:
+                // Total Width = (Cols * ModW) + ((Cols - 1) * Gutter)
+                // Total W = Cols*ModW + Cols*Gutter - Gutter
+                // Total W + Gutter = Cols * (ModW + Gutter)
+                // Cols = (Total W + Gutter) / (ModW + Gutter)
                 finalColumns = Math.floor((availW + gutter) / (fixedWidth + gutter));
                 finalRows = Math.floor((availH + gutter) / (fixedHeight + gutter));
+
                 finalColumns = Math.max(1, finalColumns);
                 finalRows = Math.max(1, finalRows);
             }
@@ -79,14 +99,14 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                 delete (newGridConfig as any).fixedModuleHeight;
             }
 
+            // Note: Canvas will update automatically via Context/SWR, no need to manual refresh if using realtime store
+            // But we have onUpdate prop
             await projectService.updateProject(project.id, {
                 gridConfig: newGridConfig,
                 useChapters
             });
 
-            // Auto-repositioning DISABLED - was causing chart size bugs
-            // User must manually reposition charts after grid changes
-            toast.success("Grid atualizado! Reposicione manualmente os gráficos se necessário.");
+            toast.success("Grid atualizado!");
 
             onUpdate();
             onClose();
@@ -153,6 +173,37 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                                     <div>
                                         <label style={{ display: 'block', marginBottom: 5, fontSize: 12, color: '#555' }}>Altura (mm)</label>
                                         <input type="number" value={fixedHeight} onChange={e => setFixedHeight(Number(e.target.value))} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                    </div>
+                                    <div style={{ gridColumn: '1 / span 2', padding: 10, background: '#e0f2fe', borderRadius: 4, fontSize: 11, color: '#0369a1' }}>
+                                        <strong>💡 Sugestões para preencher a largura:</strong>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 5 }}>
+                                            {(() => {
+                                                const availW = project.gridConfig.width - (2 * margin);
+                                                // Find divisors that give integer columns (approx)
+                                                // W_avail = N * w + (N-1) * g
+                                                // W_avail = N(w+g) - g
+                                                // W_avail+g = N(w+g)
+                                                // w = (W_avail+g)/N - g
+                                                const suggestions = [];
+                                                for (let n = 4; n <= 12; n++) {
+                                                    const preciseW = (availW + gutter) / n - gutter;
+                                                    // Round DOWN to 2 decimal places to ensure it always fits
+                                                    // If we round up even slightly, we lose a column
+                                                    const w = Math.floor(preciseW * 100) / 100;
+
+                                                    if (w > 10) suggestions.push({ n, w: w });
+                                                }
+                                                return suggestions.map(s => (
+                                                    <span
+                                                        key={s.n}
+                                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                                        onClick={() => setFixedWidth(s.w)}
+                                                    >
+                                                        {s.n} col: {s.w}mm
+                                                    </span>
+                                                ));
+                                            })()}
+                                        </div>
                                     </div>
                                 </>
                             )}

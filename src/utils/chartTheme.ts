@@ -60,11 +60,17 @@ export const CHART_THEME = {
         black: 900
     },
 
-    // Spacing - VERY generous for infographic
+    // Spacing - Tightened up to maximize data ink
     padding: {
-        small: 30,
-        medium: 50,
-        large: 100  // Was 70 - MUCH bigger spacing
+        small: 10,  // Was 30
+        medium: 25, // Was 50
+        large: 50   // Was 100
+    },
+
+    // Layout spacing constants
+    spacing: {
+        axisTitle: 35,        // For charts with tick labels (e.g. BarChart)
+        axisTitleCompact: 20  // For charts without Y-axis tick labels (e.g. Line, Column)
     },
 
     // Visual effects - Minimal and subtle

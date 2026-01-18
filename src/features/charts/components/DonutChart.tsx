@@ -1,7 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
-import { generateMonochromaticPalette } from '@/utils/colors';
+import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 
 interface DonutChartProps {
     width: number;
@@ -24,8 +24,12 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
     const centerY = height / 2;
 
     let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
-    if (values.length > colors.length && colors.length === 1) {
-        colors = generateMonochromaticPalette(colors[0], values.length);
+    if (values.length > colors.length) {
+        if (colors.length === 1) {
+            colors = generateMonochromaticPalette(colors[0], values.length);
+        } else {
+            colors = ensureDistinctColors(colors, values.length);
+        }
     }
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 

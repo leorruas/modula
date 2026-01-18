@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { ensureDistinctColors } from '@/utils/colors';
 
 interface ColumnChartProps {
     width: number;
@@ -22,8 +23,11 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
     const colWidth = chartWidth / values.length;
     const colGap = colWidth * 0.3;
 
-    const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+
+    // Color logic
+    const baseColors = style?.colorPalette || [getChartColor(0)];
+    const computedColors = ensureDistinctColors(baseColors, values.length);
 
     return (
         <BaseChart width={width} height={height} data={data} type="column">
@@ -40,8 +44,8 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
                     </feMerge>
                 </filter>
                 <linearGradient id="colGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={primaryColor} stopOpacity="0.8" />
-                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.3" />
+                    <stop offset="0%" stopColor={computedColors[0]} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={computedColors[0]} stopOpacity="0.3" />
                 </linearGradient>
             </defs>
 
@@ -89,7 +93,8 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
                                 y={y}
                                 width={colWidth - colGap}
                                 height={barH}
-                                fill="url(#colGradient)"
+                                fill={computedColors[i % computedColors.length]}
+                                opacity={0.8}
                                 rx={CHART_THEME.effects.borderRadius}
                                 filter="url(#colShadow)"
                             />
@@ -120,6 +125,21 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
                     strokeWidth={CHART_THEME.strokeWidths.axis}
                     opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
                 />
+                {/* Y-Axis Label */}
+                {data.yAxisLabel && (
+                    <text
+                        transform="rotate(-90)"
+                        x={-chartHeight / 2}
+                        y={-CHART_THEME.spacing.axisTitleCompact}
+                        textAnchor="middle"
+                        fontSize={CHART_THEME.fontSizes.medium}
+                        fontFamily={CHART_THEME.fonts.title}
+                        fontWeight={CHART_THEME.fontWeights.semibold}
+                        fill={CHART_THEME.colors.neutral.medium}
+                    >
+                        {data.yAxisLabel}
+                    </text>
+                )}
             </g>
         </BaseChart>
     );

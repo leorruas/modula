@@ -1,10 +1,7 @@
 
 import jsPDF from 'jspdf';
-import { svg2pdf } from 'svg2pdf.js';
 import { Project, Chart } from '@/types';
-
-// Extend jsPDF type was causing conflicts. Assuming loaded types are sufficient or we cast.
-
+import { generateChartImage } from '@/utils/exportUtils';
 
 export class PDFExportService {
     static async exportProject(project: Project, charts: Chart[], canvasRef: HTMLDivElement): Promise<void> {
@@ -18,69 +15,84 @@ export class PDFExportService {
             format: format === 'custom' ? 'a4' : format
         });
 
+        // SAFETY NET: Set Default Font to Helvetica globally
+        doc.setFont('Helvetica');
+
         // Get the SVG element from the canvas
         const PIXELS_PER_MM = 3.78; // Approx for 96 DPI
         const widthMm = doc.internal.pageSize.getWidth();
         const heightMm = doc.internal.pageSize.getHeight();
 
-        // Create master SVG
-        const masterSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        masterSvg.setAttribute("width", String(widthMm * PIXELS_PER_MM));
-        masterSvg.setAttribute("height", String(heightMm * PIXELS_PER_MM));
-        masterSvg.setAttribute("viewBox", `0 0 ${widthMm * PIXELS_PER_MM} ${heightMm * PIXELS_PER_MM}`);
-
-        // 1. Add Grid
-        // Locate Grid SVG in DOM: It's the first child of the transform container (which IS the canvasRef passed)
-        const transformContainer = canvasRef;
-        const gridSvg = transformContainer.children[0] as SVGElement;
-
-        // Ensure it is actually an SVG (GridSystem returns svg)
-        if (gridSvg && gridSvg.tagName.toLowerCase() === 'svg') {
-            const clonedGrid = gridSvg.cloneNode(true) as SVGElement;
-            masterSvg.appendChild(clonedGrid);
-        }
-
         // 2. Add Charts
-        // Locate all charts. They are adjacent siblings to the Grid SVG
-        const chartDivs = Array.from(transformContainer.children).slice(1) as HTMLElement[];
+        // Data-Driven Approach: Iterate over the charts data to find their corresponding DOM elements.
+        // We use the "Rasterization Strategy" here: Convert SVG to High-Res PNG -> Add to PDF.
+        // This guarantees 100% visual fidelity (WYSIWYG), bypassing all jsPDF font matching issues.
 
-        chartDivs.forEach((div) => {
-            const svg = div.querySelector('svg');
-            if (svg) {
-                const x = parseFloat(div.style.left || '0');
-                const y = parseFloat(div.style.top || '0');
-                const w = parseFloat(div.style.width || '0');
-                const h = parseFloat(div.style.height || '0');
+        for (const chart of charts) {
+            const containerId = `chart-container-${chart.id}`;
+            const child = document.getElementById(containerId);
 
-                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                g.setAttribute("transform", `translate(${x}, ${y})`);
+            if (child) {
+                const svg = child.querySelector('svg');
+                if (svg) {
+                    const x = parseFloat(child.style.left || '0');
+                    const y = parseFloat(child.style.top || '0');
+                    const w = parseFloat(child.style.width || '0');
+                    const h = parseFloat(child.style.height || '0');
 
-                const clonedChart = svg.cloneNode(true) as SVGElement;
-                // Ensure width/height are set on the SVG if not already explicit
-                clonedChart.setAttribute("width", String(w));
-                clonedChart.setAttribute("height", String(h));
+                    try {
+                        console.log(`Processing chart ${chart.id} for PDF...`);
 
-                g.appendChild(clonedChart);
-                masterSvg.appendChild(g);
+                        // Generate High-Res PNG from the Chart SVG
+                        // generateChartImage now measures the REAL bbox and returns the adjusted dimensions and offsets
+                        const imageResult = await generateChartImage(svg);
+
+                        // Validate Result
+                        if (!imageResult || !imageResult.dataUrl) {
+                            console.error(`Received invalid image result for chart ${chart.id}`, imageResult);
+                            continue;
+                        }
+
+                        // Debug Logs
+                        console.log(`Chart ${chart.id} Rasterized:`, {
+                            originalPos: { x, y, w, h },
+                            imageResultPos: {
+                                x: imageResult.x,
+                                y: imageResult.y,
+                                w: imageResult.width,
+                                h: imageResult.height
+                            }
+                        });
+
+                        // Embed in PDF
+                        // The imageResult.x and .y are negative offsets (usually) representing margin overflow.
+                        // e.g. if x is -10, it means the content starts 10px to the left of the container.
+                        // We need to shift the PDF placement by this amount to keep the visual center aligned.
+
+                        // Handle NaN cases from parseFloat defaults
+                        const safeX = isNaN(x) ? 0 : x;
+                        const safeY = isNaN(y) ? 0 : y;
+
+                        const xMm = (safeX + imageResult.x) / PIXELS_PER_MM;
+                        const yMm = (safeY + imageResult.y) / PIXELS_PER_MM;
+                        const wMm = imageResult.width / PIXELS_PER_MM;
+                        const hMm = imageResult.height / PIXELS_PER_MM;
+
+                        if (isNaN(xMm) || isNaN(yMm) || isNaN(wMm) || isNaN(hMm)) {
+                            console.error(`Calculated invalid PDF coordinates for chart ${chart.id}`, { xMm, yMm, wMm, hMm });
+                            continue;
+                        }
+
+                        doc.addImage(imageResult.dataUrl, 'PNG', xMm, yMm, wMm, hMm);
+                        console.log(`Added image to PDF at ${xMm}, ${yMm}`);
+
+                    } catch (e) {
+                        console.error(`Failed to rasterize chart ${chart.id}`, e);
+                        // Fallback? No, if rasterization fails, better to show nothing than broken stuff.
+                    }
+                }
             }
-        });
-
-        // Convert to PDF
-        // We need to attach masterSvg to DOM briefly for svg2pdf to work properly
-        const tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.top = '-9999px';
-        tempContainer.appendChild(masterSvg);
-        document.body.appendChild(tempContainer);
-
-        await svg2pdf(masterSvg, doc, {
-            x: 0,
-            y: 0,
-            width: widthMm,
-            height: heightMm
-        });
-
-        document.body.removeChild(tempContainer);
+        }
 
         // Determine Filename
         let filename = project.name;
