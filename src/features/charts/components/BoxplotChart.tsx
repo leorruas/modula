@@ -1,14 +1,17 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
 
 interface BoxplotChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function BoxplotChart({ width, height, data, style }: BoxplotChartProps) {
+export function BoxplotChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: BoxplotChartProps) {
     const labels = data.labels;
     // We expect 5 datasets for Min, Q1, Median, Q3, Max
     // If fewer, we try to use what we have, but ideally 5.
@@ -113,7 +116,7 @@ export function BoxplotChart({ width, height, data, style }: BoxplotChartProps) 
                                 x={cx}
                                 y={chartHeight + 15}
                                 textAnchor="middle"
-                                fontSize="10"
+                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
                                 fontFamily={fontFamily}
                             >
                                 {label}

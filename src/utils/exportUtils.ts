@@ -63,8 +63,17 @@ export async function generateChartImage(
 
             // 3. Update ViewBox to fit the REAL content
             clonedSvg.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
-            clonedSvg.setAttribute('width', width.toString());
-            clonedSvg.setAttribute('height', height.toString());
+
+            // CRITICAL: Set the SVG dimensions to the TARGET high-res size.
+            // This forces the browser to rasterize vectors at the scaled resolution.
+            // If we just set width/height to original size and scale the canvas, 
+            // some browsers might rasterize at low-res and then upscale.
+            const scale = 6; // 6x resolution (~600 DPI)
+            const targetWidth = width * scale;
+            const targetHeight = height * scale;
+
+            clonedSvg.setAttribute('width', targetWidth.toString());
+            clonedSvg.setAttribute('height', targetHeight.toString());
 
             const svgData = new XMLSerializer().serializeToString(clonedSvg);
             const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
@@ -84,10 +93,8 @@ export async function generateChartImage(
             img.onload = () => {
                 cleanup();
                 const canvas = document.createElement('canvas');
-                // 3x resolution for high-quality print PDF
-                const scale = 3;
-                canvas.width = width * scale;
-                canvas.height = height * scale;
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
 
                 const ctx = canvas.getContext('2d');
                 if (!ctx) {
@@ -95,17 +102,22 @@ export async function generateChartImage(
                     return;
                 }
 
-                ctx.scale(scale, scale);
-                ctx.drawImage(img, 0, 0, width, height);
+                // Enable anti-aliasing for better results
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
+                // No ctx.scale needed here because the image is ALREADY high-res
+                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
                 const pngUrl = canvas.toDataURL('image/png');
 
                 // Return data + the spatial adjustments needed to align it
+                // We return the ORIGINAL dimensions for layout calculation, but the image itself is high-res.
                 resolve({
                     dataUrl: pngUrl,
-                    width,
+                    width, // Logic uses original mm dimensions
                     height,
-                    x, // The offset we shifted the viewbox by
+                    x,
                     y
                 });
             };

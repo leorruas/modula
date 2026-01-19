@@ -1,33 +1,67 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 
 interface AreaChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function AreaChart({ width, height, data, style }: AreaChartProps) {
-    const dataset = data.datasets[0];
+export function AreaChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: AreaChartProps) {
+    const dataset = data.datasets?.[0];
+    if (!dataset || !dataset.data || dataset.data.length === 0) {
+        return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
+    }
     const values = dataset.data;
-    const labels = data.labels;
+    const labels = data.labels || [];
 
     const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
 
 
     // Smart Margins
-    const basePadding = isInfographic ? 40 : CHART_THEME.padding.small;
-    const marginTop = isInfographic ? 60 : basePadding;
-    const marginRight = isInfographic ? 40 : basePadding;
-    const marginBottom = basePadding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
-    const marginLeft = isInfographic ? 60 : basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
+    const basePadding = isInfographic ? 40 : 0;
+    const marginTop = isInfographic ? 60 : 12;
+    const marginRight = isInfographic ? 40 : CHART_THEME.padding.small;
+    const marginLeft = isInfographic ? 60 : (isInfographic ? basePadding : CHART_THEME.padding.small) + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
 
     const chartWidth = width - marginLeft - marginRight;
-    const chartHeight = height - marginTop - marginBottom;
 
+    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
+    const charWidth = fontSize * 0.5;
+    const maxLines = 3;
+    const maxCharsPerLine = Math.floor((chartWidth / Math.max(labels.length, 1)) / charWidth);
+
+    const wrapLabel = (text: string) => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
+                currentLine += ' ' + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+        return lines.slice(0, maxLines);
+    };
+
+    const wrappedLabels = labels.map(wrapLabel);
+    const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
+
+    const marginBottom = (isInfographic ? basePadding : CHART_THEME.padding.small) + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 0) + labelBottomPadding;
+    const chartHeight = height - marginTop - marginBottom;
+    const effectiveBaselineY = chartHeight;
+
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const points = values.map((value, i) => {
         const x = (i / (values.length - 1)) * chartWidth;
         const y = chartHeight - ((value / maxValue) * chartHeight);
@@ -44,11 +78,22 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
     const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
-    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const useGradient = style?.useGradient;
 
+    // Legend Component
+    const Legend = data.datasets.length > 1 ? (
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {data.datasets.map((ds, i) => (ds.label && (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 12, height: 12, borderRadius: 3, background: getChartColor(i) }} />
+                    <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily: CHART_THEME.fonts.label }}>{ds.label}</span>
+                </div>
+            )))}
+        </div>
+    ) : null;
+
     return (
-        <BaseChart width={width} height={height} data={data} type="area">
+        <BaseChart width={width} height={height} data={data} type="area" legend={Legend}>
             <defs>
                 {useGradient && (
                     <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -70,7 +115,8 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                         y2={chartHeight * fraction}
                         stroke={CHART_THEME.colors.neutral.lighter}
                         strokeWidth={1}
-                        opacity={0.15}
+                        opacity={0.1}
+                        strokeDasharray="4 4"
                     />
                 ))}
 
@@ -89,6 +135,7 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                     strokeWidth={isInfographic ? 3 : 2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    filter="url(#chartShadow)"
                 />
 
                 {/* Points and values */}
@@ -106,7 +153,7 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                             x={p.x}
                             y={p.y - (isInfographic ? 15 : 10)}
                             textAnchor="middle"
-                            fontSize={isInfographic ? CHART_THEME.fontSizes.huge : CHART_THEME.fontSizes.small}
+                            fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'large' : 'small', isInfographic)}
                             fontFamily={CHART_THEME.fonts.number}
                             fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
                             fill={CHART_THEME.colors.neutral.dark}
@@ -115,14 +162,23 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                         </text>
                         <text
                             x={p.x}
-                            y={chartHeight + 20}
+                            y={effectiveBaselineY + 20}
                             textAnchor="middle"
-                            fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
+                            fontSize={fontSize}
                             fontFamily={fontFamily}
                             fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
                             fill={CHART_THEME.colors.neutral.dark}
                         >
-                            {labels[i]}
+                            <title>{labels[i]}</title>
+                            {wrappedLabels[i].map((line, lineIdx) => (
+                                <tspan
+                                    key={lineIdx}
+                                    x={p.x}
+                                    dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                >
+                                    {line}
+                                </tspan>
+                            ))}
                         </text>
                     </g>
                 ))}

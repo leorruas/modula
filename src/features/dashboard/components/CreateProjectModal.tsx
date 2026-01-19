@@ -5,6 +5,7 @@ import { useUserStore } from '@/store/userStore';
 import { projectService } from '@/services/projectService';
 import { toast } from 'sonner';
 import { GridConfig } from '@/types';
+import { useRouter } from 'next/navigation';
 
 interface CreateProjectModalProps {
     isOpen: boolean;
@@ -20,6 +21,14 @@ const PRESETS = {
 
 export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProjectModalProps) {
     const { user } = useUserStore();
+    const router = useRouter();
+    const [columns, setColumns] = useState(4);
+    const [rows, setRows] = useState(4);
+    const [marginTop, setMarginTop] = useState(20);
+    const [marginBottom, setMarginBottom] = useState(20);
+    const [marginLeft, setMarginLeft] = useState(20);
+    const [marginRight, setMarginRight] = useState(20);
+    const [gutter, setGutter] = useState(5);
     const [name, setName] = useState('');
     const [format, setFormat] = useState<'A4' | 'A3' | 'A5' | 'Custom'>('A4');
     const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
@@ -27,29 +36,42 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
     // Custom Dimensions State
     const [customWidth, setCustomWidth] = useState(210);
     const [customHeight, setCustomHeight] = useState(297);
-    const [unit, setUnit] = useState<'mm' | 'cm' | 'px'>('mm');
-
-    // Grid settings
-    const [columns, setColumns] = useState(4);
-    const [rows, setRows] = useState(4);
-    const [margin, setMargin] = useState(20);
-    const [gutter, setGutter] = useState(5);
-
     // Grid Mode
     const [gridMode, setGridMode] = useState<'flexible' | 'fixed'>('flexible');
     const [fixedWidth, setFixedWidth] = useState(40);
     const [fixedHeight, setFixedHeight] = useState(40);
+    const [unit, setUnit] = useState<'mm' | 'cm' | 'px'>('mm');
+    const [baseFontSize, setBaseFontSize] = useState(11);
+    const [baseFontUnit, setBaseFontUnit] = useState<'pt' | 'px' | 'mm'>('pt');
 
     const [isLoading, setIsLoading] = useState(false);
 
-    if (!isOpen) return null;
-
-    const toMM = (val: number, u: 'mm' | 'cm' | 'px') => {
-        if (u === 'mm') return val;
-        if (u === 'cm') return val * 10;
-        if (u === 'px') return val * (25.4 / 96); // Assuming 96 DPI
-        return val;
+    const unitFactors = {
+        mm: 1,
+        cm: 10,
+        px: 25.4 / 96
     };
+
+    const toMM = (val: number, u: 'mm' | 'cm' | 'px') => val * unitFactors[u];
+    const fromMM = (val: number, u: 'mm' | 'cm' | 'px') => val / unitFactors[u];
+
+    const handleUnitChange = (newUnit: 'mm' | 'cm' | 'px') => {
+        const factor = unitFactors[unit] / unitFactors[newUnit];
+
+        setCustomWidth(prev => Number((prev * factor).toFixed(2)));
+        setCustomHeight(prev => Number((prev * factor).toFixed(2)));
+        setMarginTop(prev => Number((prev * factor).toFixed(2)));
+        setMarginBottom(prev => Number((prev * factor).toFixed(2)));
+        setMarginLeft(prev => Number((prev * factor).toFixed(2)));
+        setMarginRight(prev => Number((prev * factor).toFixed(2)));
+        setGutter(prev => Number((prev * factor).toFixed(2)));
+        setFixedWidth(prev => Number((prev * factor).toFixed(2)));
+        setFixedHeight(prev => Number((prev * factor).toFixed(2)));
+
+        setUnit(newUnit);
+    };
+
+    if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -82,8 +104,8 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
 
             if (gridMode === 'fixed') {
                 // Calculate how many fit
-                const availW = width - (2 * margin);
-                const availH = height - (2 * margin);
+                const availW = width - (toMM(marginLeft, unit) + toMM(marginRight, unit));
+                const availH = height - (toMM(marginTop, unit) + toMM(marginBottom, unit));
                 // Equation: n * w + (n-1) * g <= avail
                 // n(w+g) - g <= avail
                 // n(w+g) <= avail + g
@@ -97,20 +119,26 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
             }
 
             const gridConfig: GridConfig = {
-                pageFormat: format as any, // valid cast since we updated types
+                pageFormat: format as any,
                 orientation,
-                width: Math.round(width * 100) / 100, // Round to 2 decimals
+                width: Math.round(width * 100) / 100,
                 height: Math.round(height * 100) / 100,
                 columns: finalColumns,
                 rows: finalRows,
-                margin,
-                gutter,
+                margin: toMM(marginTop, unit), // Legacy fallback
+                marginTop: toMM(marginTop, unit),
+                marginBottom: toMM(marginBottom, unit),
+                marginLeft: toMM(marginLeft, unit),
+                marginRight: toMM(marginRight, unit),
+                gutter: toMM(gutter, unit),
                 mode: gridMode,
-                fixedModuleWidth: gridMode === 'fixed' ? fixedWidth : undefined,
-                fixedModuleHeight: gridMode === 'fixed' ? fixedHeight : undefined
+                fixedModuleWidth: gridMode === 'fixed' ? toMM(fixedWidth, unit) : undefined,
+                fixedModuleHeight: gridMode === 'fixed' ? toMM(fixedHeight, unit) : undefined,
+                baseFontSize,
+                baseFontUnit
             };
 
-            await projectService.createProject(user.uid, {
+            const newProject = await projectService.createProject(user.uid, {
                 name,
                 gridConfig,
                 totalPages: 1
@@ -119,6 +147,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
             toast.success("Projeto criado com sucesso");
             onCreated();
             onClose();
+            router.push(`/editor?id=${newProject.id}`);
         } catch (error) {
             console.error(error);
             toast.error("Erro ao criar projeto");
@@ -177,37 +206,70 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
                         </div>
                     </div>
 
+                    <div style={{ marginBottom: 15, padding: 15, background: '#f5f5f5', borderRadius: 6, border: '1px solid #e0e0e0' }}>
+                        <div style={{ marginBottom: 0 }}>
+                            <label style={{ display: 'block', marginBottom: 5, fontSize: 12, fontWeight: 600, color: '#444' }}>Unidade de Medida</label>
+                            <div style={{ display: 'flex', gap: 15 }}>
+                                {(['mm', 'cm', 'px'] as const).map(u => (
+                                    <label key={u} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#333' }}>
+                                        <input
+                                            type="radio"
+                                            name="unit"
+                                            value={u}
+                                            checked={unit === u}
+                                            onChange={() => handleUnitChange(u)}
+                                        />
+                                        {u.toUpperCase()}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
                     {format === 'Custom' && (
                         <div style={{ marginBottom: 15, padding: 15, background: '#f5f5f5', borderRadius: 6, border: '1px solid #e0e0e0' }}>
-                            <div style={{ marginBottom: 10 }}>
-                                <label style={{ display: 'block', marginBottom: 5, fontSize: 12, fontWeight: 600, color: '#444' }}>Unidade</label>
-                                <div style={{ display: 'flex', gap: 15 }}>
-                                    {(['mm', 'cm', 'px'] as const).map(u => (
-                                        <label key={u} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#333' }}>
-                                            <input
-                                                type="radio"
-                                                name="unit"
-                                                value={u}
-                                                checked={unit === u}
-                                                onChange={() => setUnit(u)}
-                                            />
-                                            {u.toUpperCase()}
-                                        </label>
-                                    ))}
-                                </div>
-                            </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 500, color: '#333' }}>Largura</label>
+                                    <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 500, color: '#333' }}>Largura ({unit})</label>
                                     <input type="number" step="0.1" value={customWidth} onChange={e => setCustomWidth(Number(e.target.value))} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
                                 </div>
                                 <div>
-                                    <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 500, color: '#333' }}>Altura</label>
+                                    <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 500, color: '#333' }}>Altura ({unit})</label>
                                     <input type="number" step="0.1" value={customHeight} onChange={e => setCustomHeight(Number(e.target.value))} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
                                 </div>
                             </div>
                         </div>
                     )}
+
+                    <div style={{ padding: '15px', background: '#f5f5f5', borderRadius: 6, marginBottom: 15, border: '1px solid #e0e0e0' }}>
+                        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 'bold', color: '#333' }}>Tipografia do Documento</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 5, fontSize: 12, color: '#555' }}>Tamanho Fonte Base</label>
+                                <input
+                                    type="number"
+                                    value={baseFontSize}
+                                    onChange={e => setBaseFontSize(Number(e.target.value))}
+                                    style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, color: '#333' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', marginBottom: 5, fontSize: 12, color: '#555' }}>Unidade</label>
+                                <select
+                                    value={baseFontUnit}
+                                    onChange={e => setBaseFontUnit(e.target.value as any)}
+                                    style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4, color: '#333' }}
+                                >
+                                    <option value="pt">Pontos (pt)</option>
+                                    <option value="px">Pixels (px)</option>
+                                    <option value="mm">Milímetros (mm)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p style={{ fontSize: 10, color: '#666', marginTop: 8, fontStyle: 'italic' }}>
+                            O tamanho que você usa no seu texto corrido do relatório. Os gráficos usarão isso como referência.
+                        </p>
+                    </div>
 
                     <div style={{ padding: '15px', background: '#f5f5f5', borderRadius: 6, marginBottom: 20, border: '1px solid #e0e0e0' }}>
                         <h4 style={{ marginBottom: 10, fontSize: 14, color: '#333', fontWeight: 'bold' }}>Sistema de Grid</h4>
@@ -248,22 +310,39 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
                             ) : (
                                 <>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Largura Módulo (mm)</label>
-                                        <input type="number" value={fixedWidth} onChange={e => setFixedWidth(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                        <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Largura Módulo ({unit})</label>
+                                        <input type="number" step="0.1" value={fixedWidth} onChange={e => setFixedWidth(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
                                     </div>
                                     <div>
-                                        <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Altura Módulo (mm)</label>
-                                        <input type="number" value={fixedHeight} onChange={e => setFixedHeight(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                        <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Altura Módulo ({unit})</label>
+                                        <input type="number" step="0.1" value={fixedHeight} onChange={e => setFixedHeight(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
                                     </div>
                                 </>
                             )}
-                            <div>
-                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Margem (mm)</label>
-                                <input type="number" value={margin} onChange={e => setMargin(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                            <div style={{ gridColumn: 'span 2' }}>
+                                <label style={{ display: 'block', marginBottom: 5, fontSize: 11, color: '#555', fontWeight: 'bold' }}>Margens ({unit})</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 2, fontSize: 10, color: '#777' }}>Topo</label>
+                                        <input type="number" step="0.1" value={marginTop} onChange={e => setMarginTop(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 2, fontSize: 10, color: '#777' }}>Fundo</label>
+                                        <input type="number" step="0.1" value={marginBottom} onChange={e => setMarginBottom(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 2, fontSize: 10, color: '#777' }}>Esquerda</label>
+                                        <input type="number" step="0.1" value={marginLeft} onChange={e => setMarginLeft(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ display: 'block', marginBottom: 2, fontSize: 10, color: '#777' }}>Direita</label>
+                                        <input type="number" step="0.1" value={marginRight} onChange={e => setMarginRight(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                    </div>
+                                </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Gutter (mm)</label>
-                                <input type="number" value={gutter} onChange={e => setGutter(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
+                                <label style={{ display: 'block', marginBottom: 3, fontSize: 11, color: '#555' }}>Gutter ({unit})</label>
+                                <input type="number" step="0.1" value={gutter} onChange={e => setGutter(Number(e.target.value))} style={{ width: '100%', padding: 6, border: '1px solid #ccc', borderRadius: 4, color: '#333' }} />
                             </div>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { ChartData } from '@/types';
 import { SimpleDataEditor } from './SimpleDataEditor';
 
@@ -29,25 +30,34 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
         onClose();
     };
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return ReactDOM.createPortal(
         <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             background: 'rgba(0,0,0,0.5)', zIndex: 2000,
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(4px)',
+            animation: 'fadeIn 0.2s ease-out'
         }}>
+            <style>{`
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+            `}</style>
             <div style={{
                 background: 'white',
                 width: 900,
                 maxWidth: '95vw',
                 height: '80vh',
-                borderRadius: 8,
-                boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+                borderRadius: 12,
+                boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                animation: 'scaleIn 0.2s ease-out'
             }}>
                 <div style={{
-                    padding: '15px 20px',
+                    padding: '20px 24px',
                     borderBottom: '1px solid #eee',
                     display: 'flex',
                     alignItems: 'center',
@@ -55,21 +65,22 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                     background: '#fafafa'
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
-                        <h2 style={{ fontSize: 18, fontFamily: 'Georgia, serif', margin: 0, color: '#111' }}>
+                        <h2 style={{ fontSize: 20, fontFamily: 'Georgia, serif', margin: 0, color: '#111', fontWeight: 700 }}>
                             Editor de Dados
                         </h2>
-                        <div style={{ display: 'flex', background: '#e5e5e5', borderRadius: 4, padding: 2 }}>
+                        <div style={{ display: 'flex', background: '#e5e5e5', borderRadius: 6, padding: 3 }}>
                             <button
                                 onClick={() => setJsonMode(false)}
                                 style={{
                                     border: 'none',
                                     background: !jsonMode ? 'white' : 'transparent',
-                                    padding: '4px 10px',
-                                    borderRadius: 3,
+                                    padding: '5px 12px',
+                                    borderRadius: 4,
                                     fontSize: 12,
                                     cursor: 'pointer',
                                     fontWeight: !jsonMode ? 600 : 400,
-                                    boxShadow: !jsonMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                    boxShadow: !jsonMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.2s'
                                 }}
                             >
                                 Tabela
@@ -79,12 +90,13 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                                 style={{
                                     border: 'none',
                                     background: jsonMode ? 'white' : 'transparent',
-                                    padding: '4px 10px',
-                                    borderRadius: 3,
+                                    padding: '5px 12px',
+                                    borderRadius: 4,
                                     fontSize: 12,
                                     cursor: 'pointer',
                                     fontWeight: jsonMode ? 600 : 400,
-                                    boxShadow: jsonMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                                    boxShadow: jsonMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.2s'
                                 }}
                             >
                                 JSON
@@ -92,7 +104,7 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                         </div>
                     </div>
                     <button onClick={onClose} style={{
-                        border: 'none', background: 'transparent', fontSize: 20, cursor: 'pointer', color: '#999'
+                        border: 'none', background: '#eee', width: 32, height: 32, borderRadius: '50%', fontSize: 18, cursor: 'pointer', color: '#666', display: 'flex', alignItems: 'center', justifyContent: 'center'
                     }}>
                         ✕
                     </button>
@@ -101,7 +113,7 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                 <div style={{
                     flex: 1,
                     overflow: 'auto',
-                    padding: 20,
+                    padding: 24,
                     background: 'white'
                 }}>
                     {jsonMode ? (
@@ -111,19 +123,20 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                                 try {
                                     setData(JSON.parse(e.target.value));
                                 } catch (err) {
-                                    // Allow typing invalid json, validate on blur or save if needed
+                                    // Allow typing invalid json
                                 }
                             }}
                             style={{
                                 width: '100%',
                                 height: '100%',
                                 border: '1px solid #eee',
-                                borderRadius: 4,
-                                padding: 15,
+                                borderRadius: 8,
+                                padding: 20,
                                 fontFamily: 'monospace',
                                 fontSize: 13,
                                 resize: 'none',
-                                background: '#f8f9fa'
+                                background: '#f8f9fa',
+                                outline: 'none'
                             }}
                         />
                     ) : (
@@ -137,23 +150,24 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                 </div>
 
                 <div style={{
-                    padding: '15px 20px',
+                    padding: '20px 24px',
                     borderTop: '1px solid #eee',
                     display: 'flex',
                     justifyContent: 'flex-end',
-                    gap: 10,
+                    gap: 12,
                     background: '#fafafa'
                 }}>
                     <button
                         onClick={onClose}
                         style={{
-                            padding: '10px 20px',
+                            padding: '10px 24px',
                             background: 'white',
                             border: '1px solid #ddd',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             cursor: 'pointer',
                             fontSize: 14,
-                            color: '#555'
+                            color: '#555',
+                            fontWeight: 500
                         }}
                     >
                         Cancelar
@@ -161,11 +175,11 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                     <button
                         onClick={handleSave}
                         style={{
-                            padding: '10px 20px',
+                            padding: '10px 24px',
                             background: '#111',
                             color: 'white',
                             border: 'none',
-                            borderRadius: 4,
+                            borderRadius: 6,
                             cursor: 'pointer',
                             fontSize: 14,
                             fontWeight: 600
@@ -175,6 +189,7 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }

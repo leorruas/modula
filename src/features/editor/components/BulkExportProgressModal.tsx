@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { Project, Chart } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { OffScreenChartRenderer } from './OffScreenChartRenderer';
@@ -14,7 +15,9 @@ interface BulkExportProgressModalProps {
 export function BulkExportProgressModal({ isOpen, progress, currentAction, exportQueue, onChartReady }: BulkExportProgressModalProps) {
     if (!isOpen) return null;
 
-    return (
+    if (typeof document === 'undefined') return null;
+
+    return ReactDOM.createPortal(
         <>
             <div style={{
                 position: 'fixed',
@@ -71,6 +74,7 @@ export function BulkExportProgressModal({ isOpen, progress, currentAction, expor
                     </div>
                 </div>
             </div>
-        </>
+        </>,
+        document.body
     );
 }

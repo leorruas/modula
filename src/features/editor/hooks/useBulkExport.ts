@@ -209,7 +209,8 @@ export function useBulkExport(project: Project) {
                                 format: [localImgW, localImgH]
                             });
 
-                            pdf.addImage(dataUrl, 'PNG', 0, 0, localImgW, localImgH);
+                            // Use 'FAST' compression for maximum fidelity.
+                            pdf.addImage(dataUrl, 'PNG', 0, 0, localImgW, localImgH, undefined, 'FAST');
                             blob = pdf.output('blob');
                             extension = 'pdf';
                         } else {

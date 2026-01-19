@@ -101,8 +101,24 @@ export function Canvas({ project }: CanvasProps) {
     };
 
     // Grid calculations for chart placement
-    const { columns: cfgColumns, rows: cfgRows, margin, gutter, mode, fixedModuleWidth, fixedModuleHeight } = project.gridConfig;
-    const marginPx = margin * PIXELS_PER_MM;
+    const {
+        columns: cfgColumns,
+        rows: cfgRows,
+        gutter,
+        mode,
+        fixedModuleWidth,
+        fixedModuleHeight,
+        marginTop,
+        marginBottom,
+        marginLeft,
+        marginRight,
+        margin // legacy
+    } = project.gridConfig;
+
+    const mTop = (marginTop ?? margin) * PIXELS_PER_MM;
+    const mBottom = (marginBottom ?? margin) * PIXELS_PER_MM;
+    const mLeft = (marginLeft ?? margin) * PIXELS_PER_MM;
+    const mRight = (marginRight ?? margin) * PIXELS_PER_MM;
     const gutterPx = gutter * PIXELS_PER_MM;
 
     let moduleWidth: number;
@@ -116,17 +132,17 @@ export function Canvas({ project }: CanvasProps) {
         moduleWidth = fixedModuleWidth * PIXELS_PER_MM;
         moduleHeight = fixedModuleHeight * PIXELS_PER_MM;
 
-        const availW = widthPx - (2 * marginPx);
-        const availH = heightPx - (2 * marginPx);
+        const availW = widthPx - (mLeft + mRight);
+        const availH = heightPx - (mTop + mBottom);
         columns = Math.max(1, Math.floor((availW + gutterPx) / (moduleWidth + gutterPx)));
         rows = Math.max(1, Math.floor((availH + gutterPx) / (moduleHeight + gutterPx)));
     } else {
         // Flexible: use saved cols/rows, calculate module size
         columns = cfgColumns;
         rows = cfgRows;
-        const availableWidth = widthPx - (2 * marginPx) - ((columns - 1) * gutterPx);
+        const availableWidth = widthPx - (mLeft + mRight) - ((columns - 1) * gutterPx);
         moduleWidth = availableWidth / columns;
-        const availableHeight = heightPx - (2 * marginPx) - ((rows - 1) * gutterPx);
+        const availableHeight = heightPx - (mTop + mBottom) - ((rows - 1) * gutterPx);
         moduleHeight = availableHeight / rows;
     }
 
@@ -421,8 +437,8 @@ export function Canvas({ project }: CanvasProps) {
                     const isInteracting = interactingChartId === chart.id;
                     const module = isInteracting && tempModule ? tempModule : chart.module;
 
-                    const x = marginPx + module.x * (moduleWidth + gutterPx);
-                    const y = marginPx + module.y * (moduleHeight + gutterPx);
+                    const x = mLeft + module.x * (moduleWidth + gutterPx);
+                    const y = mTop + module.y * (moduleHeight + gutterPx);
                     const w = module.w * moduleWidth + (module.w - 1) * gutterPx;
                     const h = module.h * moduleHeight + (module.h - 1) * gutterPx;
 
@@ -477,20 +493,20 @@ export function Canvas({ project }: CanvasProps) {
                                 key={`${chart.id}-${chart.style?.mode || 'classic'}-${chart.style?.colorPalette?.join(',') || 'default'}`}
                                 style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
                             >
-                                {chart.type === 'bar' && <BarChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'column' && <ColumnChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'line' && <LineChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'pie' && <PieChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'donut' && <DonutChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'scatter' && <ScatterChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'bubble' && <BubbleChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'radar' && <RadarChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'histogram' && <HistogramChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'mixed' && <MixedChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'boxplot' && <BoxplotChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'pictogram' && <PictogramChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'area' && <AreaChart width={w} height={h} data={chart.data} style={chart.style} />}
-                                {chart.type === 'gauge' && <GaugeChart width={w} height={h} data={chart.data} style={chart.style} />}
+                                {chart.type === 'bar' && <BarChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'column' && <ColumnChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'line' && <LineChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'pie' && <PieChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'donut' && <DonutChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'scatter' && <ScatterChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'bubble' && <BubbleChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'radar' && <RadarChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'histogram' && <HistogramChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'mixed' && <MixedChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'boxplot' && <BoxplotChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'pictogram' && <PictogramChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'area' && <AreaChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'gauge' && <GaugeChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                             </div>
 
                             {/* Selection Outline when Editing */}
@@ -742,10 +758,13 @@ export function Canvas({ project }: CanvasProps) {
 }
 
 function GridSystem({ project, width, height, activeCharts }: { project: Project; width: number; height: number; activeCharts: Chart[] }) {
-    const { columns, rows, margin, gutter } = project.gridConfig;
+    const { columns, rows, gutter, marginTop, marginBottom, marginLeft, marginRight, margin } = project.gridConfig;
     const PIXELS_PER_MM = 3.78;
 
-    const marginPx = margin * PIXELS_PER_MM;
+    const mTop = (marginTop ?? margin) * PIXELS_PER_MM;
+    const mBottom = (marginBottom ?? margin) * PIXELS_PER_MM;
+    const mLeft = (marginLeft ?? margin) * PIXELS_PER_MM;
+    const mRight = (marginRight ?? margin) * PIXELS_PER_MM;
     const gutterPx = gutter * PIXELS_PER_MM;
 
     // Calculate module size
@@ -756,10 +775,10 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
         moduleWidth = project.gridConfig.fixedModuleWidth * PIXELS_PER_MM;
         moduleHeight = project.gridConfig.fixedModuleHeight * PIXELS_PER_MM;
     } else {
-        const availableWidth = width - (2 * marginPx) - ((columns - 1) * gutterPx);
+        const availableWidth = width - (mLeft + mRight) - ((columns - 1) * gutterPx);
         moduleWidth = availableWidth / columns;
 
-        const availableHeight = height - (2 * marginPx) - ((rows - 1) * gutterPx);
+        const availableHeight = height - (mTop + mBottom) - ((rows - 1) * gutterPx);
         moduleHeight = availableHeight / rows;
     }
 
@@ -844,15 +863,15 @@ function GridSystem({ project, width, height, activeCharts }: { project: Project
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0 }}>
             {/* Margins */}
             <rect x={0} y={0} width={width} height={height} fill="none" stroke="rgba(255,0,0,0.1)" strokeWidth="1" pointerEvents="none" />
-            <rect x={marginPx} y={marginPx} width={width - 2 * marginPx} height={height - 2 * marginPx} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1" pointerEvents="none" />
+            <rect x={mLeft} y={mTop} width={width - (mLeft + mRight)} height={height - (mTop + mBottom)} fill="none" stroke="rgba(0,0,0,0.1)" strokeWidth="1" pointerEvents="none" />
 
             <g>
                 {Array.from({ length: rows }).map((_, r) =>
                     Array.from({ length: columns }).map((_, c) => (
                         <rect
                             key={`${r}-${c}`}
-                            x={marginPx + c * (moduleWidth + gutterPx)}
-                            y={marginPx + r * (moduleHeight + gutterPx)}
+                            x={mLeft + c * (moduleWidth + gutterPx)}
+                            y={mTop + r * (moduleHeight + gutterPx)}
                             width={moduleWidth}
                             height={moduleHeight}
                             fill={isSelected(r, c) ? "rgba(0, 0, 255, 0.2)" : "rgba(0,0,0,0.03)"}

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-01-19)
+
+### ✨ New Features
+
+- update charts, components, user preferences and deploy skill docs ([633ed8d](https://github.com/leorruas/modula/commit/633ed8d650344445d03c8f83e9068352c1eabd2c)) - *2026-01-19 12:23*
+
+### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-19T15-06-14 ([f4c1dd4](https://github.com/leorruas/modula/commit/f4c1dd4adb0a53bc3cbb6f3e2ec9136c1283d219)) - *2026-01-19 12:06*
+
 ### 🚧 deploy-2026-01-19T15-06-14 (2026-01-18)
 
 > **Tracking Version**: This is a pre-release or snapshot.

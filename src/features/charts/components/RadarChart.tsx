@@ -1,15 +1,17 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 
 interface RadarChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function RadarChart({ width, height, data, style }: RadarChartProps) {
+export function RadarChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: RadarChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
     const labels = data.labels;
@@ -114,7 +116,7 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
                                     x={x}
                                     y={y - 12}
                                     textAnchor="middle"
-                                    fontSize={CHART_THEME.fontSizes.huge}
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge')}
                                     fontFamily={CHART_THEME.fonts.number}
                                     fontWeight={CHART_THEME.fontWeights.black}
                                     fill={CHART_THEME.colors.neutral.dark}
@@ -126,10 +128,11 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
                                 x={labelX}
                                 y={labelY}
                                 textAnchor="middle"
-                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
-                                fontFamily={fontFamily}
-                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                alignmentBaseline="middle"
+                                fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small')}
+                                fontFamily={CHART_THEME.fonts.label}
                                 fill={CHART_THEME.colors.neutral.dark}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.normal}
                             >
                                 {labels[i]}
                             </text>

@@ -15,13 +15,15 @@ export const chartService = {
         // Ensure page is set, defaulting to 1 if missing (for legacy or safety)
         const chartData = { ...data, page: data.page || 1 };
 
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+        const cleanData = JSON.parse(JSON.stringify({
             ...chartData,
             projectId,
             userId,
             createdAt: timestamp,
             updatedAt: timestamp,
-        });
+        }));
+
+        const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanData);
         return { id: docRef.id, projectId, userId, ...chartData, createdAt: timestamp, updatedAt: timestamp } as Chart;
     },
 
@@ -37,7 +39,11 @@ export const chartService = {
 
     updateChart: async (id: string, data: Partial<Omit<Chart, "id" | "projectId" | "createdAt">>): Promise<void> => {
         const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, { ...data, updatedAt: Date.now() });
+        const cleanData = JSON.parse(JSON.stringify({
+            ...data,
+            updatedAt: Date.now()
+        }));
+        await updateDoc(docRef, cleanData);
     },
 
     deleteChart: async (id: string): Promise<void> => {

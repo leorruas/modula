@@ -47,9 +47,9 @@ export const CHART_THEME = {
         small: 11,
         medium: 13,
         large: 16,
-        huge: 56,      // Was 48 - BIGGER for dramatic effect
-        giant: 72,     // Was 64 - Even BIGGER
-        extraGiant: 96 // NEW - For super hero numbers
+        huge: 32,      // Was 56 - Reduced as per user feedback
+        giant: 48,     // Was 72 - Reduced
+        extraGiant: 64 // Was 96 - Reduced
     },
 
     fontWeights: {
@@ -242,3 +242,41 @@ export const COLOR_PRESETS = {
 };
 
 export type ColorPresetKey = keyof typeof COLOR_PRESETS;
+
+/**
+ * Scaled Font Utility
+ * Calculates font size based on project base settings
+ */
+export const getScaledFont = (
+    baseSize: number = 11,
+    unit: 'pt' | 'px' | 'mm' = 'pt',
+    category: keyof typeof CHART_THEME.fontSizes = 'medium',
+    isInfographic: boolean = false
+) => {
+    const scales = {
+        tiny: 0.75,
+        small: 0.85,
+        medium: 1,
+        large: 1.25,
+        huge: 1.8,
+        giant: 2.5,
+        extraGiant: 3.5
+    };
+
+    // Infographic mode might want everything slightly larger or smaller? 
+    // Usually infographics have clear hero numbers.
+    let size = baseSize * (scales[category] || 1);
+
+    // If starting scale should be smaller than body text (as per user feedback)
+    // Let's apply a 0.9 factor for standard chart labels if they are 'medium'
+    if (!isInfographic && (category === 'medium' || category === 'small')) {
+        size *= 0.9;
+    }
+
+    // Convert to Pixels (standard for SVG/Canvas at 96 DPI)
+    // 1pt = 1.333px
+    // 1mm = 3.78px
+    if (unit === 'pt') return size * 1.333;
+    if (unit === 'mm') return size * 3.78;
+    return size;
+};

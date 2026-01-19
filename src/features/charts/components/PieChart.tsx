@@ -1,19 +1,24 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
-import { CHART_THEME } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
 
 interface PieChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function PieChart({ width, height, data, style }: PieChartProps) {
-    const dataset = data.datasets[0];
+export function PieChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: PieChartProps) {
+    const dataset = data.datasets?.[0];
+    if (!dataset || !dataset.data || dataset.data.length === 0) {
+        return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
+    }
     const values = dataset.data;
-    const labels = data.labels;
+    const labels = data.labels || [];
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
@@ -82,9 +87,10 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                             <path
                                 d={pathData}
                                 fill={useGradient ? `url(#pieGradient-${i % colors.length})` : colors[i % colors.length]}
-                                filter={useGradient ? "url(#chartShadow)" : "none"}
-                                stroke={isInfographic ? 'none' : '#fff'}
-                                strokeWidth={isInfographic ? 0 : 2}
+                                filter="url(#chartShadow)"
+                                stroke="#fff"
+                                strokeWidth={isInfographic ? 3 : 1.5}
+                                strokeLinejoin="round"
                             />
 
                             {isInfographic ? (
@@ -95,7 +101,7 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                                         x={lx}
                                         y={ly - 15}
                                         textAnchor="middle"
-                                        fontSize={CHART_THEME.fontSizes.huge}
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true)}
                                         fontFamily={CHART_THEME.fonts.number}
                                         fontWeight={CHART_THEME.fontWeights.black}
                                         fill={CHART_THEME.colors.neutral.dark}
@@ -107,7 +113,7 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                                         x={lx}
                                         y={ly + 5}
                                         textAnchor="middle"
-                                        fontSize={CHART_THEME.fontSizes.small}
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                         fontFamily={fontFamily}
                                         fontWeight={CHART_THEME.fontWeights.medium}
                                         fill={CHART_THEME.colors.neutral.medium}
@@ -122,7 +128,7 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                                     y={ly}
                                     textAnchor="middle"
                                     alignmentBaseline="middle"
-                                    fontSize={CHART_THEME.fontSizes.small}
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                     fontFamily={fontFamily}
                                     fill="#fff"
                                     fontWeight={CHART_THEME.fontWeights.semibold}

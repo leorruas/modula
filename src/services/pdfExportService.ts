@@ -25,8 +25,8 @@ export class PDFExportService {
 
         // 2. Add Charts
         // Data-Driven Approach: Iterate over the charts data to find their corresponding DOM elements.
-        // We use the "Rasterization Strategy" here: Convert SVG to High-Res PNG -> Add to PDF.
-        // This guarantees 100% visual fidelity (WYSIWYG), bypassing all jsPDF font matching issues.
+        // We use the "Rasterization Strategy" here: Convert SVG to High-Resolution PNG -> Add to PDF.
+        // The generateChartImage utility now uses a 6x scale, providing ~600 DPI for standard layouts.
 
         for (const chart of charts) {
             const containerId = `chart-container-${chart.id}`;
@@ -83,8 +83,9 @@ export class PDFExportService {
                             continue;
                         }
 
-                        doc.addImage(imageResult.dataUrl, 'PNG', xMm, yMm, wMm, hMm);
-                        console.log(`Added image to PDF at ${xMm}, ${yMm}`);
+                        // Use 'FAST' compression for PNGs to maintain quality while keeping file size manageable.
+                        doc.addImage(imageResult.dataUrl, 'PNG', xMm, yMm, wMm, hMm, undefined, 'FAST');
+                        console.log(`Added high-res image to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
 
                     } catch (e) {
                         console.error(`Failed to rasterize chart ${chart.id}`, e);

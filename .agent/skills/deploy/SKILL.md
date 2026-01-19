@@ -5,107 +5,65 @@ description: Automates the build, git tagging, changelog generation, and deploym
 
 # Deploy Skill
 
-This skill handles deployment to **Firebase Hosting** and ensures compatibility with **Vercel**. It automates build verification (static export), versioning, and documentation updates.
+This skill governs the deployment lifecycle of the Modula application, managing redundancy between **Firebase Hosting** (static fallback) and **Vercel** (Next.js optimized).
 
-## Why Static Export?
+## 1. Dual-Platform Strategy: Why?
 
-The project is configured with `output: 'export'` in `next.config.ts`.
-- **Firebase Hosting**: Requires static files in the `out/` directory.
-- **Vercel**: While Vercel supports dynamic Next.js routes, keeping it static ensures both platforms can serve the exact same build artifact.
-- **Routing Strategy**: To maintain static export compatibility, we use **query parameters** (e.g., `/editor?projectId=...`) instead of dynamic segments (e.g., `/editor/[projectId]`).
+We maintain two deployment targets to balance reliability with performance:
+- **Vercel (Primary)**: The native home for Next.js. It handles server-side features, edge functions, and automatic performance optimizations that simple static hosting cannot.
+- **Firebase Hosting (Fallback)**: Used for static asset delivery and as a reliable fallback. Because it requires a static export (`output: 'export'`), it forces us to maintain a clean, static-compatible routing architecture.
 
-## 0. Strict Protocol
-- **Approval Required**: Deployment is a critical action. It should only be performed after user confirmation of the changes and build status.
-- **Git State**: Ensure all changes are committed before running the deploy skill.
-- **Firebase Account Verification**: Before deploying, verify that you're logged into the correct Firebase account. The Modula project uses `leo.ruas@ifmg.edu.br`.
+### Routing Strategy
+To ensure both platforms serve identical content, we use **query parameters** (e.g., `/editor?projectId=...`) instead of dynamic segments. This is mandatory for Next.js static exports.
 
-## Account Verification
+## 2. Account & Project Mapping
 
-The user has two Firebase accounts:
-- `leoruas@gmail.com`
-- `leo.ruas@ifmg.edu.br` ✅ **Use this for Modula**
+Strict adherence to these accounts is required to avoid permission errors or deploying to the wrong environment.
 
-### Verify Current Account
+### Firebase (Modula Project)
+- **Account**: `leo.ruas@ifmg.edu.br` ✅
+- **Alternate (DO NOT USE)**: `leoruas@gmail.com` (Used for personal projects)
 
-Before deploying, check which Firebase account is currently active:
-
-```bash
-firebase login:list
-```
-
-If the wrong account is active, you'll need to log out first and then log in with the correct account:
-
-```bash
-firebase logout
-firebase login
-```
-
-When prompted, select or authenticate with `leo.ruas@ifmg.edu.br`.
-
-> [!TIP]
-> During the login process, you may be asked about enabling Gemini features and usage collection. You can answer 'No' to both prompts.
-
-## Capabilities
-
-- **Automated Tagging**: Automatically creates a git tag (e.g., `v0.1.0-deploy-TIMESTAMP`) to mark exactly what was shipped.
-- **Changelog Sync**: Runs the changelog generator to ensure `docs/CHANGELOG.md` is aware of the new deployment.
-- **Build Verification**: Runs `npm run build` to ensure only working code is deployed.
-- **Firebase Deployment**: Runs `firebase deploy` to push the static export to Hosting.
-
-## Usage
-
-### Execution
-
-Run the deployment script via npm:
-
-```bash
-npm run deploy
-```
-
-### Script Location
-
-The script is located at `.agent/skills/deploy/exec-deploy.js`.
-
-## Configuration
-
-The script assumes:
-1. `firebase.json` is configured for Hosting.
-2. `next.config.ts` has `output: 'export'`.
-3. The codebase uses **query parameters** for routing to support static export.
-4. The codebase uses Conventional Commits for the changelog.
-
-## Vercel Deployment
-
-The project is deployed on **Vercel** with automatic git integration and manual CLI support.
-
+### Vercel (Modula-App Project)
 - **Account**: `leoruas@gmail.com`
-- **Production URL**: [modula-app.vercel.com](https://modula-app.vercel.com)
-- **Automatic Deployment**: When you push to the `main` branch, Vercel automatically triggers a new deployment.
-- **Manual Deployment**: You can perform a manual production deployment using the Vercel CLI.
+- **Project Name**: `modula-app` ✅
+- **Production URL**: [modula-app.vercel.app](https://modula-app.vercel.app)
+- **Note**: Ensure the local environment is linked to `modula-app`. A secondary `modula` project exists but is not the primary target.
 
-### Manual CLI Workflow
+## 3. Strict Protocol
+
+1. **Approval**: Deployment is critical. Only deploy after user confirmation of build status.
+2. **Clean State**: All changes must be committed before execution.
+3. **Verification**: Always run `npm run build` locally before pushing to production.
+
+## 4. Workflows
+
+### Automatic (Git Push)
+Vercel is linked to the GitHub repository. Pushing to the `main` branch triggers an automatic build and deploy to `modula-app.vercel.app`.
+
+### Manual (Vercel CLI)
+Use this if the automated sync is delayed or if you need to bypass the Git flow for immediate testing.
 
 1. **Authentication**:
    ```bash
    npx vercel login leoruas@gmail.com
    ```
-   *Follow the email/device authorization instructions.*
-
-2. **Build & Deploy**:
+2. **Relink (If out of sync)**:
+   ```bash
+   npx vercel link --project modula-app
+   ```
+3. **Deploy**:
    ```bash
    npm run build
    npx vercel --prod --yes
    ```
 
-### Checking Vercel Deployment
+## 5. Troubleshooting Sync Issues
 
-To view the deployment URL and status:
-
-1. Visit the [Vercel Dashboard](https://vercel.com/dashboard)
-2. Find the `modula` project
-3. Check the latest deployment status and URL
-
-Since Vercel deploys automatically on git push, after running this deploy skill and pushing your commits (including the changelog update), Vercel will deploy the same version automatically. Manual deployment is useful for immediate updates without a Git push.
+If you push to GitHub but Vercel doesn't update (e.g., still showing "Initial Commit"):
+1. **Check the Link**: Run `npx vercel project ls` to see which project is active.
+2. **Check the Target**: Ensure you are not accidentally deploying to the `modula` project instead of `modula-app`.
+3. **Manual Override**: Run the **Manual CLI Workflow** above to force the current local state to production.
 
 ---
-*Note: This skill handles Firebase deployment manually. Vercel deployment happens automatically via git integration.*
+*Note: The primary deployment script is located at `.agent/skills/deploy/exec-deploy.js` and handles the Firebase/Tagging logic.*

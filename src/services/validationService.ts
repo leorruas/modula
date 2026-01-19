@@ -16,7 +16,7 @@ export class ValidationService {
             // If data points > area * (some factor), warn
             const area = chart.module.w * chart.module.h; // in modules
             // Assume 50 points per module is dense
-            const dataPoints = chart.data.datasets[0].data.length;
+            const dataPoints = chart.data?.datasets?.[0]?.data?.length || 0;
 
             if (dataPoints > area * 50) {
                 results.push({

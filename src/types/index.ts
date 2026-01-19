@@ -2,7 +2,11 @@ export interface GridConfig {
     columns: number;
     rows: number;
     gutter: number; // in mm
-    margin: number; // in mm
+    margin: number; // in mm (deprecated, use individual margins)
+    marginTop?: number;
+    marginBottom?: number;
+    marginLeft?: number;
+    marginRight?: number;
     pageFormat: 'A4' | 'A3' | 'A5' | 'Custom';
     orientation: 'portrait' | 'landscape';
     width: number; // in mm
@@ -10,6 +14,8 @@ export interface GridConfig {
     mode?: 'flexible' | 'fixed'; // New property
     fixedModuleWidth?: number; // New property
     fixedModuleHeight?: number; // New property
+    baseFontSize?: number; // Default base size for text
+    baseFontUnit?: 'pt' | 'px' | 'mm'; // Unit for base size
 }
 
 export interface ChartModule {

@@ -2,15 +2,18 @@
 
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
 
 interface GaugeChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function GaugeChart({ width, height, data, style }: GaugeChartProps) {
+export function GaugeChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: GaugeChartProps) {
     const value = data.datasets[0]?.data[0] || 0;
     const target = data.datasets[0]?.data[1] || 100;
     const percentage = Math.min(100, Math.max(0, (value / target) * 100));

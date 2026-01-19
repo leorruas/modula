@@ -96,7 +96,7 @@ export function Dashboard() {
                         transition: 'background 0.2s',
                     }}>
                         <div>
-                            <Link href={`/editor/${project.id}`} style={{ textDecoration: 'none' }}>
+                            <Link href={`/editor?id=${project.id}`} style={{ textDecoration: 'none' }}>
                                 <h3 style={{
                                     cursor: 'pointer',
                                     color: 'var(--foreground)',

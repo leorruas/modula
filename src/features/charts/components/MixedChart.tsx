@@ -1,15 +1,17 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 
 interface MixedChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function MixedChart({ width, height, data, style }: MixedChartProps) {
+export function MixedChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: MixedChartProps) {
     const datasetBars = data.datasets[0];
     const datasetLine = data.datasets.length > 1 ? data.datasets[1] : null;
 
@@ -23,9 +25,37 @@ export function MixedChart({ width, height, data, style }: MixedChartProps) {
     const isInfographic = style?.mode === 'infographic';
     const useGradient = style?.useGradient;
 
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+    const padding = isInfographic ? CHART_THEME.padding.large : 0;
+    const chartWidth = width - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2);
+
+    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
+    const charWidth = fontSize * 0.5;
+    const maxLines = 3;
+    const maxCharsPerLine = Math.floor((chartWidth / Math.max(labels.length, 1)) / charWidth);
+
+    const wrapLabel = (text: string) => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
+                currentLine += ' ' + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+        return lines.slice(0, maxLines);
+    };
+
+    const wrappedLabels = labels.map(wrapLabel);
+    const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
+
+    const chartHeight = height - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2) - labelBottomPadding;
+    const effectiveBaselineY = chartHeight;
     const barWidth = (chartWidth / valuesBar.length) * 0.7;
 
     const color1 = style?.colorPalette?.[0] || getChartColor(0);
@@ -91,13 +121,22 @@ export function MixedChart({ width, height, data, style }: MixedChartProps) {
                             />
                             <text
                                 x={i * slotWidth + slotWidth / 2}
-                                y={chartHeight + 18}
+                                y={effectiveBaselineY + 18}
                                 textAnchor="middle"
-                                fontSize={CHART_THEME.fontSizes.small}
+                                fontSize={fontSize}
                                 fontFamily={fontFamily}
                                 fill={CHART_THEME.colors.neutral.dark}
                             >
-                                {labels[i]}
+                                <title>{labels[i]}</title>
+                                {wrappedLabels[i].map((line, lineIdx) => (
+                                    <tspan
+                                        key={lineIdx}
+                                        x={i * slotWidth + slotWidth / 2}
+                                        dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                    >
+                                        {line}
+                                    </tspan>
+                                ))}
                             </text>
                         </g>
                     )

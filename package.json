@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "changelog": "node .agent/skills/changelog/update-changelog.js",
     "deploy": "node .agent/skills/deploy/exec-deploy.js"
   },
@@ -26,12 +29,19 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/file-saver": "^2.0.7",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
-    "typescript": "^5"
+    "jsdom": "^27.4.0",
+    "typescript": "^5",
+    "vitest": "^4.0.17",
+    "vitest-tsconfig-paths": "^3.4.1"
   }
 }

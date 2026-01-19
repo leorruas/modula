@@ -1,24 +1,26 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 
 interface ScatterChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function ScatterChart({ width, height, data, style }: ScatterChartProps) {
+export function ScatterChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: ScatterChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
 
     const isInfographic = style?.mode === 'infographic';
     const useGradient = style?.useGradient;
     const maxValue = Math.max(...values);
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+    const padding = isInfographic ? CHART_THEME.padding.large : 0;
+    const chartWidth = width - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2);
+    const chartHeight = height - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2);
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
@@ -46,7 +48,8 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
                                 y2={chartHeight * fraction}
                                 stroke={CHART_THEME.colors.neutral.lighter}
                                 strokeWidth={1}
-                                opacity={0.15}
+                                opacity={0.1}
+                                strokeDasharray="4 4"
                             />
                         ))}
                         {[0.25, 0.5, 0.75, 1].map((fraction, i) => (
@@ -58,7 +61,8 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
                                 y2={chartHeight}
                                 stroke={CHART_THEME.colors.neutral.lighter}
                                 strokeWidth={1}
-                                opacity={0.15}
+                                opacity={0.1}
+                                strokeDasharray="4 4"
                             />
                         ))}
                     </>
@@ -76,16 +80,17 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
                                 cy={y}
                                 r={isInfographic ? 8 : 5}
                                 fill={useGradient ? "url(#scatterGradient)" : primaryColor}
-                                opacity={0.7}
+                                opacity={0.9}
                                 stroke="#fff"
                                 strokeWidth={2}
+                                filter="url(#chartShadow)"
                             />
                             {isInfographic && (
                                 <text
                                     x={x}
                                     y={y - 15}
                                     textAnchor="middle"
-                                    fontSize={CHART_THEME.fontSizes.huge}
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true)}
                                     fontFamily={CHART_THEME.fonts.number}
                                     fontWeight={CHART_THEME.fontWeights.black}
                                     fill={CHART_THEME.colors.neutral.dark}

@@ -7,12 +7,16 @@ const COLLECTION_NAME = "projects";
 export const projectService = {
     createProject: async (userId: string, data: Omit<Project, "id" | "userId" | "createdAt" | "updatedAt">): Promise<Project> => {
         const timestamp = Date.now();
-        const docRef = await addDoc(collection(db, COLLECTION_NAME), {
+
+        // Remove undefined fields to avoid FirebaseError
+        const cleanData = JSON.parse(JSON.stringify({
             ...data,
             userId,
             createdAt: timestamp,
             updatedAt: timestamp,
-        });
+        }));
+
+        const docRef = await addDoc(collection(db, COLLECTION_NAME), cleanData);
         return { id: docRef.id, userId, ...data, createdAt: timestamp, updatedAt: timestamp };
     },
 
@@ -34,7 +38,11 @@ export const projectService = {
 
     updateProject: async (id: string, data: Partial<Omit<Project, "id" | "userId" | "createdAt">>): Promise<void> => {
         const docRef = doc(db, COLLECTION_NAME, id);
-        await updateDoc(docRef, { ...data, updatedAt: Date.now() });
+        const cleanData = JSON.parse(JSON.stringify({
+            ...data,
+            updatedAt: Date.now()
+        }));
+        await updateDoc(docRef, cleanData);
     },
 
     deleteProject: async (id: string): Promise<void> => {

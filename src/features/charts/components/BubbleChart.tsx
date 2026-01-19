@@ -1,24 +1,54 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, createRadialGradient } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, createRadialGradient, getScaledFont } from '@/utils/chartTheme';
 
 interface BubbleChartProps {
     width: number;
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
+export function BubbleChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: BubbleChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
     const labels = data.labels;
 
     const isInfographic = style?.mode === 'infographic';
     const maxValue = Math.max(...values);
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
-    const chartWidth = width - padding * 2;
-    const chartHeight = height - padding * 2;
+    const padding = isInfographic ? CHART_THEME.padding.large : 0;
+    const chartWidth = width - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2);
+
+    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
+    const charWidth = fontSize * 0.5;
+    const maxLines = 3;
+    const maxCharsPerLine = Math.floor((chartWidth / Math.max(labels.length, 1)) / charWidth);
+
+    const wrapLabel = (text: string) => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let currentLine = words[0];
+
+        for (let i = 1; i < words.length; i++) {
+            if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
+                currentLine += ' ' + words[i];
+            } else {
+                lines.push(currentLine);
+                currentLine = words[i];
+            }
+        }
+        lines.push(currentLine);
+        return lines.slice(0, maxLines);
+    };
+
+    const wrappedLabels = labels.map(wrapLabel);
+    const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
+
+    const chartHeight = height - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2) - labelBottomPadding;
+    const effectiveBaselineY = chartHeight;
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
@@ -85,7 +115,7 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
                                 y={y}
                                 textAnchor="middle"
                                 dominantBaseline="middle"
-                                fontSize={isInfographic ? CHART_THEME.fontSizes.huge : CHART_THEME.fontSizes.medium}
+                                fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'huge' : 'medium', isInfographic)}
                                 fontFamily={CHART_THEME.fonts.number}
                                 fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
                                 fill={CHART_THEME.colors.neutral.dark}
@@ -95,14 +125,23 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
                             {labels[i] && (
                                 <text
                                     x={x}
-                                    y={chartHeight + 20}
+                                    y={effectiveBaselineY + 20}
                                     textAnchor="middle"
-                                    fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
+                                    fontSize={fontSize}
                                     fontFamily={fontFamily}
                                     fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
                                     fill={CHART_THEME.colors.neutral.dark}
                                 >
-                                    {labels[i]}
+                                    <title>{labels[i]}</title>
+                                    {wrappedLabels[i].map((line, lineIdx) => (
+                                        <tspan
+                                            key={lineIdx}
+                                            x={x}
+                                            dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                        >
+                                            {line}
+                                        </tspan>
+                                    ))}
                                 </text>
                             )}
                         </g>

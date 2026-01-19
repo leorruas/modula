@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
 import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 
 interface DonutChartProps {
@@ -8,12 +8,17 @@ interface DonutChartProps {
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function DonutChart({ width, height, data, style }: DonutChartProps) {
-    const dataset = data.datasets[0];
+export function DonutChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: DonutChartProps) {
+    const dataset = data.datasets?.[0];
+    if (!dataset || !dataset.data || dataset.data.length === 0) {
+        return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
+    }
     const values = dataset.data;
-    const labels = data.labels;
+    const labels = data.labels || [];
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
@@ -87,18 +92,19 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                             <path
                                 d={pathData}
                                 fill={useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length]}
-                                filter={useGradient ? "url(#chartShadow)" : "none"}
-                                stroke={isInfographic ? 'none' : '#fff'}
-                                strokeWidth={isInfographic ? 0 : 2}
+                                filter="url(#chartShadow)"
+                                stroke="#fff"
+                                strokeWidth={isInfographic ? 3 : 1.5}
+                                strokeLinejoin="round"
                             />
 
                             {isInfographic ? (
                                 <>
                                     <text
                                         x={lx}
-                                        y={ly - 15}
+                                        y={ly - getScaledFont(baseFontSize, baseFontUnit, 'huge') / 2 - 5} // Adjust y based on font size
                                         textAnchor="middle"
-                                        fontSize={CHART_THEME.fontSizes.huge}
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true)}
                                         fontFamily={CHART_THEME.fonts.number}
                                         fontWeight={CHART_THEME.fontWeights.black}
                                         fill={CHART_THEME.colors.neutral.dark}
@@ -109,7 +115,7 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                                         x={lx}
                                         y={ly + 5}
                                         textAnchor="middle"
-                                        fontSize={CHART_THEME.fontSizes.small}
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                         fontFamily={fontFamily}
                                         fontWeight={CHART_THEME.fontWeights.medium}
                                         fill={CHART_THEME.colors.neutral.medium}
@@ -123,7 +129,7 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                                     y={ly}
                                     textAnchor="middle"
                                     alignmentBaseline="middle"
-                                    fontSize={CHART_THEME.fontSizes.small}
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                     fontFamily={fontFamily}
                                     fill="#fff"
                                     fontWeight={CHART_THEME.fontWeights.semibold}

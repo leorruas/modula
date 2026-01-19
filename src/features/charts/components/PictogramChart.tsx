@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 import { getIcon, getIconComponent } from '@/utils/iconLibrary';
 
 interface PictogramChartProps {
@@ -8,9 +8,11 @@ interface PictogramChartProps {
     height: number;
     data: ChartData;
     style?: ChartStyle;
+    baseFontSize?: number;
+    baseFontUnit?: 'pt' | 'px' | 'mm';
 }
 
-export function PictogramChart({ width, height, data, style }: PictogramChartProps) {
+export function PictogramChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: PictogramChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
     const labels = data.labels;
@@ -68,7 +70,7 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                 x={-10}
                                 y={y + rowHeight / 2 - (isInfographic ? 20 : 15)}
                                 textAnchor="end"
-                                fontSize={isInfographic ? CHART_THEME.fontSizes.large : CHART_THEME.fontSizes.medium}
+                                fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'large' : 'medium')}
                                 fontFamily={fontFamily}
                                 fontWeight={isInfographic ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.semibold}
                                 fill={CHART_THEME.colors.neutral.dark}
@@ -80,7 +82,7 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                 x={-10}
                                 y={y + rowHeight / 2 + (isInfographic ? 10 : 5)}
                                 textAnchor="end"
-                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
+                                fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small')}
                                 fontFamily={fontFamily}
                                 fontWeight={CHART_THEME.fontWeights.normal}
                                 fill={CHART_THEME.colors.neutral.medium}
@@ -113,7 +115,7 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                 <text
                                     x={0}
                                     y={-10}
-                                    fontSize={isInfographic ? CHART_THEME.fontSizes.small : CHART_THEME.fontSizes.tiny}
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'small' : 'tiny')}
                                     fontFamily={fontFamily}
                                     fill={CHART_THEME.colors.neutral.medium}
                                     fontStyle="italic"
