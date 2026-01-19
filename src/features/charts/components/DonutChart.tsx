@@ -17,13 +17,16 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
-    const padding = isInfographic ? 40 : 20;
-    const outerRadius = (Math.min(width, height) / 2) - padding - (isInfographic ? 30 : 0);
+    const padding = isInfographic ? 80 : 20;
+    const outerRadius = (Math.min(width, height) / 2) - padding;
     const innerRadius = outerRadius * 0.6;
     const centerX = width / 2;
     const centerY = height / 2;
 
-    let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
+    const useGradient = style?.useGradient;
+    const initialColors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
+
+    let colors = initialColors;
     if (values.length > colors.length) {
         if (colors.length === 1) {
             colors = generateMonochromaticPalette(colors[0], values.length);
@@ -31,12 +34,20 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
             colors = ensureDistinctColors(colors, values.length);
         }
     }
-    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
 
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     let startAngle = 0;
 
     return (
         <BaseChart width={width} height={height} data={data} type="donut">
+            <defs>
+                {useGradient && colors.map((color, i) => (
+                    <radialGradient key={`grad-${i}`} id={`donutGradient-${i}`} cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+                    </radialGradient>
+                ))}
+            </defs>
             <g transform={`translate(${centerX}, ${centerY})`}>
                 {values.map((value, i) => {
                     const sliceAngle = (value / total) * 2 * Math.PI;
@@ -68,28 +79,21 @@ export function DonutChart({ width, height, data, style }: DonutChartProps) {
                     const lx = labelR * Math.cos(labelAngle - Math.PI / 2);
                     const ly = labelR * Math.sin(labelAngle - Math.PI / 2);
 
+                    const currentStartAngle = startAngle;
                     startAngle += sliceAngle;
 
                     return (
                         <g key={i}>
                             <path
                                 d={pathData}
-                                fill={colors[i % colors.length]}
+                                fill={useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length]}
+                                filter={useGradient ? "url(#chartShadow)" : "none"}
                                 stroke={isInfographic ? 'none' : '#fff'}
                                 strokeWidth={isInfographic ? 0 : 2}
                             />
 
                             {isInfographic ? (
                                 <>
-                                    <line
-                                        x1={outerRadius * 0.9 * Math.cos(labelAngle - Math.PI / 2)}
-                                        y1={outerRadius * 0.9 * Math.sin(labelAngle - Math.PI / 2)}
-                                        x2={lx}
-                                        y2={ly}
-                                        stroke={CHART_THEME.colors.neutral.medium}
-                                        strokeWidth={1}
-                                        opacity={0.3}
-                                    />
                                     <text
                                         x={lx}
                                         y={ly - 15}

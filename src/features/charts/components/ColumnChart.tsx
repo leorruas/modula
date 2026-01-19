@@ -24,6 +24,7 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
     const colGap = colWidth * 0.3;
 
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
 
     // Color logic
     const baseColors = style?.colorPalette || [getChartColor(0)];
@@ -43,10 +44,12 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
                         <feMergeNode in="SourceGraphic" />
                     </feMerge>
                 </filter>
-                <linearGradient id="colGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={computedColors[0]} stopOpacity="0.8" />
-                    <stop offset="100%" stopColor={computedColors[0]} stopOpacity="0.3" />
-                </linearGradient>
+                {useGradient && computedColors.map((color, i) => (
+                    <linearGradient key={`grad-${i}`} id={`colGradient-${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+                    </linearGradient>
+                ))}
             </defs>
 
             <g transform={`translate(${padding}, ${padding})`}>
@@ -93,7 +96,7 @@ export function ColumnChart({ width, height, data, style }: ColumnChartProps) {
                                 y={y}
                                 width={colWidth - colGap}
                                 height={barH}
-                                fill={computedColors[i % computedColors.length]}
+                                fill={useGradient ? `url(#colGradient-${i % computedColors.length})` : computedColors[i % computedColors.length]}
                                 opacity={0.8}
                                 rx={CHART_THEME.effects.borderRadius}
                                 filter="url(#colShadow)"

@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, createRadialGradient } from '@/utils/chartTheme';
 
 interface BubbleChartProps {
     width: number;
@@ -22,9 +22,27 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
+
+    // Get colors for each bubble to ensure gradient IDs are unique per color
+    const palette = style?.colorPalette || [primaryColor];
 
     return (
         <BaseChart width={width} height={height} data={data} type="bubble">
+            <defs>
+                {useGradient && palette.map((color, i) => (
+                    <radialGradient key={`grad-${i}`} id={`bubbleGradient-${i}`} cx="40%" cy="40%" r="60%">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="70%" stopColor={color} stopOpacity="0.85" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+                    </radialGradient>
+                ))}
+                {useGradient && <radialGradient id="bubbleGradient-default" cx="40%" cy="40%" r="60%">
+                    <stop offset="0%" stopColor={primaryColor} stopOpacity="1" />
+                    <stop offset="70%" stopColor={primaryColor} stopOpacity="0.85" />
+                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.6" />
+                </radialGradient>}
+            </defs>
             <g transform={`translate(${padding}, ${padding})`}>
                 {/* Grid - only classic */}
                 {!isInfographic && (
@@ -57,7 +75,7 @@ export function BubbleChart({ width, height, data, style }: BubbleChartProps) {
                                 cx={x}
                                 cy={y}
                                 r={radius}
-                                fill={bubbleColor}
+                                fill={useGradient ? (style?.colorPalette ? `url(#bubbleGradient-${i % palette.length})` : `url(#bubbleGradient-default)`) : bubbleColor}
                                 opacity={0.5}
                                 stroke={bubbleColor}
                                 strokeWidth={2}

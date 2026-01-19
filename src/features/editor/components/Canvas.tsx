@@ -18,6 +18,7 @@ import { HistogramChart } from '@/features/charts/components/HistogramChart';
 import { MixedChart } from '@/features/charts/components/MixedChart';
 import { BoxplotChart } from '@/features/charts/components/BoxplotChart';
 import { PictogramChart } from '@/features/charts/components/PictogramChart';
+import { GaugeChart } from '@/features/charts/components/GaugeChart';
 import { GenericChart } from '@/features/charts/components/GenericChart';
 
 
@@ -78,6 +79,26 @@ export function Canvas({ project }: CanvasProps) {
 
     const widthPx = PAGE_WIDTH_MM * PIXELS_PER_MM;
     const heightPx = PAGE_HEIGHT_MM * PIXELS_PER_MM;
+
+    // Constrain position to keep page visible
+    const clampPosition = (x: number, y: number, currentScale: number) => {
+        if (!containerRef.current) return { x, y };
+        const { clientWidth, clientHeight } = containerRef.current;
+        const pageW = widthPx * currentScale;
+        const pageH = heightPx * currentScale;
+
+        // Allow at most 70% of the page to be outside the viewport
+        // This ensures at least 30% of the page is always visible
+        const minX = -pageW * 0.7;
+        const maxX = clientWidth - pageW * 0.3;
+        const minY = -pageH * 0.7;
+        const maxY = clientHeight - pageH * 0.3;
+
+        return {
+            x: Math.max(minX, Math.min(maxX, x)),
+            y: Math.max(minY, Math.min(maxY, y))
+        };
+    };
 
     // Grid calculations for chart placement
     const { columns: cfgColumns, rows: cfgRows, margin, gutter, mode, fixedModuleWidth, fixedModuleHeight } = project.gridConfig;
@@ -145,11 +166,15 @@ export function Canvas({ project }: CanvasProps) {
             const delta = e.deltaY * -0.001;
             const newScale = Math.min(Math.max(0.1, scale + delta), 5);
             setScale(newScale);
+
+            // Re-clamp position on zoom
+            setPosition(prev => clampPosition(prev.x, prev.y, newScale));
         } else {
-            setPosition(prev => ({
-                x: prev.x - e.deltaX,
-                y: prev.y - e.deltaY
-            }));
+            setPosition(prev => clampPosition(
+                prev.x - e.deltaX,
+                prev.y - e.deltaY,
+                scale
+            ));
         }
     };
 
@@ -248,10 +273,11 @@ export function Canvas({ project }: CanvasProps) {
         }
 
         if (isDragging) {
-            setPosition({
-                x: e.clientX - dragStart.x,
-                y: e.clientY - dragStart.y
-            });
+            setPosition(prev => clampPosition(
+                e.clientX - dragStart.x,
+                e.clientY - dragStart.y,
+                scale
+            ));
         }
     };
 
@@ -281,13 +307,20 @@ export function Canvas({ project }: CanvasProps) {
 
     // Center canvas initially
     useEffect(() => {
-        if (containerRef.current) {
-            const { clientWidth, clientHeight } = containerRef.current;
-            setPosition({
-                x: (clientWidth - widthPx) / 2,
-                y: (clientHeight - heightPx) / 2
-            });
-        }
+        const center = () => {
+            if (containerRef.current) {
+                const { clientWidth, clientHeight } = containerRef.current;
+                const newPos = {
+                    x: (clientWidth - widthPx * scale) / 2,
+                    y: (clientHeight - heightPx * scale) / 2
+                };
+                setPosition(clampPosition(newPos.x, newPos.y, scale));
+            }
+        };
+        center();
+        // Also re-center on window resize
+        window.addEventListener('resize', center);
+        return () => window.removeEventListener('resize', center);
     }, [widthPx, heightPx]);
 
     // ...
@@ -457,6 +490,7 @@ export function Canvas({ project }: CanvasProps) {
                                 {chart.type === 'boxplot' && <BoxplotChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'pictogram' && <PictogramChart width={w} height={h} data={chart.data} style={chart.style} />}
                                 {chart.type === 'area' && <AreaChart width={w} height={h} data={chart.data} style={chart.style} />}
+                                {chart.type === 'gauge' && <GaugeChart width={w} height={h} data={chart.data} style={chart.style} />}
                             </div>
 
                             {/* Selection Outline when Editing */}

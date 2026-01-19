@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "changelog": "node .agent/skills/changelog/update-changelog.js"
+    "changelog": "node .agent/skills/changelog/update-changelog.js",
+    "deploy": "node .agent/skills/deploy/exec-deploy.js"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

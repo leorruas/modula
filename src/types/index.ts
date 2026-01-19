@@ -19,7 +19,7 @@ export interface ChartModule {
     h: number;
 }
 
-export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'pictogram' | 'custom';
+export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'pictogram' | 'gauge' | 'custom';
 
 export interface ChartData {
     labels: string[];
@@ -38,9 +38,11 @@ export interface ChartData {
 }
 
 export interface ChartStyle {
-    colorPalette: string[];
+    colorPalette?: string[];
     fontFamily: string;
     mode?: 'classic' | 'infographic'; // Dual-mode system
+    useGradient?: boolean;
+    showShadow?: boolean;
 }
 
 export interface Chart {
@@ -68,6 +70,12 @@ export interface Project {
     useChapters?: boolean;
     chapters?: { title: string; startPage: number }[];
     colors?: string[]; // Project-wide default color palette
+    defaultStyle?: ChartStyle; // Project-wide default style
     createdAt: number;
     updatedAt: number;
+}
+
+export interface UserPreferences {
+    defaultColors?: string[];
+    defaultStyle?: ChartStyle;
 }

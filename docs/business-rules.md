@@ -18,14 +18,11 @@ Todo projeto começa pela definição da área de trabalho (Canvas). O sistema d
 ### 1.2. Definição do Grid Modular
 Após estabelecer o tamanho do Canvas, o usuário define o sistema de grid que dividirá essa área.
 
-*   **Lógica de Divisão**: O grid é calculado dividindo a área útil (Canvas - Margens) pelo número de módulos.
-*   **Parâmetros Configuráveis**:
-    *   **Margens (Margins)**: Espaço vazio ao redor de todo o canvas (Top, Bottom, Left, Right).
-    *   **Colunas (Columns)**: Quantidade de divisões verticais.
-    *   **Linhas (Rows)**: Quantidade de divisões horizontais.
-    *   **Gutter (Calha)**: Espaçamento entre as colunas e linhas.
-*   **Cálculo do Módulo**: O tamanho final de cada módulo é resultado dessa equação matemática.
-*   **Edição do Grid**: O sistema deve permitir a reconfiguração do grid (Colunas, Linhas, Margens e Gutter) a qualquer momento dentro do editor do projeto. Ajustes no grid não devem, idealmente, destruir layouts existentes, apenas reagrupar se necessário (ou manter posição absoluta se desejado).
+*   **Modos de Grid**:
+    *   **Flexível (Padrão)**: O usuário define o número de Colunas e Linhas. O tamanho do módulo é calculado automaticamente.
+    *   **Fixo**: O usuário define o **tamanho exato do módulo** (Largura e Altura em mm). O sistema calcula quantas colunas e linhas cabem na área útil do Canvas.
+*   **Cálculo do Módulo**: No modo Flexível, o tamanho final de cada módulo é resultado da divisão da área útil. No modo Fixo, as Colunas/Linhas são limitadas pelo espaço disponível.
+*   **Edição do Grid**: O sistema deve permitir a reconfiguração do grid (Modo, Colunas/Linhas ou Tamanho do Módulo, Margens e Gutter) a qualquer momento.
 
 ### 1.3. Páginas e Paginação
 

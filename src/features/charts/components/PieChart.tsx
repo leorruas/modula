@@ -18,7 +18,7 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
     // Infographic needs space for external labels (approx 50px). Classic uses internal labels (10px padding).
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.small;
+    const padding = isInfographic ? 80 : CHART_THEME.padding.small;
     const radius = (Math.min(width, height) / 2) - padding;
     const centerX = width / 2;
     const centerY = height / 2;
@@ -32,11 +32,21 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
         }
     }
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
 
     let startAngle = 0;
 
     return (
         <BaseChart width={width} height={height} data={data} type="pie">
+            <defs>
+                {useGradient && colors.map((color, i) => (
+                    <radialGradient key={`grad-${i}`} id={`pieGradient-${i}`} cx="40%" cy="40%" r="60%">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="70%" stopColor={color} stopOpacity="0.85" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.6" />
+                    </radialGradient>
+                ))}
+            </defs>
             <g transform={`translate(${centerX}, ${centerY})`}>
                 {values.map((value, i) => {
                     const sliceAngle = (value / total) * 2 * Math.PI;
@@ -71,7 +81,8 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                         <g key={i}>
                             <path
                                 d={pathData}
-                                fill={colors[i % colors.length]}
+                                fill={useGradient ? `url(#pieGradient-${i % colors.length})` : colors[i % colors.length]}
+                                filter={useGradient ? "url(#chartShadow)" : "none"}
                                 stroke={isInfographic ? 'none' : '#fff'}
                                 strokeWidth={isInfographic ? 0 : 2}
                             />
@@ -79,16 +90,6 @@ export function PieChart({ width, height, data, style }: PieChartProps) {
                             {isInfographic ? (
                                 // Infographic mode: external labels with percentages
                                 <>
-                                    {/* Connector line */}
-                                    <line
-                                        x1={radius * 0.9 * Math.cos(labelAngle - Math.PI / 2)}
-                                        y1={radius * 0.9 * Math.sin(labelAngle - Math.PI / 2)}
-                                        x2={lx}
-                                        y2={ly}
-                                        stroke={CHART_THEME.colors.neutral.medium}
-                                        strokeWidth={1}
-                                        opacity={0.3}
-                                    />
                                     {/* Percentage - HERO */}
                                     <text
                                         x={lx}

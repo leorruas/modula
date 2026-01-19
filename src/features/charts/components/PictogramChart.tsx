@@ -10,17 +10,11 @@ interface PictogramChartProps {
     style?: ChartStyle;
 }
 
-/**
- * Pictogram Chart - Icons repeated to represent quantities
- * Example: 5 person icons = 5000 people (if valuePerIcon = 1000)
- */
 export function PictogramChart({ width, height, data, style }: PictogramChartProps) {
     const dataset = data.datasets[0];
     const values = dataset.data;
     const labels = data.labels;
 
-    // Smart Margins for Pictogram
-    // Left needs space for labels (textAnchor=end at x=-10)
     const marginLeft = 100;
     const marginTop = 20;
     const marginBottom = 20;
@@ -31,50 +25,62 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
+    const isInfographic = style?.mode === 'infographic';
 
     const iconCategory = data.iconConfig?.category || 'people';
     const iconKey = data.iconConfig?.iconKey || 'person';
     const IconComponent = getIconComponent(iconCategory, iconKey);
 
-    // Calculate how many units each icon represents
-    const maxValue = Math.max(...values);
-    const valuePerIcon = Math.ceil(maxValue / 15); // Max 15 icons per row
+    const maxValue = Math.max(...values, 1);
+    const valuePerIcon = Math.ceil(maxValue / (isInfographic ? 10 : 15));
 
-    const iconSize = 24;
-    const iconGap = 8;
+    const iconSize = isInfographic ? 36 : 24;
+    const iconGap = isInfographic ? 12 : 8;
     const rowHeight = chartHeight / values.length;
     const maxIconsPerRow = Math.floor(chartWidth / (iconSize + iconGap));
 
     return (
         <BaseChart width={width} height={height} data={data} type="pictogram">
+            <defs>
+                {useGradient && style?.colorPalette?.map((color, i) => (
+                    <radialGradient key={`grad-${i}`} id={`pictogramGrad-${i}`} cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+                    </radialGradient>
+                ))}
+                {useGradient && !style?.colorPalette && (
+                    <radialGradient id="pictogramGrad-default" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={primaryColor} stopOpacity="1" />
+                        <stop offset="100%" stopColor={primaryColor} stopOpacity="0.7" />
+                    </radialGradient>
+                )}
+            </defs>
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
                 {values.map((value, rowIndex) => {
                     const iconCount = Math.round(value / valuePerIcon);
                     const y = rowIndex * rowHeight;
-                    // Get color for this specific row/category
                     const rowColor = style?.colorPalette?.[rowIndex % (style.colorPalette?.length || 1)] || getChartColor(rowIndex);
 
                     return (
                         <g key={rowIndex}>
-                            {/* Label */}
                             <text
                                 x={-10}
-                                y={y + rowHeight / 2 - 15}
+                                y={y + rowHeight / 2 - (isInfographic ? 20 : 15)}
                                 textAnchor="end"
-                                fontSize={CHART_THEME.fontSizes.medium}
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.large : CHART_THEME.fontSizes.medium}
                                 fontFamily={fontFamily}
-                                fontWeight={CHART_THEME.fontWeights.semibold}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.semibold}
                                 fill={CHART_THEME.colors.neutral.dark}
                             >
                                 {labels[rowIndex]}
                             </text>
 
-                            {/* Value with unit */}
                             <text
                                 x={-10}
-                                y={y + rowHeight / 2 + 5}
+                                y={y + rowHeight / 2 + (isInfographic ? 10 : 5)}
                                 textAnchor="end"
-                                fontSize={CHART_THEME.fontSizes.small}
+                                fontSize={isInfographic ? CHART_THEME.fontSizes.medium : CHART_THEME.fontSizes.small}
                                 fontFamily={fontFamily}
                                 fontWeight={CHART_THEME.fontWeights.normal}
                                 fill={CHART_THEME.colors.neutral.medium}
@@ -82,7 +88,6 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                 {value.toLocaleString()}
                             </text>
 
-                            {/* Icons */}
                             {IconComponent && Array.from({ length: iconCount }).map((_, i) => {
                                 const col = i % maxIconsPerRow;
                                 const row = Math.floor(i / maxIconsPerRow);
@@ -96,23 +101,23 @@ export function PictogramChart({ width, height, data, style }: PictogramChartPro
                                         y={iconY + 2}
                                         width={iconSize - 4}
                                         height={iconSize - 4}
-                                        color={rowColor}
-                                        strokeWidth={2}
-                                        fill={rowColor}
-                                        fillOpacity={0.2}
+                                        color={useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor}
+                                        strokeWidth={1}
+                                        fill={useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor}
+                                        fillOpacity={1}
                                     />
                                 );
                             })}
 
-                            {/* Legend: "Each icon = X units" */}
                             {rowIndex === 0 && (
                                 <text
                                     x={0}
                                     y={-10}
-                                    fontSize={CHART_THEME.fontSizes.tiny}
+                                    fontSize={isInfographic ? CHART_THEME.fontSizes.small : CHART_THEME.fontSizes.tiny}
                                     fontFamily={fontFamily}
                                     fill={CHART_THEME.colors.neutral.medium}
                                     fontStyle="italic"
+                                    fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.normal}
                                 >
                                     {IconComponent && `Cada ícone = ${valuePerIcon.toLocaleString()}`}
                                 </text>

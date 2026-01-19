@@ -1,4 +1,5 @@
 import { ChartData, ChartStyle } from '@/types';
+import { GaugeChart } from './GaugeChart';
 
 interface GenericChartProps {
     data: ChartData;
@@ -9,6 +10,10 @@ interface GenericChartProps {
 }
 
 export function GenericChart({ data, width, height, style, type }: GenericChartProps) {
+    if (type === 'gauge') {
+        return <GaugeChart width={width} height={height} data={data} style={style} />;
+    }
+
     // Basic SVG placeholder
     return (
         <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>

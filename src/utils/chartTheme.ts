@@ -108,6 +108,20 @@ export const createGradient = (id: string, color: string, direction: 'vertical' 
 };
 
 /**
+ * Generate radial gradient definitions for SVG (3D effect)
+ */
+export const createRadialGradient = (id: string, color: string) => {
+    return `
+        <defs>
+            <radialGradient id="${id}" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4" />
+                <stop offset="100%" stop-color="${color}" stop-opacity="1" />
+            </radialGradient>
+        </defs>
+    `;
+};
+
+/**
  * Apply drop shadow filter to SVG
  */
 export const createShadowFilter = (id: string) => {
@@ -142,21 +156,88 @@ export const getChartColor = (index: number, customPalette?: string[]): string =
  * Color Presets - User-selectable palettes
  */
 export const COLOR_PRESETS = {
-    editorialPastel: {
-        name: 'Editorial Pastel',
-        colors: ['#FF8A80', '#FFB3AD', '#F5E6D3', '#B2DFDB', '#FFCDD2']
+    // Editorial Palettes - Sophisticated and print-ready
+    economist: {
+        name: 'The Economist',
+        colors: ['#DC4E41', '#4B9FD5', '#EAC435', '#78B159', '#A885C9']
     },
+    ftPink: {
+        name: 'FT Pink Editorial',
+        colors: ['#CC0066', '#0F5499', '#00757F', '#8B572A', '#593380']
+    },
+    guardian: {
+        name: 'The Guardian',
+        colors: ['#052962', '#AB0613', '#FF7F00', '#FECC00', '#197F9F']
+    },
+
+    // Modern & Vibrant - Contemporary data viz
     vibrantModern: {
         name: 'Vibrant Modern',
         colors: ['#00D9FF', '#D4FF00', '#00BFA6', '#9C27B0', '#FF6F00']
     },
+    neonPop: {
+        name: 'Neon Pop',
+        colors: ['#FF006E', '#FFBE0B', '#3A86FF', '#8338EC', '#FB5607']
+    },
+
+    // Pastel & Soft - Gentle and accessible
+    editorialPastel: {
+        name: 'Editorial Pastel',
+        colors: ['#FF8A80', '#FFB3AD', '#F5E6D3', '#B2DFDB', '#FFCDD2']
+    },
+    softMints: {
+        name: 'Soft Mints',
+        colors: ['#B4E7CE', '#F7D1BA', '#E4C1F9', '#A2D2FF', '#FFD6A5']
+    },
+
+    // Professional Business - Corporate and trustworthy
     classicBusiness: {
         name: 'Classic Business',
         colors: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
     },
+    corporateBlue: {
+        name: 'Corporate Blue',
+        colors: ['#1E3A8A', '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE']
+    },
+
+    // Earthy & Natural - Warm and organic
+    earthTones: {
+        name: 'Earth Tones',
+        colors: ['#D4A574', '#8B7355', '#A0826D', '#C19A6B', '#E6CCB2']
+    },
+    autumnWarm: {
+        name: 'Autumn Warm',
+        colors: ['#E07A5F', '#F2CC8F', '#81B29A', '#F4A261', '#E76F51']
+    },
+
+    // Bold & Contrasting - Maximum differentiation
+    boldPrimary: {
+        name: 'Bold Primary',
+        colors: ['#FF0000', '#0000FF', '#FFFF00', '#00FF00', '#FF00FF']
+    },
+    darkContrast: {
+        name: 'Dark Contrast',
+        colors: ['#FA4D56', '#0F62FE', '#F1C21B', '#24A148', '#D12771']
+    },
+
+    // Monochrome Options - Single hue variations
     monochrome: {
         name: 'Monochrome + Accent',
         colors: ['#1a1a1a', '#666666', '#00D9FF', '#999999', '#cccccc']
+    },
+    blueScale: {
+        name: 'Blue Scale',
+        colors: ['#002255', '#0044AA', '#0066FF', '#4488FF', '#88AAFF']
+    },
+
+    // Accessible Palettes - Color-blind friendly
+    accessible: {
+        name: 'Accessible (CB-Safe)',
+        colors: ['#EE7733', '#0077BB', '#33BBEE', '#EE3377', '#CC3311']
+    },
+    deuteranopia: {
+        name: 'Deuteranopia Safe',
+        colors: ['#FFB000', '#648FFF', '#785EF0', '#DC267F', '#FE6100']
     }
 };
 

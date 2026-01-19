@@ -50,7 +50,7 @@ export function BoxplotChart({ width, height, data, style }: BoxplotChartProps) 
     const categoryWidth = chartWidth / labels.length;
     const boxWidth = categoryWidth * 0.4;
 
-    const primaryColor = style?.colorPalette[0] || 'black';
+    const primaryColor = style?.colorPalette?.[0] || 'black';
     const fontFamily = style?.fontFamily || 'sans-serif';
 
     return (

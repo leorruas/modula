@@ -14,6 +14,7 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
     const values = dataset.data;
 
     const isInfographic = style?.mode === 'infographic';
+    const useGradient = style?.useGradient;
     const maxValue = Math.max(...values);
     const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.medium;
     const chartWidth = width - padding * 2;
@@ -24,6 +25,14 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
 
     return (
         <BaseChart width={width} height={height} data={data} type="scatter">
+            <defs>
+                {useGradient && (
+                    <radialGradient id="scatterGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={primaryColor} stopOpacity="0.9" />
+                        <stop offset="100%" stopColor={primaryColor} stopOpacity="0.6" />
+                    </radialGradient>
+                )}
+            </defs>
             <g transform={`translate(${padding}, ${padding})`}>
                 {/* Grid - only classic */}
                 {!isInfographic && (
@@ -66,7 +75,7 @@ export function ScatterChart({ width, height, data, style }: ScatterChartProps) 
                                 cx={x}
                                 cy={y}
                                 r={isInfographic ? 8 : 5}
-                                fill={primaryColor}
+                                fill={useGradient ? "url(#scatterGradient)" : primaryColor}
                                 opacity={0.7}
                                 stroke="#fff"
                                 strokeWidth={2}

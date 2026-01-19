@@ -23,11 +23,11 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
 
 
     // Smart Margins
-    const basePadding = isInfographic ? CHART_THEME.padding.medium : CHART_THEME.padding.small;
+    const basePadding = isInfographic ? 40 : CHART_THEME.padding.small;
     const marginTop = basePadding;
-    const marginRight = basePadding;
+    const marginRight = isInfographic ? 80 : basePadding; // More space for huge numeric values
     const marginBottom = basePadding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
-    const marginLeft = basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 40);
+    const marginLeft = isInfographic ? 140 : basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 40); // More space for labels
 
     const chartWidth = width - marginLeft - marginRight;
     const chartHeight = height - marginTop - marginBottom;
@@ -35,6 +35,7 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
     const barGap = barHeight * 0.3;
 
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
 
     // Color logic: ensure distinct colors if multiple bars
     const baseColors = style?.colorPalette || [getChartColor(0)];
@@ -56,6 +57,12 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                         <feMergeNode in="SourceGraphic" />
                     </feMerge>
                 </filter>
+                {useGradient && computedColors.map((color, i) => (
+                    <linearGradient key={`grad-${i}`} id={`barGradient-${i}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+                    </linearGradient>
+                ))}
             </defs>
 
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
@@ -105,7 +112,7 @@ export function BarChart({ width, height, data, style }: BarChartProps) {
                                 y={y}
                                 width={barW}
                                 height={barHeight - barGap}
-                                fill={computedColors[i % computedColors.length]}
+                                fill={useGradient ? `url(#barGradient-${i % computedColors.length})` : computedColors[i % computedColors.length]}
                                 opacity={0.8}
                                 rx={CHART_THEME.effects.borderRadius}
                                 filter="url(#barShadow)"

@@ -37,3 +37,6 @@ To maintain a predictable stacking order, follow these tiers:
     *   *Example*: `jsPDF` does not understand CSS font stacks ("Helvetica, Arial"). Use strict, single values ("Helvetica").
 *   **Fallbacks**: Always configure global defaults (e.g., `doc.setFont`) to prevent library-specific crashes or unwanted defaults (like Times New Roman).
 *   **Rasterization as Fallback**: When vector fidelity requires excessive hacks or is flaky across environments, prefer High-Resolution Rasterization to guarantee User Trust.
+*   **Firebase/Firestore Strictness**:
+    *   **No Undefined**: Firestore does not support `undefined` values in documents. Always use `null` or omit the key entirely using conditional spreading: `{ ...(condition && { key: value }) }`.
+    *   **Timestamp Consistency**: Use `Date.now()` (number) or Firestore `Timestamp` consistently. The project currently uses `Date.now()` for `createdAt` and `updatedAt`.

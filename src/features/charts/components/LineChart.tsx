@@ -19,13 +19,13 @@ export function LineChart({ width, height, data, style }: LineChartProps) {
     const allValues = data.datasets.flatMap(d => d.data);
     const maxValue = Math.max(...allValues, 0); // avoid -Infinity if empty
 
-    const padding = isInfographic ? CHART_THEME.padding.medium : CHART_THEME.padding.small;
+    const padding = isInfographic ? 40 : CHART_THEME.padding.small;
 
     // Smart Margins
-    const marginTop = padding;
-    const marginRight = padding;
+    const marginTop = isInfographic ? 60 : padding; // Space for huge values above lines
+    const marginRight = isInfographic ? 40 : padding;
     const marginBottom = padding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
-    const marginLeft = padding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25); // Line chart usually has numbers on left
+    const marginLeft = isInfographic ? 60 : padding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
 
     const chartWidth = width - marginLeft - marginRight;
     const chartHeight = height - marginTop - marginBottom;

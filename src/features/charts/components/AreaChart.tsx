@@ -19,11 +19,11 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
 
 
     // Smart Margins
-    const basePadding = isInfographic ? CHART_THEME.padding.medium : CHART_THEME.padding.small;
-    const marginTop = basePadding;
-    const marginRight = basePadding;
+    const basePadding = isInfographic ? 40 : CHART_THEME.padding.small;
+    const marginTop = isInfographic ? 60 : basePadding;
+    const marginRight = isInfographic ? 40 : basePadding;
     const marginBottom = basePadding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
-    const marginLeft = basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
+    const marginLeft = isInfographic ? 60 : basePadding + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
 
     const chartWidth = width - marginLeft - marginRight;
     const chartHeight = height - marginTop - marginBottom;
@@ -45,14 +45,18 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
 
     return (
         <BaseChart width={width} height={height} data={data} type="area">
             <defs>
-                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={primaryColor} stopOpacity="0.5" />
-                    <stop offset="100%" stopColor={primaryColor} stopOpacity="0.05" />
-                </linearGradient>
+                {useGradient && (
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={primaryColor} stopOpacity="0.9" />
+                        <stop offset="70%" stopColor={primaryColor} stopOpacity="0.85" />
+                        <stop offset="100%" stopColor={primaryColor} stopOpacity="0.6" />
+                    </linearGradient>
+                )}
             </defs>
 
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
@@ -73,7 +77,8 @@ export function AreaChart({ width, height, data, style }: AreaChartProps) {
                 {/* Area fill */}
                 <path
                     d={areaPath}
-                    fill="url(#areaGradient)"
+                    fill={useGradient ? "url(#areaGradient)" : primaryColor}
+                    fillOpacity={useGradient ? 1 : 0.3}
                 />
 
                 {/* Line outline */}

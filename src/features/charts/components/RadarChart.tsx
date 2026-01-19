@@ -26,11 +26,20 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
 
     const primaryColor = style?.colorPalette?.[0] || getChartColor(0);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const useGradient = style?.useGradient;
 
     const angleStep = (2 * Math.PI) / values.length;
 
     return (
         <BaseChart width={width} height={height} data={data} type="radar">
+            <defs>
+                {useGradient && (
+                    <radialGradient id="radarGradient" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor={primaryColor} stopOpacity="0.5" />
+                        <stop offset="100%" stopColor={primaryColor} stopOpacity="0.15" />
+                    </radialGradient>
+                )}
+            </defs>
             <g transform={`translate(${centerX}, ${centerY})`}>
                 {/* Grid circles - only classic */}
                 {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => (
@@ -75,8 +84,8 @@ export function RadarChart({ width, height, data, style }: RadarChartProps) {
                         const y = r * Math.sin(angle);
                         return `${x},${y}`;
                     }).join(' ')}
-                    fill={primaryColor}
-                    fillOpacity={0.3}
+                    fill={useGradient ? "url(#radarGradient)" : primaryColor}
+                    fillOpacity={useGradient ? 1 : 0.3}
                     stroke={primaryColor}
                     strokeWidth={isInfographic ? 3 : 2}
                 />
