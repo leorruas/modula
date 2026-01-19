@@ -2,13 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-01-19)
+### 🚧 deploy-2026-01-19T21-17-20 (2026-01-19)
 
-### ✨ New Features
+> **Tracking Version**: This is a pre-release or snapshot.
 
+#### ✨ New Features
+
+- Add page size config and improve PDF export quality ([96ad874](https://github.com/leorruas/modula/commit/96ad874b4beec1f084e4ab3394d2e381b3683fdf)) - *2026-01-19 18:14*
 - update charts, components, user preferences and deploy skill docs ([633ed8d](https://github.com/leorruas/modula/commit/633ed8d650344445d03c8f83e9068352c1eabd2c)) - *2026-01-19 12:23*
 
-### 📝 Documentation
+#### 📝 Documentation
 
 - **changelog:** update for deployment deploy-2026-01-19T15-06-14 ([f4c1dd4](https://github.com/leorruas/modula/commit/f4c1dd4adb0a53bc3cbb6f3e2ec9136c1283d219)) - *2026-01-19 12:06*
 
