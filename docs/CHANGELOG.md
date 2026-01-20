@@ -2,14 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-01-20)
+### 🚧 deploy-2026-01-20T11-02-56 (2026-01-20)
 
-### 📝 Documentation
+> **Tracking Version**: This is a pre-release or snapshot.
 
-- **features:** implement CSV drag & drop upload in sidebar
-- **features:** implement smart color logic for bar and column charts (multicolor single series)
-- **features:** update chart legends to use consistent SVG glass effect
-- **fix:** export `createMiniIOSGlassFilter` to resolve build error
+#### ✨ New Features
+
+- smart color logic, glass legends and csv drag-and-drop ([b4d95e9](https://github.com/leorruas/modula/commit/b4d95e9d57ad526d2258419c7c447056dceb6b7f)) - *2026-01-20 07:59*
+- **charts:** implement Liquid Glass finish for all charts and exclusive sidebar toggles ([a725a6b](https://github.com/leorruas/modula/commit/a725a6baf3e684d1325d34216120df0a25026dcd)) - *2026-01-20 07:48*
+
+#### 📝 Documentation
+
 - **skills:** update premium polish skill with print vs app ui guidelines ([d208714](https://github.com/leorruas/modula/commit/d20871493936a4004c9dfa06a42a8dbd995960dc)) - *2026-01-20 07:10*
 - **changelog:** update for deployment deploy-2026-01-19T21-17-20 ([f39bb55](https://github.com/leorruas/modula/commit/f39bb55518aa15adde5ddc35d9caf759effec16f)) - *2026-01-19 18:17*
 
