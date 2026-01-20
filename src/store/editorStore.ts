@@ -39,7 +39,7 @@ export const useEditorStore = create<EditorState>((set) => ({
     setIsSelecting: (isSelecting) => set({ isSelecting }),
     triggerRefresh: () => set(state => ({ refreshTrigger: state.refreshTrigger + 1 })),
     setIsPreviewMode: (isPreviewMode) => set({ isPreviewMode }),
-    setActivePage: (activePage) => set({ activePage, selectedModules: [], isChapterViewOpen: false }), // Close chapter view on navigation
+    setActivePage: (activePage) => set({ activePage, selectedModules: [], editingChartId: null, isChapterViewOpen: false }), // Close chapter view on navigation
     setEditingChartId: (editingChartId) => set({ editingChartId, selectedModules: [] }),
     setSearchQuery: (searchQuery) => set({ searchQuery }),
     setHighlightChartId: (highlightChartId) => set({ highlightChartId }),

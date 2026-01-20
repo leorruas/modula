@@ -75,6 +75,24 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
 
             // If we are NOT editing a chart, apply defaults from project or user
             if (!editingChartId) {
+                // RESET FORM STATE (Fix for "New Page" not resetting sidebar)
+                setChartName('');
+                setNotes('');
+                setDataInput(JSON.stringify({
+                    labels: ["A", "B", "C", "D"],
+                    datasets: [{ label: "Dataset 1", data: [10, 20, 15, 25] }]
+                }, null, 2));
+                setChartType('bar');
+                setChartMode('classic');
+                setUseGradient(false);
+                setFinish('standard');
+                setInfographicConfig({});
+                setSelectedIcon(null);
+                setCsvInput('');
+                setInputMode('csv');
+                setRecommendedType(null);
+                setRecommendationReason('');
+
                 if (project?.defaultStyle) {
                     // Apply Project Defaults
                     if (project.defaultStyle.fontFamily) setFontFamily(project.defaultStyle.fontFamily);
@@ -96,7 +114,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         };
 
         loadInitialData();
-    }, [projectId, user, editingChartId]);
+    }, [projectId, user, editingChartId, activePage]);
 
     // Mock Data Generator
     const getMockDataForType = (type: ChartType) => {
