@@ -100,7 +100,10 @@ The interface uses a depth-based layering system to ensure controls never overla
 *   **Line/Area Charts (Infographic)**:
     *   **Margin Top**: `60px` (Prevents hero numbers from clipping at the top).
 *   **Pie/Donut Charts (Infographic)**:
-    *   **Padding**: `80px` (Space for external labels and huge percentages).
+    *   **Padding**: Reduced to `60px` (Pie) and `40px` (Donut) to maximize chart scale.
+    *   **Pie Style**: "Nightingale Rose" effect - Radius varies by value intensity.
+    *   **Donut Style**: "Variable Thickness" - Slice thickness varies by value (heavier values = thicker).
+    *   **Sorting**: Optional "Largest to Smallest" sorting (Clockwise).
 
 ---
 

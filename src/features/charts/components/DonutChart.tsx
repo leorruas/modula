@@ -17,8 +17,24 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
     if (!dataset || !dataset.data || dataset.data.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
-    const values = dataset.data;
-    const labels = data.labels || [];
+    // Data Preparation & Sorting
+    let values = [...dataset.data];
+    let labels = [...(data.labels || [])];
+    let metadata = dataset.metadata ? [...dataset.metadata] : undefined;
+    let originalIndices = values.map((_, i) => i);
+
+    if (style?.infographicConfig?.sortSlices) {
+        const indices = values.map((_, i) => i);
+        indices.sort((a, b) => values[b] - values[a]); // Descending
+
+        values = indices.map(i => dataset.data[i]);
+        labels = indices.map(i => (data.labels || [])[i]);
+        if (metadata) {
+            const originalMeta = dataset.metadata!;
+            metadata = indices.map(i => originalMeta[i]);
+        }
+        originalIndices = indices;
+    }
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
@@ -31,9 +47,10 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
     const finalShowExtremes = infographicConfig.showExtremes || false;
     const finalUseMetadata = infographicConfig.useMetadata || false;
     const finalShowAllLabels = infographicConfig.showAllLabels || false;
+    const finalSortSlices = infographicConfig.sortSlices || false;
     const finalLegendPosition = infographicConfig.legendPosition || 'top';
 
-    const padding = isInfographic ? 100 : 20;
+    const padding = isInfographic ? 40 : 20;
     const outerRadius = (Math.min(width, height) / 2) - padding;
     const innerRadius = outerRadius * (isInfographic ? 0.75 : 0.6);
     const centerX = width / 2;
@@ -130,22 +147,227 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
             </defs>
 
             <g transform={`translate(${centerX}, ${centerY})`}>
-                {/* Center Hero Narrative */}
+
+
+                {values.map((value, i) => {
+                    const sliceAngle = (value / total) * 2 * Math.PI;
+                    const endAngle = startAngle + sliceAngle;
+                    const isManualHero = heroValueIndex === originalIndices[i];
+
+                    // Variable Thickness Logic
+                    // Instead of moving the center (explosion), we change the inner radius.
+                    // Heavier weight = Thicker slice (Smaller inner radius).
+                    let currentInnerRadius = innerRadius;
+
+                    if (isInfographic) {
+                        const maxValue = Math.max(...values);
+                        const weight = value / maxValue;
+
+                        // Define thickness range
+                        // maxThickness: Slice goes deep into the center (small inner radius)
+                        // minThickness: Slice is thin (large inner radius)
+
+                        const baseOuterRadius = outerRadius;
+                        // ADJUSTMENT: Refined Editorial Contrast (User Feedback)
+                        // Thickest: 0.7 (Balanced thickness)
+                        // Thinnest: 0.99 (Ultra-thin Hairline)
+                        const minHoleRadius = baseOuterRadius * 0.7;
+                        const maxHoleRadius = baseOuterRadius * 0.99;
+
+                        // Linear interpolation: High weight -> Small Hole (Thick)
+                        // weight 1.0 -> minHoleRadius
+                        // weight 0.0 -> maxHoleRadius
+                        currentInnerRadius = maxHoleRadius - (weight * (maxHoleRadius - minHoleRadius));
+
+                        // Optional: If it's a manual hero, maybe we give it a slight thickness boost or ensure it's not too thin?
+                        // For now, strictly following "according to weight".
+                    }
+
+                    // No explosion offset for center
+                    const ex = 0;
+                    const ey = 0;
+
+                    const x1 = outerRadius * Math.cos(startAngle - Math.PI / 2);
+                    const y1 = outerRadius * Math.sin(startAngle - Math.PI / 2);
+                    const x2 = outerRadius * Math.cos(endAngle - Math.PI / 2);
+                    const y2 = outerRadius * Math.sin(endAngle - Math.PI / 2);
+
+                    // Use currentInnerRadius for the inner arc
+                    const x3 = currentInnerRadius * Math.cos(endAngle - Math.PI / 2);
+                    const y3 = currentInnerRadius * Math.sin(endAngle - Math.PI / 2);
+                    const x4 = currentInnerRadius * Math.cos(startAngle - Math.PI / 2);
+                    const y4 = currentInnerRadius * Math.sin(startAngle - Math.PI / 2);
+
+                    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+
+                    const pathData = [
+                        `M ${x1} ${y1}`,
+                        `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                        `L ${x3} ${y3}`,
+                        `A ${currentInnerRadius} ${currentInnerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}`,
+                        `Z`
+                    ].join(' ');
+
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    const labelAngle = startAngle + sliceAngle / 2;
+
+                    // Gestalt Proximity & Alignment Logic
+                    const normalizedAngle = labelAngle % (2 * Math.PI);
+                    const isRightSide = normalizedAngle < Math.PI;
+                    const isTop = normalizedAngle > 5.2 || normalizedAngle < 1.1;
+                    const isBottom = normalizedAngle > 2.0 && normalizedAngle < 4.2;
+
+                    // Editorial specific anchors
+                    let textAnchor: "start" | "end" | "middle" = "middle";
+                    if (isInfographic) {
+                        if (isTop || isBottom) textAnchor = "middle";
+                        else textAnchor = isRightSide ? "start" : "end";
+                    }
+
+                    // Radii for Proximity Layering
+                    // Value enters the graph (Overlap), Label sits outside
+                    // INCREASED SEPARATION to prevent "label under number" overlap
+                    const valueR = isInfographic ? outerRadius - 20 : (outerRadius + currentInnerRadius) / 2;
+                    // RELAXED DISTANCE (+35)
+                    const labelTextR = isInfographic ? outerRadius + 35 : (outerRadius + currentInnerRadius) / 2;
+
+                    // Calculate positions for Value (vx, vy) and Label (lx, ly)
+                    const vx = valueR * Math.cos(labelAngle - Math.PI / 2);
+                    const vy = valueR * Math.sin(labelAngle - Math.PI / 2);
+
+                    const lx = labelTextR * Math.cos(labelAngle - Math.PI / 2);
+                    const ly = labelTextR * Math.sin(labelAngle - Math.PI / 2);
+
+                    const currentStartAngle = startAngle;
+                    startAngle += sliceAngle;
+
+                    const shouldShowLabel = finalShowAllLabels || !isInfographic || (value / total >= 0.05) || isManualHero;
+                    const wrappedLabelLines = isInfographic ? wrapLabel(labels[i]) : [labels[i]];
+
+                    return (
+                        <g key={i}>
+                            <path
+                                d={pathData}
+                                fill={
+                                    style?.finish === 'glass'
+                                        ? `url(#glassGradient-${i % colors.length})`
+                                        : (useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length])
+                                }
+                                // REMOVED SHADOW FILTER for flat look
+                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
+                                stroke={style?.finish === 'glass' ? "none" : "#fff"}
+                                strokeWidth={isInfographic ? (isManualHero ? 1 : 0.5) : 1}
+                                strokeLinejoin="round"
+                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.7 : 1}
+                            />
+
+                            {shouldShowLabel && (
+                                <g>
+                                    {isInfographic ? (
+                                        <g>
+                                            {/* Badge for Extremes or Metadata */}
+                                            {(() => {
+                                                let bt = ""; let bc = CHART_THEME.colors.neutral.medium; let sb = false;
+                                                if (finalShowValueAnnotations && isManualHero) {
+                                                    bt = finalAnnotationLabels?.[i] !== undefined ? finalAnnotationLabels[i] : "DESTAQUE";
+                                                    sb = bt !== "";
+                                                }
+                                                else if (finalUseMetadata && metadata && metadata[i]) { bt = metadata[i]; bc = colors[i % colors.length]; sb = true; }
+                                                else if (finalShowExtremes && !isManualHero) {
+                                                    const maxV = Math.max(...values);
+                                                    const minV = Math.min(...values);
+                                                    if (value === maxV) { bt = "🏆 PICO"; bc = '#d97706'; sb = true; }
+                                                    else if (value === minV) { bt = "🔻 MÍNIMO"; bc = '#ef4444'; sb = true; }
+                                                }
+                                                if (!sb) return null;
+                                                // Badge sits above value
+                                                return (
+                                                    <text x={vx} y={vy - 24} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                                        fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} letterSpacing="0.05em" fill={bc}>
+                                                        {bt.toUpperCase()}
+                                                    </text>
+                                                );
+                                            })()}
+
+                                            {/* Value (Inside/Overlap) */}
+                                            {/* Top Nudge increased to -12 */}
+                                            <text
+                                                x={vx}
+                                                y={vy + (isTop ? -12 : 0)}
+                                                textAnchor={textAnchor}
+                                                dominantBaseline="middle"
+                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * (isManualHero ? 1.2 : 0.9)}
+                                                fontFamily={valueFont}
+                                                fontWeight={CHART_THEME.fontWeights.black}
+                                                fill={CHART_THEME.colors.neutral.dark}
+                                            // REMOVED TEXT SHADOW
+                                            >
+                                                {percentage}%
+                                            </text>
+
+                                            {/* Label (Outside, Aligned) */}
+                                            {wrappedLabelLines.map((line, idx) => {
+                                                // Dynamic Vertical Offset based on position to prevent overlap
+                                                // Top: Push UP (negative)
+                                                // Bottom: Push DOWN (positive)
+                                                // Side: Centered (0)
+                                                let vOffset = 0;
+                                                if (isTop) vOffset = -15 - (wrappedLabelLines.length * 5); // Lift more if multi-line
+                                                if (isBottom) vOffset = 15;
+
+                                                return (
+                                                    <text
+                                                        key={idx}
+                                                        x={lx}
+                                                        y={ly + (idx * 12) + vOffset}
+                                                        textAnchor={textAnchor}
+                                                        dominantBaseline="middle"
+                                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                                        fontFamily={fontFamily}
+                                                        fontWeight={isManualHero ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.medium}
+                                                        fill={CHART_THEME.colors.neutral.medium}
+                                                        style={{ textTransform: 'uppercase' }}
+                                                    >
+                                                        {line}
+                                                    </text>
+                                                );
+                                            })}
+                                        </g>
+                                    ) : (
+                                        <g transform={`translate(${lx}, ${ly})`}>
+                                            <text
+                                                textAnchor="middle"
+                                                alignmentBaseline="middle"
+                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
+                                                fontFamily={fontFamily}
+                                                fill="#fff"
+                                                fontWeight={CHART_THEME.fontWeights.semibold}
+                                            >
+                                                {`${percentage}%`}
+                                            </text>
+                                        </g>
+                                    )}
+                                </g>
+                            )}
+                        </g>
+                    );
+                })}
+                {/* Center Hero Narrative (Rendered LAST for Z-Index Top) */}
                 {isInfographic && (
-                    <g>
+                    <g pointerEvents="none">
                         {heroValueIndex !== undefined ? (
                             <>
                                 <text y={-innerRadius * 0.4} textAnchor="middle" dominantBaseline="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
                                     fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium} letterSpacing="0.1em">
-                                    {labels[heroValueIndex]?.toUpperCase() || "HERO"}
+                                    {labels.length > 0 && heroValueIndex < (data.labels || []).length ? (data.labels || [])[heroValueIndex]?.toUpperCase() : "HERO"}
                                 </text>
                                 <text y={5} textAnchor="middle" dominantBaseline="middle" fontSize={innerRadius * 0.5}
                                     fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                    {((values[heroValueIndex] / total) * 100).toFixed(0)}%
+                                    {((dataset.data[heroValueIndex] / total) * 100).toFixed(0)}%
                                 </text>
                                 <text y={innerRadius * 0.4} textAnchor="middle" dominantBaseline="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                     fontFamily={valueFont} fill={CHART_THEME.colors.neutral.medium}>
-                                    {values[heroValueIndex]}
+                                    {dataset.data[heroValueIndex]}
                                 </text>
                             </>
                         ) : (
@@ -162,141 +384,6 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                         )}
                     </g>
                 )}
-
-                {values.map((value, i) => {
-                    const sliceAngle = (value / total) * 2 * Math.PI;
-                    const endAngle = startAngle + sliceAngle;
-                    const isManualHero = heroValueIndex === i;
-
-                    // Explosion Effect
-                    const explosionOffset = (isInfographic && isManualHero) ? 15 : 0;
-                    const explosionAngle = startAngle + sliceAngle / 2 - Math.PI / 2;
-                    const ex = explosionOffset * Math.cos(explosionAngle);
-                    const ey = explosionOffset * Math.sin(explosionAngle);
-
-                    const x1 = outerRadius * Math.cos(startAngle - Math.PI / 2);
-                    const y1 = outerRadius * Math.sin(startAngle - Math.PI / 2);
-                    const x2 = outerRadius * Math.cos(endAngle - Math.PI / 2);
-                    const y2 = outerRadius * Math.sin(endAngle - Math.PI / 2);
-
-                    const x3 = innerRadius * Math.cos(endAngle - Math.PI / 2);
-                    const y3 = innerRadius * Math.sin(endAngle - Math.PI / 2);
-                    const x4 = innerRadius * Math.cos(startAngle - Math.PI / 2);
-                    const y4 = innerRadius * Math.sin(startAngle - Math.PI / 2);
-
-                    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
-
-                    const pathData = [
-                        `M ${x1} ${y1}`,
-                        `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-                        `L ${x3} ${y3}`,
-                        `A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 0 ${x4} ${y4}`,
-                        `Z`
-                    ].join(' ');
-
-                    const percentage = ((value / total) * 100).toFixed(1);
-                    const labelAngle = startAngle + sliceAngle / 2;
-
-                    // Dynamic offset for external labels based on position
-                    const labelR = isInfographic ? outerRadius + 55 : (outerRadius + innerRadius) / 2;
-                    const lx = labelR * Math.cos(labelAngle - Math.PI / 2) + ex;
-                    const ly = labelR * Math.sin(labelAngle - Math.PI / 2) + ey;
-
-                    const currentStartAngle = startAngle;
-                    startAngle += sliceAngle;
-
-                    const shouldShowLabel = finalShowAllLabels || !isInfographic || (value / total >= 0.05) || isManualHero;
-                    const wrappedLabelLines = isInfographic ? wrapLabel(labels[i]) : [labels[i]];
-
-                    return (
-                        <g key={i} transform={`translate(${ex}, ${ey})`}>
-                            <path
-                                d={pathData}
-                                fill={
-                                    style?.finish === 'glass'
-                                        ? `url(#glassGradient-${i % colors.length})`
-                                        : (useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length])
-                                }
-                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
-                                stroke={style?.finish === 'glass' ? "none" : "#fff"}
-                                strokeWidth={isInfographic ? (isManualHero ? 2 : 0.5) : 1}
-                                strokeLinejoin="round"
-                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.7 : 1}
-                            />
-
-                            {shouldShowLabel && (
-                                <g transform={`translate(${-ex}, ${-ey})`}>
-                                    {isInfographic ? (
-                                        <g transform={`translate(${lx}, ${ly})`}>
-                                            {/* Badge for Extremes or Metadata */}
-                                            {(() => {
-                                                let bt = ""; let bc = CHART_THEME.colors.neutral.medium; let sb = false;
-                                                if (finalShowValueAnnotations && isManualHero) {
-                                                    bt = finalAnnotationLabels?.[i] !== undefined ? finalAnnotationLabels[i] : "DESTAQUE";
-                                                    sb = bt !== "";
-                                                }
-                                                else if (finalUseMetadata && dataset.metadata?.[i]) { bt = dataset.metadata[i]; bc = colors[i % colors.length]; sb = true; }
-                                                else if (finalShowExtremes && !isManualHero) {
-                                                    const maxV = Math.max(...values);
-                                                    const minV = Math.min(...values);
-                                                    if (value === maxV) { bt = "🏆 PICO"; bc = '#d97706'; sb = true; }
-                                                    else if (value === minV) { bt = "🔻 MÍNIMO"; bc = '#ef4444'; sb = true; }
-                                                }
-                                                if (!sb) return null;
-                                                return (
-                                                    <text y={-32} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                                        fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} letterSpacing="0.05em" fill={bc}>
-                                                        {bt.toUpperCase()}
-                                                    </text>
-                                                );
-                                            })()}
-
-                                            <text
-                                                y={-5}
-                                                textAnchor="middle"
-                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * (isManualHero ? 1.2 : 0.9)}
-                                                fontFamily={valueFont}
-                                                fontWeight={CHART_THEME.fontWeights.black}
-                                                fill={CHART_THEME.colors.neutral.dark}
-                                            >
-                                                {percentage}%
-                                            </text>
-
-                                            {wrappedLabelLines.map((line, idx) => (
-                                                <text
-                                                    key={idx}
-                                                    x={0}
-                                                    y={12 + (idx * 12)}
-                                                    textAnchor="middle"
-                                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                                    fontFamily={fontFamily}
-                                                    fontWeight={isManualHero ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.medium}
-                                                    fill={CHART_THEME.colors.neutral.medium}
-                                                    style={{ textTransform: 'uppercase' }}
-                                                >
-                                                    {line}
-                                                </text>
-                                            ))}
-                                        </g>
-                                    ) : (
-                                        <text
-                                            x={lx}
-                                            y={ly}
-                                            textAnchor="middle"
-                                            alignmentBaseline="middle"
-                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                            fontFamily={fontFamily}
-                                            fill="#fff"
-                                            fontWeight={CHART_THEME.fontWeights.semibold}
-                                        >
-                                            {`${percentage}%`}
-                                        </text>
-                                    )}
-                                </g>
-                            )}
-                        </g>
-                    );
-                })}
             </g>
         </BaseChart>
     );

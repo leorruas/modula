@@ -67,6 +67,7 @@ export interface ChartStyle {
         showExtremes?: boolean; // Phase 3: Highlight Max/Min automatically
         useMetadata?: boolean;  // Phase 3: Use metadata from data for annotations
         showAllLabels?: boolean; // Toggle to disable smart hiding of labels in infographics
+        sortSlices?: boolean; // Sort slices by value (Largest to Smallest)
     };
 }
 

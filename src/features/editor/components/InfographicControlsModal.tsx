@@ -16,6 +16,7 @@ interface InfographicControlsModalProps {
         showExtremes?: boolean;
         useMetadata?: boolean;
         showAllLabels?: boolean;
+        sortSlices?: boolean;
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -26,6 +27,7 @@ interface InfographicControlsModalProps {
         showExtremes?: boolean;
         useMetadata?: boolean;
         showAllLabels?: boolean;
+        sortSlices?: boolean;
     }) => void;
 }
 
@@ -45,6 +47,7 @@ export function InfographicControlsModal({
     const [showExtremes, setShowExtremes] = useState(currentConfig.showExtremes || false);
     const [useMetadata, setUseMetadata] = useState(currentConfig.useMetadata || false);
     const [showAllLabels, setShowAllLabels] = useState(currentConfig.showAllLabels || false);
+    const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
     const [showAllOptions, setShowAllOptions] = useState(false);
 
     useEffect(() => {
@@ -57,6 +60,7 @@ export function InfographicControlsModal({
             setShowExtremes(currentConfig.showExtremes || false);
             setUseMetadata(currentConfig.useMetadata || false);
             setShowAllLabels(currentConfig.showAllLabels || false);
+            setSortSlices(currentConfig.sortSlices || false);
         }
     }, [isOpen, currentConfig]);
 
@@ -71,7 +75,8 @@ export function InfographicControlsModal({
             legendPosition,
             showExtremes,
             useMetadata,
-            showAllLabels
+            showAllLabels,
+            sortSlices
         });
         onClose();
     };
@@ -319,11 +324,50 @@ export function InfographicControlsModal({
 
                             {/* Legend Position */}
                             <div style={{ marginBottom: 24 }}>
-                                <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#222' }}>
-                                    📁 Posição da Legenda
-                                </label>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                                    {(['top', 'bottom', 'left', 'right', 'none'] as const).map((pos) => (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                    <label style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>
+                                        📁 Legenda & Posição
+                                    </label>
+
+                                    {/* Quick Toggle for Visibility */}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 11, color: '#666' }}>{legendPosition === 'none' ? 'Oculta' : 'Visível'}</span>
+                                        <button
+                                            onClick={() => setLegendPosition(legendPosition === 'none' ? 'bottom' : 'none')}
+                                            style={{
+                                                position: 'relative',
+                                                width: 36,
+                                                height: 20,
+                                                background: legendPosition !== 'none' ? '#8b5cf6' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: legendPosition !== 'none' ? 18 : 2,
+                                                width: 16,
+                                                height: 16,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(4, 1fr)',
+                                    gap: 8,
+                                    opacity: legendPosition === 'none' ? 0.5 : 1,
+                                    pointerEvents: legendPosition === 'none' ? 'none' : 'auto',
+                                    transition: 'opacity 0.2s'
+                                }}>
+                                    {(['top', 'bottom', 'left', 'right'] as const).map((pos) => (
                                         <button
                                             key={pos}
                                             onClick={() => setLegendPosition(pos)}
@@ -340,7 +384,7 @@ export function InfographicControlsModal({
                                                 textTransform: 'capitalize'
                                             }}
                                         >
-                                            {pos === 'none' ? 'Ocultar' : pos}
+                                            {pos}
                                         </button>
                                     ))}
                                 </div>
@@ -473,6 +517,49 @@ export function InfographicControlsModal({
                                         }} />
                                     </button>
                                 </div>
+
+                                {/* Sort Slices Toggle */}
+                                {(chartType.includes('pie') || chartType.includes('donut')) && (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '12px 14px',
+                                        background: '#f8f9fa',
+                                        borderRadius: 10,
+                                        border: '1px solid #e9ecef',
+                                        marginTop: 12
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>📶 Ordenar Fatias</span>
+                                            <span style={{ fontSize: 11, color: '#666' }}>Do maior para o menor</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setSortSlices(!sortSlices)}
+                                            style={{
+                                                position: 'relative',
+                                                width: 44,
+                                                height: 24,
+                                                background: sortSlices ? '#0ea5e9' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: sortSlices ? 22 : 2,
+                                                width: 20,
+                                                height: 20,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

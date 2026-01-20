@@ -54,6 +54,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
         showExtremes?: boolean;
         useMetadata?: boolean;
+        showAllLabels?: boolean;
+        sortSlices?: boolean;
     }>({});
 
     // Data Modal
@@ -927,6 +929,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         </div>
                     </div>
                 </div>
+
+
 
                 {/* Infographic Controls Button (Phase 2) */}
                 {chartMode === 'infographic' && (

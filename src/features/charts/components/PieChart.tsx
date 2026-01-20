@@ -17,8 +17,24 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
     if (!dataset || !dataset.data || dataset.data.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
-    const values = dataset.data;
-    const labels = data.labels || [];
+    // Data Preparation & Sorting
+    let values = [...dataset.data];
+    let labels = [...(data.labels || [])];
+    let metadata = dataset.metadata ? [...dataset.metadata] : undefined;
+    let originalIndices = values.map((_, i) => i);
+
+    if (style?.infographicConfig?.sortSlices) {
+        const indices = values.map((_, i) => i);
+        indices.sort((a, b) => values[b] - values[a]); // Descending
+
+        values = indices.map(i => dataset.data[i]);
+        labels = indices.map(i => (data.labels || [])[i]);
+        if (metadata) {
+            const originalMeta = dataset.metadata!;
+            metadata = indices.map(i => originalMeta[i]);
+        }
+        originalIndices = indices;
+    }
 
     const isInfographic = style?.mode === 'infographic';
 
@@ -32,6 +48,7 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
     const finalShowExtremes = infographicConfig.showExtremes || false;
     const finalUseMetadata = infographicConfig.useMetadata || false;
     const finalShowAllLabels = infographicConfig.showAllLabels || false;
+    const finalSortSlices = infographicConfig.sortSlices || false;
 
     const total = values.reduce((a, b) => a + b, 0);
     const avgValue = total / (values.length || 1);
@@ -39,8 +56,8 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
     const minValue = Math.min(...values, Infinity);
 
     // Infographic needs space for wrapped external labels (approx 80px). Classic uses internal labels (10px padding).
-    const padding = isInfographic ? 120 : CHART_THEME.padding.small;
-    const radius = (Math.min(width, height) / 2) - padding;
+    const padding = isInfographic ? 60 : CHART_THEME.padding.small;
+    const baseRadius = (Math.min(width, height) / 2) - padding;
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -139,30 +156,33 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                     const endAngle = startAngle + sliceAngle;
                     const labelAngle = startAngle + sliceAngle / 2;
 
+                    // Proportional Scaling (Variable Radius / Rose Effect)
+                    // Min Radius: 15% (Slightly increased from 10% for better vis) | Max Radius: 100%
+                    const ratio = value / maxValue;
+                    const dynamicRadius = isInfographic ? baseRadius * (0.15 + (0.85 * ratio)) : baseRadius;
+
                     // Hero Explosion (Phase 2)
-                    const isManualHero = heroValueIndex !== undefined && heroValueIndex === i;
-                    const explodeOffset = isInfographic && isManualHero ? 15 : 0;
+                    const isManualHero = heroValueIndex !== undefined && heroValueIndex === originalIndices[i];
+                    const explodeOffset = isInfographic && isManualHero ? 10 : 0;
                     const ox = explodeOffset * Math.cos(labelAngle - Math.PI / 2);
                     const oy = explodeOffset * Math.sin(labelAngle - Math.PI / 2);
 
-                    const x1 = radius * Math.cos(startAngle - Math.PI / 2);
-                    const y1 = radius * Math.sin(startAngle - Math.PI / 2);
-                    const x2 = radius * Math.cos(endAngle - Math.PI / 2);
-                    const y2 = radius * Math.sin(endAngle - Math.PI / 2);
+                    const x1 = dynamicRadius * Math.cos(startAngle - Math.PI / 2);
+                    const y1 = dynamicRadius * Math.sin(startAngle - Math.PI / 2);
+                    const x2 = dynamicRadius * Math.cos(endAngle - Math.PI / 2);
+                    const y2 = dynamicRadius * Math.sin(endAngle - Math.PI / 2);
 
                     const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
 
                     const pathData = [
                         `M 0 0`,
                         `L ${x1} ${y1}`,
-                        `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                        `A ${dynamicRadius} ${dynamicRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
                         `Z`
                     ].join(' ');
 
                     const percentage = ((value / total) * 100).toFixed(1);
 
-                    // Proportional Scaling (Phase 1)
-                    const ratio = value / maxValue;
                     const getTypographyForValue = (ratio: number) => {
                         if (!isInfographic) return { fontWeight: CHART_THEME.fontWeights.semibold, sizeMultiplier: 1 };
                         if (ratio >= 0.8) return { fontWeight: CHART_THEME.fontWeights.black, sizeMultiplier: 2.0 };
@@ -173,10 +193,33 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
 
                     const finalSizeMultiplier = isManualHero ? typo.sizeMultiplier * 1.2 : typo.sizeMultiplier;
 
-                    // Label position refinement
-                    const labelR = isInfographic ? radius + 55 : radius * 0.7;
-                    const lx = labelR * Math.cos(labelAngle - Math.PI / 2);
-                    const ly = labelR * Math.sin(labelAngle - Math.PI / 2);
+                    // Gestalt Proximity & Alignment Logic (Local to this slice loop)
+                    const normalizedAngle = labelAngle % (2 * Math.PI);
+                    const isRightSide = normalizedAngle < Math.PI;
+                    const isTop = normalizedAngle > 5.2 || normalizedAngle < 1.1;
+                    const isBottom = normalizedAngle > 2.0 && normalizedAngle < 4.2;
+
+                    let textAnchor: "start" | "end" | "middle" = "middle";
+                    if (isTop || isBottom) textAnchor = "middle";
+                    else textAnchor = isRightSide ? "start" : "end";
+
+                    // Hybrid Label Positioning (Smart Callout)
+                    // If ratio < 0.4 (small slice), force label to OUTER RIM (baseRadius + 35)
+                    // If ratio >= 0.4 (large slice), track the radius (dynamicRadius + 20)
+                    const isSmallSlice = ratio < 0.4;
+
+                    // Value stays with the slice
+                    const valueR = dynamicRadius - 25;
+
+                    // Label jumps out if small slice to avoid center clutter overlap
+                    const labelTextR = isSmallSlice
+                        ? baseRadius + 35
+                        : dynamicRadius + 20;
+
+                    const vx = (valueR + explodeOffset) * Math.cos(labelAngle - Math.PI / 2);
+                    const vy = (valueR + explodeOffset) * Math.sin(labelAngle - Math.PI / 2);
+                    const lx = (labelTextR + explodeOffset) * Math.cos(labelAngle - Math.PI / 2);
+                    const ly = (labelTextR + explodeOffset) * Math.sin(labelAngle - Math.PI / 2);
 
                     const wrappedLabelLines = isInfographic ? wrapLabel(labels[i]) : [labels[i]];
                     const shouldShowLabelBody = finalShowAllLabels || !isInfographic || (value / total >= 0.05) || isManualHero;
@@ -188,7 +231,8 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                             <path
                                 d={pathData}
                                 fill={style?.finish === 'glass' ? `url(#glassGradient-${i % colors.length})` : (useGradient ? `url(#pieGradient-${i % colors.length})` : colors[i % colors.length])}
-                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
+                                // REMOVED FILTER
+                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
                                 stroke={style?.finish === 'glass' ? "none" : "#fff"}
                                 strokeWidth={isInfographic ? (isManualHero ? 2 : 0.5) : 1.5}
                                 strokeLinejoin="round"
@@ -208,8 +252,8 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                                                 if (finalShowValueAnnotations && isManualHero) {
                                                     badgeText = finalAnnotationLabels?.[i] || "HERO";
                                                     showBadge = true;
-                                                } else if (finalUseMetadata && dataset.metadata?.[i]) {
-                                                    badgeText = dataset.metadata[i];
+                                                } else if (finalUseMetadata && metadata && metadata[i]) {
+                                                    badgeText = metadata[i];
                                                     badgeColor = colors[i % colors.length];
                                                     showBadge = true;
                                                 } else if (finalShowExtremes && !isManualHero) {
@@ -239,8 +283,10 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             })()}
 
                                             {/* Percentage */}
+                                            {/* Top Value Nudge: -10 */}
                                             <text
-                                                x={lx} y={ly - 15} textAnchor="middle"
+                                                x={vx} y={vy - 15 + (isTop ? -10 : 0)}
+                                                textAnchor="middle" dominantBaseline="middle"
                                                 fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * finalSizeMultiplier * 0.7}
                                                 fontFamily={CHART_THEME.fonts.number} fontWeight={typo.fontWeight}
                                                 fill={CHART_THEME.colors.neutral.dark}
@@ -249,23 +295,29 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             </text>
 
                                             {/* Label with Wrapping */}
-                                            {wrappedLabelLines.map((line, idx) => (
-                                                <text
-                                                    key={idx}
-                                                    x={lx} y={ly + 8 + (idx * 12)} textAnchor="middle"
-                                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                                    fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.medium}
-                                                    fill={CHART_THEME.colors.neutral.medium}
-                                                    style={{ textTransform: ratio >= 0.8 ? 'uppercase' : 'none' }}
-                                                >
-                                                    {line}
-                                                    {idx === wrappedLabelLines.length - 1 && finalShowDeltaPercent && (
-                                                        <tspan dx={5} fontSize="0.8em" fill={value >= avgValue ? '#10b981' : '#ef4444'}>
-                                                            ({value >= avgValue ? '↑' : '↓'}{Math.abs(((value - avgValue) / (avgValue || 1)) * 100).toFixed(0)}%)
-                                                        </tspan>
-                                                    )}
-                                                </text>
-                                            ))}
+                                            {wrappedLabelLines.map((line, idx) => {
+                                                let vOffset = 0;
+                                                if (isTop) vOffset = -15 - (wrappedLabelLines.length * 5);
+                                                if (isBottom) vOffset = 15;
+
+                                                return (
+                                                    <text
+                                                        key={idx}
+                                                        x={lx} y={ly + 8 + (idx * 12) + vOffset} textAnchor="middle"
+                                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
+                                                        fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.medium}
+                                                        fill={CHART_THEME.colors.neutral.medium}
+                                                        style={{ textTransform: ratio >= 0.8 ? 'uppercase' : 'none' }}
+                                                    >
+                                                        {line}
+                                                        {idx === wrappedLabelLines.length - 1 && finalShowDeltaPercent && (
+                                                            <tspan dx={5} fontSize="0.8em" fill={value >= avgValue ? '#10b981' : '#ef4444'}>
+                                                                ({value >= avgValue ? '↑' : '↓'}{Math.abs(((value - avgValue) / (avgValue || 1)) * 100).toFixed(0)}%)
+                                                            </tspan>
+                                                        )}
+                                                    </text>
+                                                );
+                                            })}
                                         </>
                                     ) : (
                                         <text
