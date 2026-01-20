@@ -1,137 +1,72 @@
 import { toast } from "sonner";
+import * as htmlToImage from "html-to-image";
 
 /**
- * Sanitizes an SVG element by processing foreignObject elements.
- * This is necessary because many export tools (canvas, pdf) cannot handle foreignObject/HTML inside SVG.
- */
-export function sanitizeSvg(svg: SVGElement) {
-    const foreignObjects = svg.querySelectorAll('foreignObject');
-    foreignObjects.forEach(fo => {
-        // Check for inner SVG (used in icons)
-        const innerSvg = fo.querySelector('svg');
-        if (innerSvg) {
-            // If it's an icon, we try to preserve it by moving the inner SVG up
-            // We need to transfer positioning attributes if possible
-            const x = fo.getAttribute('x') || '0';
-            const y = fo.getAttribute('y') || '0';
-            const width = fo.getAttribute('width');
-            const height = fo.getAttribute('height');
-
-            // Clone inner SVG and set position
-            const newSvg = innerSvg.cloneNode(true) as SVGSVGElement;
-            newSvg.setAttribute('x', x);
-            newSvg.setAttribute('y', y);
-            if (width) newSvg.setAttribute('width', width);
-            if (height) newSvg.setAttribute('height', height);
-
-            // Replace foreignObject with new SVG
-            fo.parentNode?.replaceChild(newSvg, fo);
-        } else {
-            // If it contains non-SVG HTML (like divs), we MUST remove it
-            fo.remove();
-        }
-    });
-}
-
-/**
- * Exports a chart to PNG format, optionally removing excess whitespace
- * by cropping to the SVG content bounding box.
- */
-/**
- * Generates a high-resolution PNG Base64 string from an SVG Element.
- * Automatically expands the viewbox to capture all visible content (preventing clipping).
+ * Generates a high-resolution PNG Base64 string from a DOM element using html-to-image.
+ * This handles font embedding, gradients, and computed styles automatically.
  */
 export async function generateChartImage(
-    svgElement: SVGElement
+    element: HTMLElement,
+    options?: { backgroundColor?: string; pixelRatio?: number; skipCrop?: boolean; padding?: number }
 ): Promise<{ dataUrl: string; width: number; height: number; x: number; y: number }> {
-    return new Promise((resolve, reject) => {
-        try {
-            // 1. Measure "Real" Content dimensions from the DOM
-            // This captures elements that might overflow the default viewBox (like top labels)
-            const bbox = (svgElement as SVGSVGElement).getBBox();
+    try {
+        // 1. Measure Dimensions
+        // Use offsetWidth/Height to get the UN-SCALED layout size.
+        // getBoundingClientRect is affected by the parent's CSS transform (zoom), causing low-res/shifted exports when zoomed out.
+        const originalWidth = element.offsetWidth;
+        const originalHeight = element.offsetHeight;
 
-            // Add safe padding
-            const padding = 20;
-            const x = bbox.x - padding;
-            const y = bbox.y - padding;
-            const width = bbox.width + (padding * 2);
-            const height = bbox.height + (padding * 2);
+        // PADDING: Add padding for the background (Default 40px unless overridden)
+        const padding = options?.padding !== undefined ? options.padding : 40;
+        const width = originalWidth + (padding * 2);
+        const height = originalHeight + (padding * 2);
 
-            // 2. Clone and Sanitize
-            const clonedSvg = svgElement.cloneNode(true) as SVGSVGElement;
-            sanitizeSvg(clonedSvg);
+        // Use style.left/top for positioning context if needed, fallback to 0
+        const x = parseFloat(element.style.left || '0');
+        const y = parseFloat(element.style.top || '0');
 
-            // 3. Update ViewBox to fit the REAL content
-            clonedSvg.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+        // 2. Generate PNG
+        // pixelRatio: 3 ensures ~300 DPI.
+        const dataUrl = await htmlToImage.toPng(element, {
+            backgroundColor: options?.backgroundColor || undefined, // Default to transparent (undefined)
+            pixelRatio: options?.pixelRatio || 3,
+            width: width,
+            height: height,
+            cacheBust: true,
+            skipAutoScale: true,
+            // FILTER: Eclude selection UI elements
+            filter: (node) => {
+                const el = node as HTMLElement;
+                // Exclude selection border
+                if (el.classList?.contains('selection-outline')) return false;
+                // Exclude resize handles (identified by cursor style or specific box-shadow if needed, but usually sibling divs)
+                // The resize handle in Canvas.tsx is a div with explicit style.cursor = 'se-resize'.
+                if (el.style?.cursor === 'se-resize') return false;
+                // Exclude validation messages
+                if (el.innerText?.includes('Validation Issues')) return false;
+                return true;
+            },
+            style: {
+                transform: 'none',
+                margin: '0',
+                left: `${padding}px`, // Offset content by padding
+                top: `${padding}px`,
+            },
+            fontEmbedCSS: '', // WORKAROUND: Prevent "font is undefined" crash
+        });
 
-            // CRITICAL: Set the SVG dimensions to the TARGET high-res size.
-            // This forces the browser to rasterize vectors at the scaled resolution.
-            // If we just set width/height to original size and scale the canvas, 
-            // some browsers might rasterize at low-res and then upscale.
-            const scale = 6; // 6x resolution (~600 DPI)
-            const targetWidth = width * scale;
-            const targetHeight = height * scale;
+        return {
+            dataUrl,
+            width: originalWidth, // Return original dims for PDF layout logic
+            height: originalHeight,
+            x,
+            y
+        };
 
-            clonedSvg.setAttribute('width', targetWidth.toString());
-            clonedSvg.setAttribute('height', targetHeight.toString());
-
-            const svgData = new XMLSerializer().serializeToString(clonedSvg);
-            const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-
-            const img = new Image();
-            const cleanup = () => {
-                clearTimeout(timeoutId);
-                URL.revokeObjectURL(url);
-            };
-
-            const timeoutId = setTimeout(() => {
-                cleanup();
-                reject(new Error("Timeout generating chart image"));
-            }, 5000);
-
-            img.onload = () => {
-                cleanup();
-                const canvas = document.createElement('canvas');
-                canvas.width = targetWidth;
-                canvas.height = targetHeight;
-
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    reject(new Error("Canvas Context failed"));
-                    return;
-                }
-
-                // Enable anti-aliasing for better results
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-
-                // No ctx.scale needed here because the image is ALREADY high-res
-                ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-                const pngUrl = canvas.toDataURL('image/png');
-
-                // Return data + the spatial adjustments needed to align it
-                // We return the ORIGINAL dimensions for layout calculation, but the image itself is high-res.
-                resolve({
-                    dataUrl: pngUrl,
-                    width, // Logic uses original mm dimensions
-                    height,
-                    x,
-                    y
-                });
-            };
-
-            img.onerror = (e) => {
-                cleanup();
-                reject(e);
-            };
-
-            img.src = url;
-        } catch (e) {
-            reject(e);
-        }
-    });
+    } catch (error) {
+        console.error('Error generating chart image:', error);
+        throw error;
+    } // End try-catch
 }
 
 /**
@@ -146,15 +81,8 @@ export async function exportChartToPng(chartId: string, options: { removeWhitesp
         return;
     }
 
-    const svgElement = container.querySelector('svg');
-    if (!svgElement) {
-        toast.error("Erro ao ler dados do gráfico.");
-        return;
-    }
-
     try {
-        // For simple export, we rely on the measured dimensions from generateChartImage
-        const { dataUrl } = await generateChartImage(svgElement);
+        const { dataUrl } = await generateChartImage(container);
 
         const link = document.createElement('a');
         link.download = `chart-${chartId}.png`;
@@ -166,6 +94,6 @@ export async function exportChartToPng(chartId: string, options: { removeWhitesp
         toast.success("Gráfico exportado!");
     } catch (e) {
         console.error('Export failed', e);
-        toast.error("Falha na exportação.");
+        toast.error("Falha na exportação. Tente novamente.");
     }
 }

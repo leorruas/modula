@@ -70,8 +70,20 @@ export function Canvas({ project }: CanvasProps) {
     const isLandscape = project.gridConfig.orientation === 'landscape';
 
     // Determine Base Dimensions based on Format (assuming A4 default if unknown)
-    const formatBaseW = project.gridConfig.pageFormat === 'A3' ? 297 : (project.gridConfig.pageFormat === 'A5' ? 148 : 210);
-    const formatBaseH = project.gridConfig.pageFormat === 'A3' ? 420 : (project.gridConfig.pageFormat === 'A5' ? 210 : 297);
+    // Determine Base Dimensions based on Format (assuming A4 default if unknown)
+    let formatBaseW = 210;
+    let formatBaseH = 297;
+
+    if (project.gridConfig.pageFormat === 'Custom' && project.gridConfig.width && project.gridConfig.height) {
+        formatBaseW = project.gridConfig.width;
+        formatBaseH = project.gridConfig.height;
+    } else if (project.gridConfig.pageFormat === 'A3') {
+        formatBaseW = 297;
+        formatBaseH = 420;
+    } else if (project.gridConfig.pageFormat === 'A5') {
+        formatBaseW = 148;
+        formatBaseH = 210;
+    }
 
     // Swap if Landscape
     const PAGE_WIDTH_MM = isLandscape ? Math.max(formatBaseW, formatBaseH) : Math.min(formatBaseW, formatBaseH);
@@ -321,23 +333,43 @@ export function Canvas({ project }: CanvasProps) {
         setIsDragging(false);
     };
 
-    // Center canvas initially
+    // Center and Auto-Fit canvas initially
     useEffect(() => {
-        const center = () => {
+        const fitToScreen = () => {
             if (containerRef.current) {
                 const { clientWidth, clientHeight } = containerRef.current;
+
+                // Add some padding to the viewport
+                const padding = 40;
+                const availableW = clientWidth - padding;
+                const availableH = clientHeight - padding;
+
+                // Calculate scale to fit
+                const scaleX = availableW / widthPx;
+                const scaleY = availableH / heightPx;
+                const fitScale = Math.min(scaleX, scaleY, 1); // Cap at 1 (100%) to avoid upscaling small pages too much? Or allow it? 
+                // Usually for editor, capping at 1 is good, but if page is tiny, maybe we want to zoom in?
+                // Let's cap at 1 for now to avoid pixelation on small pages, user can zoom in manually.
+
+                // Set the calculated scale
+                setScale(fitScale);
+
+                // Calculate center position based on the NEW scale
                 const newPos = {
-                    x: (clientWidth - widthPx * scale) / 2,
-                    y: (clientHeight - heightPx * scale) / 2
+                    x: (clientWidth - widthPx * fitScale) / 2,
+                    y: (clientHeight - heightPx * fitScale) / 2
                 };
-                setPosition(clampPosition(newPos.x, newPos.y, scale));
+                setPosition(clampPosition(newPos.x, newPos.y, fitScale));
             }
         };
-        center();
-        // Also re-center on window resize
-        window.addEventListener('resize', center);
-        return () => window.removeEventListener('resize', center);
-    }, [widthPx, heightPx]);
+
+        // Initial fit
+        fitToScreen();
+
+        // Re-fit on window resize
+        window.addEventListener('resize', fitToScreen);
+        return () => window.removeEventListener('resize', fitToScreen);
+    }, [widthPx, heightPx]); // Re-run if page dimensions change
 
     // ...
     // ...

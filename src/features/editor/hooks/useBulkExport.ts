@@ -189,11 +189,12 @@ export function useBulkExport(project: Project) {
             const container = document.getElementById(containerId);
             const svgElement = container?.querySelector('svg');
 
-            if (svgElement) {
+            if (container && svgElement) {
                 try {
                     // Generate image using exportUtils
-                    // This returns the ACTUAL dimensions of the chart content (plus padding)
-                    const imageResult = await generateChartImage(svgElement as SVGElement);
+                    // We pass the CONTAINER (HTMLElement) which wraps the SVG.
+                    // This satisfies the type requirement and ensures offsetWidth works.
+                    const imageResult = await generateChartImage(container, { backgroundColor: '#ffffff' });
                     const { dataUrl, width: localImgW, height: localImgH } = imageResult;
 
                     if (dataUrl && dataUrl.length > 100) {
