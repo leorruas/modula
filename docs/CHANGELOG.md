@@ -7,8 +7,7 @@ This file documents technical activity, including GitHub pushes (`📤 sync-*`) 
 
 ### ✨ New Features
 
-- **charts:** expansion of infographic mode to Radar and Area charts, with smart height/radius scaling, hero vertex highlights, automatic peak badges (Dominante/Pico/Mínimo), and "Hero Stream" area highlight. ([bdc1e98](https://github.com/leorruas/modula/commit/bdc1e98)) - *2026-01-20 15:30*
-- **editor:** implemented "Smart UI" filtering in Infographic Controls Modal, hiding irrelevant options based on chart type with a "Show All Options" toggle.
+- **charts:** finish batch 4 and gestalt refinements ([d98bb49](https://github.com/leorruas/modula/commit/d98bb49e1f18256986bc620e435e73299fcdf014)) - *2026-01-20 13:57*
 - complete infographic transformation (Phases 1-3) and documentation update ([eafb782](https://github.com/leorruas/modula/commit/eafb782b2b290ef03c0c7697e17aac3624f2ceb5)) - *2026-01-20 11:29*
 
 ### 📝 Documentation
