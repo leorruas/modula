@@ -35,13 +35,13 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
     const [orientation, setOrientation] = useState(project.gridConfig.orientation || 'portrait');
     const [pageWidth, setPageWidth] = useState(project.gridConfig.width);
     const [pageHeight, setPageHeight] = useState(project.gridConfig.height);
-    const [dimensionUnit, setDimensionUnit] = useState<'mm' | 'cm' | 'in' | 'px'>('mm');
+    const [dimensionUnit, setDimensionUnit] = useState<'mm' | 'cm' | 'in' | 'px'>(project.gridConfig.unit || 'mm');
 
     const convertFromMm = (val: number, unit: string) => {
-        if (unit === 'cm') return val / 10;
-        if (unit === 'in') return val / 25.4;
-        if (unit === 'px') return val * 3.7795; // 96 DPI
-        return val;
+        if (unit === 'cm') return Number((val / 10).toFixed(2));
+        if (unit === 'in') return Number((val / 25.4).toFixed(2));
+        if (unit === 'px') return Number((val * 3.7795).toFixed(0)); // Round pixels
+        return Number(val.toFixed(2));
     };
 
     const convertToMm = (val: number, unit: string) => {
@@ -55,7 +55,7 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
     useEffect(() => {
         if (pageFormat === 'Custom') return;
 
-        let w = 210, h = 297; // Default A4
+        let w = 210, h = 297; // Default A4 in MM
         if (pageFormat === 'A3') { w = 297; h = 420; }
         else if (pageFormat === 'A5') { w = 148; h = 210; }
 
@@ -63,40 +63,81 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
             const temp = w; w = h; h = temp;
         }
 
-        setPageWidth(w);
-        setPageHeight(h);
-    }, [pageFormat, orientation]);
+        // Convert strict MM dimensions to current unit
+        setPageWidth(convertFromMm(w, dimensionUnit));
+        setPageHeight(convertFromMm(h, dimensionUnit));
+    }, [pageFormat, orientation, dimensionUnit]);
 
     const [isLoading, setIsLoading] = useState(false);
 
     // Calculate preview for fixed mode
     const getFixedModePreview = () => {
         if (gridMode !== 'fixed') return null;
-        const availW = project.gridConfig.width - (marginLeft + marginRight);
-        const availH = project.gridConfig.height - (marginTop + marginBottom);
-        const cols = Math.max(1, Math.floor((availW + gutter) / (fixedWidth + gutter)));
-        const rows = Math.max(1, Math.floor((availH + gutter) / (fixedHeight + gutter)));
+        // Convert everything to MM for calculation logic compatibility
+        const wMm = convertToMm(pageWidth, dimensionUnit);
+        const hMm = convertToMm(pageHeight, dimensionUnit);
+        const mlMm = convertToMm(marginLeft, dimensionUnit);
+        const mrMm = convertToMm(marginRight, dimensionUnit);
+        const mtMm = convertToMm(marginTop, dimensionUnit);
+        const mbMm = convertToMm(marginBottom, dimensionUnit);
+        const gMm = convertToMm(gutter, dimensionUnit);
+        const fwMm = convertToMm(fixedWidth, dimensionUnit);
+        const fhMm = convertToMm(fixedHeight, dimensionUnit);
+
+        const availW = wMm - (mlMm + mrMm);
+        const availH = hMm - (mtMm + mbMm);
+        const cols = Math.max(1, Math.floor((availW + gMm) / (fwMm + gMm)));
+        const rows = Math.max(1, Math.floor((availH + gMm) / (fhMm + gMm)));
         return { cols, rows };
     };
 
     // Reset state when project changes or modal opens
     useEffect(() => {
         if (isOpen) {
+            const u = project.gridConfig.unit || 'mm';
+            setDimensionUnit(u);
+
             setColumns(project.gridConfig.columns);
             setRows(project.gridConfig.rows);
-            setMarginTop(project.gridConfig.marginTop ?? project.gridConfig.margin);
-            setMarginBottom(project.gridConfig.marginBottom ?? project.gridConfig.margin);
-            setMarginLeft(project.gridConfig.marginLeft ?? project.gridConfig.margin);
-            setMarginRight(project.gridConfig.marginRight ?? project.gridConfig.margin);
-            setGutter(project.gridConfig.gutter);
+
+            // Convert stored MM values to Project Unit
+            setMarginTop(convertFromMm(project.gridConfig.marginTop ?? project.gridConfig.margin, u));
+            setMarginBottom(convertFromMm(project.gridConfig.marginBottom ?? project.gridConfig.margin, u));
+            setMarginLeft(convertFromMm(project.gridConfig.marginLeft ?? project.gridConfig.margin, u));
+            setMarginRight(convertFromMm(project.gridConfig.marginRight ?? project.gridConfig.margin, u));
+            setGutter(convertFromMm(project.gridConfig.gutter, u));
+
             setGridMode(project.gridConfig.mode || 'flexible');
-            setFixedWidth(project.gridConfig.fixedModuleWidth || 40);
-            setFixedHeight(project.gridConfig.fixedModuleHeight || 40);
+            setFixedWidth(convertFromMm(project.gridConfig.fixedModuleWidth || 40, u));
+            setFixedHeight(convertFromMm(project.gridConfig.fixedModuleHeight || 40, u));
+
+            // Page Dim
+            setPageWidth(convertFromMm(project.gridConfig.width, u));
+            setPageHeight(convertFromMm(project.gridConfig.height, u));
+
             setBaseFontSize(project.gridConfig.baseFontSize || 11);
             setBaseFontUnit(project.gridConfig.baseFontUnit || 'pt');
             setUseChapters(project.useChapters || false);
         }
     }, [isOpen, project]);
+
+    const handleUnitChange = (newUnit: 'mm' | 'cm' | 'in' | 'px') => {
+        // Convert all currently edited values to new unit
+        // We convert to MM then to New Unit to avoid compounding errors
+        const toNew = (val: number) => convertFromMm(convertToMm(val, dimensionUnit), newUnit);
+
+        setMarginTop(prev => toNew(prev));
+        setMarginBottom(prev => toNew(prev));
+        setMarginLeft(prev => toNew(prev));
+        setMarginRight(prev => toNew(prev));
+        setGutter(prev => toNew(prev));
+        setFixedWidth(prev => toNew(prev));
+        setFixedHeight(prev => toNew(prev));
+        setPageWidth(prev => toNew(prev));
+        setPageHeight(prev => toNew(prev));
+
+        setDimensionUnit(newUnit);
+    };
 
     const preview = getFixedModePreview();
     const showWarning = preview && (preview.cols < 4 || preview.rows < 4 || preview.cols > 20 || preview.rows > 20);
@@ -109,38 +150,50 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
         setIsLoading(true);
 
         try {
+            // Convert everything back to MM for storage
+            const wMm = convertToMm(pageWidth, dimensionUnit);
+            const hMm = convertToMm(pageHeight, dimensionUnit);
+            const mlMm = convertToMm(marginLeft, dimensionUnit);
+            const mrMm = convertToMm(marginRight, dimensionUnit);
+            const mtMm = convertToMm(marginTop, dimensionUnit);
+            const mbMm = convertToMm(marginBottom, dimensionUnit);
+            const gMm = convertToMm(gutter, dimensionUnit);
+            const fwMm = convertToMm(fixedWidth, dimensionUnit);
+            const fhMm = convertToMm(fixedHeight, dimensionUnit);
+
             // Logic to calc cols/rows if fixed
             let finalColumns = columns;
             let finalRows = rows;
 
             if (gridMode === 'fixed') {
-                const availW = pageWidth - (marginLeft + marginRight);
-                const availH = pageHeight - (marginTop + marginBottom);
+                const availW = wMm - (mlMm + mrMm);
+                const availH = hMm - (mtMm + mbMm);
 
-                finalColumns = Math.max(1, Math.floor((availW + gutter) / (fixedWidth + gutter)));
-                finalRows = Math.max(1, Math.floor((availH + gutter) / (fixedHeight + gutter)));
+                finalColumns = Math.max(1, Math.floor((availW + gMm) / (fwMm + gMm)));
+                finalRows = Math.max(1, Math.floor((availH + gMm) / (fhMm + gMm)));
             }
 
             const newGridConfig: GridConfig = {
                 ...project.gridConfig,
                 columns: finalColumns,
                 rows: finalRows,
-                margin: marginTop, // Deprecated fallback
-                marginTop,
-                marginBottom,
-                marginLeft,
-                marginRight,
-                gutter,
+                margin: mtMm, // Deprecated fallback
+                marginTop: mtMm,
+                marginBottom: mbMm,
+                marginLeft: mlMm,
+                marginRight: mrMm,
+                gutter: gMm,
                 mode: gridMode,
                 pageFormat,
                 orientation,
-                width: pageWidth,
-                height: pageHeight,
+                width: wMm,
+                height: hMm,
                 baseFontSize,
                 baseFontUnit,
-                ...(gridMode === 'fixed' && fixedWidth && fixedHeight ? {
-                    fixedModuleWidth: fixedWidth,
-                    fixedModuleHeight: fixedHeight
+                unit: dimensionUnit, // Save preference
+                ...(gridMode === 'fixed' && fwMm && fhMm ? {
+                    fixedModuleWidth: fwMm,
+                    fixedModuleHeight: fhMm
                 } : {})
             };
 
@@ -192,6 +245,26 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                         {/* Column 1: Page & Margins */}
                         <div>
                             <h3 className="grid-section-title">Formato da Página</h3>
+
+                            {/* UNIT SELECTOR */}
+                            <div style={{ marginBottom: 20, padding: 10, background: '#f5f5f5', borderRadius: 6 }}>
+                                <label className="grid-label" style={{ marginBottom: 8 }}>Unidade Preferida</label>
+                                <div style={{ display: 'flex', gap: 15 }}>
+                                    {(['mm', 'cm', 'in', 'px'] as const).map(u => (
+                                        <label key={u} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#333' }}>
+                                            <input
+                                                type="radio"
+                                                name="dimensionUnit"
+                                                value={u}
+                                                checked={dimensionUnit === u}
+                                                onChange={() => handleUnitChange(u)}
+                                            />
+                                            {u.toUpperCase()}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
                                 <div>
                                     <label className="grid-label">Formato</label>
@@ -214,11 +287,11 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                             {pageFormat === 'Custom' && (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
                                     <div>
-                                        <label className="grid-label">Largura (mm)</label>
+                                        <label className="grid-label">Largura ({dimensionUnit})</label>
                                         <input type="number" step="0.1" className="grid-input" value={pageWidth} onChange={e => setPageWidth(Number(e.target.value))} />
                                     </div>
                                     <div>
-                                        <label className="grid-label">Altura (mm)</label>
+                                        <label className="grid-label">Altura ({dimensionUnit})</label>
                                         <input type="number" step="0.1" className="grid-input" value={pageHeight} onChange={e => setPageHeight(Number(e.target.value))} />
                                     </div>
                                 </div>
@@ -226,7 +299,7 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
 
                             <div style={{ padding: 15, background: '#f9f9f9', borderRadius: 8, fontSize: 13, color: '#666' }}>
                                 <strong>Dimensões Atuais:</strong><br />
-                                {pageWidth}mm x {pageHeight}mm
+                                {pageWidth}{dimensionUnit} x {pageHeight}{dimensionUnit}
                             </div>
                         </div>
 
@@ -238,7 +311,7 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                                 <input type="number" className="grid-input" value={columns} onChange={e => setColumns(Number(e.target.value))} />
                             </div>
                             <div style={{ marginBottom: 20 }}>
-                                <label className="grid-label">Gutter (Espaço entre módulos)</label>
+                                <label className="grid-label">Gutter ({dimensionUnit})</label>
                                 <input type="number" step="0.1" className="grid-input" value={gutter} onChange={e => setGutter(Number(e.target.value))} />
                             </div>
 
@@ -263,11 +336,11 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                             {gridMode === 'fixed' && (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 20 }}>
                                     <div>
-                                        <label className="grid-label">Largura (mm)</label>
+                                        <label className="grid-label">Largura ({dimensionUnit})</label>
                                         <input type="number" step="0.1" className="grid-input" value={fixedWidth} onChange={e => setFixedWidth(Number(e.target.value))} />
                                     </div>
                                     <div>
-                                        <label className="grid-label">Altura (mm)</label>
+                                        <label className="grid-label">Altura ({dimensionUnit})</label>
                                         <input type="number" step="0.1" className="grid-input" value={fixedHeight} onChange={e => setFixedHeight(Number(e.target.value))} />
                                     </div>
                                 </div>

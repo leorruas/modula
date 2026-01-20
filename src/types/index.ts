@@ -16,6 +16,7 @@ export interface GridConfig {
     fixedModuleHeight?: number; // New property
     baseFontSize?: number; // Default base size for text
     baseFontUnit?: 'pt' | 'px' | 'mm'; // Unit for base size
+    unit?: 'mm' | 'cm' | 'px' | 'in'; // Preferred display unit
 }
 
 export interface ChartModule {

@@ -40,7 +40,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
     const [gridMode, setGridMode] = useState<'flexible' | 'fixed'>('flexible');
     const [fixedWidth, setFixedWidth] = useState(40);
     const [fixedHeight, setFixedHeight] = useState(40);
-    const [unit, setUnit] = useState<'mm' | 'cm' | 'px'>('mm');
+    const [unit, setUnit] = useState<'mm' | 'cm' | 'px' | 'in'>('mm');
     const [baseFontSize, setBaseFontSize] = useState(11);
     const [baseFontUnit, setBaseFontUnit] = useState<'pt' | 'px' | 'mm'>('pt');
 
@@ -49,13 +49,14 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
     const unitFactors = {
         mm: 1,
         cm: 10,
+        in: 25.4,
         px: 25.4 / 96
     };
 
-    const toMM = (val: number, u: 'mm' | 'cm' | 'px') => val * unitFactors[u];
-    const fromMM = (val: number, u: 'mm' | 'cm' | 'px') => val / unitFactors[u];
+    const toMM = (val: number, u: 'mm' | 'cm' | 'px' | 'in') => val * unitFactors[u];
+    const fromMM = (val: number, u: 'mm' | 'cm' | 'px' | 'in') => val / unitFactors[u];
 
-    const handleUnitChange = (newUnit: 'mm' | 'cm' | 'px') => {
+    const handleUnitChange = (newUnit: 'mm' | 'cm' | 'px' | 'in') => {
         const factor = unitFactors[unit] / unitFactors[newUnit];
 
         setCustomWidth(prev => Number((prev * factor).toFixed(2)));
@@ -135,7 +136,8 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
                 fixedModuleWidth: gridMode === 'fixed' ? toMM(fixedWidth, unit) : undefined,
                 fixedModuleHeight: gridMode === 'fixed' ? toMM(fixedHeight, unit) : undefined,
                 baseFontSize,
-                baseFontUnit
+                baseFontUnit,
+                unit // Save the preferred unit
             };
 
             const newProject = await projectService.createProject(user.uid, {
@@ -210,7 +212,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
                         <div style={{ marginBottom: 0 }}>
                             <label style={{ display: 'block', marginBottom: 5, fontSize: 12, fontWeight: 600, color: '#444' }}>Unidade de Medida</label>
                             <div style={{ display: 'flex', gap: 15 }}>
-                                {(['mm', 'cm', 'px'] as const).map(u => (
+                                {(['mm', 'cm', 'px', 'in'] as const).map(u => (
                                     <label key={u} style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#333' }}>
                                         <input
                                             type="radio"
