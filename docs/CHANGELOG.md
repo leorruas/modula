@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-20T21-06-39 (2026-01-20)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **charts:** refine column chart with gestalt principles (staggering, typography) ([817ca01](https://github.com/leorruas/modula/commit/817ca01a5fe1d04bc3d7184c00a73c14d40d43a2)) - *2026-01-20 17:54*
+
+#### 🐛 Bug Fixes
+
+- **security:** add missing user rules to allow preferences access ([e1be8ec](https://github.com/leorruas/modula/commit/e1be8ec3da46774d228bd2f23eb7d4f3b9703a51)) - *2026-01-20 18:06*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-20T20-33-15 ([97e28bf](https://github.com/leorruas/modula/commit/97e28bf044c8fe964fcddf655d79d4531c48afbb)) - *2026-01-20 17:33*
+
 ### 🚀 deploy-2026-01-20T20-33-15 (2026-01-20)
 
 > **Deployment**: Version sent to production environments.
