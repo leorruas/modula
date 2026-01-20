@@ -2,19 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## Unreleased (2026-01-20)
+### 🚧 deploy-2026-01-20T12-49-20 (2026-01-20)
 
-### ✨ New Features
+> **Tracking Version**: This is a pre-release or snapshot.
+
+#### ✨ New Features
 
 - add project unit configuration (mm, cm, in, px) ([bf6c154](https://github.com/leorruas/modula/commit/bf6c154bbee656368b66416babddf26a3cf832c4)) - *2026-01-20 09:46*
 
-### 🐛 Bug Fixes
+#### 🐛 Bug Fixes
 
 - resolve pdf export issues (resolution, scaling, positioning) and auto-fit editor ([6e3c0bb](https://github.com/leorruas/modula/commit/6e3c0bb91dc5360ee21143d6abb4f02a5eaea61b)) - *2026-01-20 09:46*
 
-### 📝 Documentation
+#### 📝 Documentation
 
+- update changelog ([f87492a](https://github.com/leorruas/modula/commit/f87492ac37668911e54a6f372aec8add026761fa)) - *2026-01-20 09:47*
 - **changelog:** update for deployment deploy-2026-01-20T11-02-56 ([32104e3](https://github.com/leorruas/modula/commit/32104e37d8e4b07729075cb50348c0c9513899d6)) - *2026-01-20 08:02*
+
+#### 🔧 Chores
+
+- add html-to-image dependency ([fa70dc9](https://github.com/leorruas/modula/commit/fa70dc98d16719cd44b36b1421461462a8f62524)) - *2026-01-20 09:47*
 
 ### 🚧 deploy-2026-01-20T11-02-56 (2026-01-20)
 
