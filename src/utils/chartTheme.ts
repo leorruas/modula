@@ -40,8 +40,8 @@ export const CHART_THEME = {
         value: 'system-ui, -apple-system, sans-serif', // Changed to sans-serif for infographics
         title: 'system-ui, -apple-system, sans-serif',
         number: 'system-ui, -apple-system, sans-serif', // For hero numbers
-        narrative: 'var(--font-geist-sans), system-ui, sans-serif', // New: For storytelling
-        data: 'var(--font-geist-mono), monospace' // New: For data/numbers
+        narrative: 'sans-serif, var(--font-geist-sans), system-ui', // New: For storytelling
+        data: 'monospace, var(--font-geist-mono)' // New: For data/numbers
     },
 
     fontSizes: {

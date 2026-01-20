@@ -6,6 +6,7 @@ interface InfographicControlsModalProps {
     isOpen: boolean;
     onClose: () => void;
     chartData: ChartData;
+    chartType?: string;
     currentConfig?: {
         heroValueIndex?: number;
         showValueAnnotations?: boolean;
@@ -14,6 +15,7 @@ interface InfographicControlsModalProps {
         legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
         showExtremes?: boolean;
         useMetadata?: boolean;
+        showAllLabels?: boolean;
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -23,6 +25,7 @@ interface InfographicControlsModalProps {
         legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
         showExtremes?: boolean;
         useMetadata?: boolean;
+        showAllLabels?: boolean;
     }) => void;
 }
 
@@ -30,6 +33,7 @@ export function InfographicControlsModal({
     isOpen,
     onClose,
     chartData,
+    chartType = 'column',
     currentConfig = {},
     onSave
 }: InfographicControlsModalProps) {
@@ -40,6 +44,8 @@ export function InfographicControlsModal({
     const [legendPosition, setLegendPosition] = useState<'top' | 'bottom' | 'left' | 'right' | 'none'>(currentConfig.legendPosition || 'bottom');
     const [showExtremes, setShowExtremes] = useState(currentConfig.showExtremes || false);
     const [useMetadata, setUseMetadata] = useState(currentConfig.useMetadata || false);
+    const [showAllLabels, setShowAllLabels] = useState(currentConfig.showAllLabels || false);
+    const [showAllOptions, setShowAllOptions] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -50,6 +56,7 @@ export function InfographicControlsModal({
             setLegendPosition(currentConfig.legendPosition || 'bottom');
             setShowExtremes(currentConfig.showExtremes || false);
             setUseMetadata(currentConfig.useMetadata || false);
+            setShowAllLabels(currentConfig.showAllLabels || false);
         }
     }, [isOpen, currentConfig]);
 
@@ -63,7 +70,8 @@ export function InfographicControlsModal({
             annotationLabels: annotationLabels.length > 0 ? annotationLabels : undefined,
             legendPosition,
             showExtremes,
-            useMetadata
+            useMetadata,
+            showAllLabels
         });
         onClose();
     };
@@ -141,17 +149,36 @@ export function InfographicControlsModal({
 
                 {/* Body */}
                 <div style={{ padding: '28px', overflowY: 'auto' }}>
+                    {/* Smart UI Toggle */}
+                    <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                            onClick={() => setShowAllOptions(!showAllOptions)}
+                            style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: showAllOptions ? '#0ea5e9' : '#666',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em'
+                            }}
+                        >
+                            {showAllOptions ? '🎯 Ver Apenas Sugeridos' : '🛠️ Ver Todas as Opções'}
+                        </button>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
                         {/* Column 1: Infography */}
                         <div>
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: '#000', borderBottom: '2px solid #0ea5e9', paddingBottom: 8, display: 'inline-block' }}>
-                                ✨ Visualização de Dados
+                                ✨ Destaques & Narração
                             </h3>
 
                             {/* Hero Value Selection */}
                             <div style={{ marginBottom: 24 }}>
                                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#222' }}>
-                                    🎯 Valor Destaque (Hero)
+                                    {chartType === 'radar' ? '🎯 Eixo Dominante (Hero)' : (chartType.includes('pie') ? '🍕 Fatiada em Destaque' : '🎯 Ponto Focal (Hero)')}
                                 </label>
                                 <select
                                     value={heroValueIndex ?? ''}
@@ -172,6 +199,9 @@ export function InfographicControlsModal({
                                         </option>
                                     ))}
                                 </select>
+                                <p style={{ fontSize: 11, color: '#666', marginTop: 6 }}>
+                                    {chartType === 'radar' ? 'O eixo selecionado ganhará um "Halo" e traço reforçado.' : 'O valor terá tipografia boost e efeitos visuais exclusivos.'}
+                                </p>
                             </div>
 
                             {/* Annotations Toggle */}
@@ -185,7 +215,10 @@ export function InfographicControlsModal({
                                     borderRadius: 10,
                                     border: '1px solid #e9ecef'
                                 }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>🏷️ Anotações (Badges)</span>
+                                    <div>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🏷️ Badge de Destaque</span>
+                                        <span style={{ fontSize: 11, color: '#666' }}>Selo editorial sobre o valor Hero</span>
+                                    </div>
                                     <button
                                         onClick={() => setShowValueAnnotations(!showValueAnnotations)}
                                         style={{
@@ -218,7 +251,7 @@ export function InfographicControlsModal({
                                             type="text"
                                             value={annotationLabels[heroValueIndex] || ''}
                                             onChange={(e) => updateAnnotationLabel(heroValueIndex, e.target.value)}
-                                            placeholder="Ex: MAIOR CRESCIMENTO"
+                                            placeholder="Ex: META ALCANÇADA"
                                             style={{
                                                 width: '100%',
                                                 padding: '8px 12px',
@@ -226,57 +259,62 @@ export function InfographicControlsModal({
                                                 borderRadius: 6,
                                                 border: '1px solid #ddd',
                                                 textTransform: 'uppercase',
-                                                fontWeight: 600
+                                                fontWeight: 800
                                             }}
                                         />
                                     </div>
                                 )}
                             </div>
 
-                            {/* Delta Percent Toggle */}
-                            <div style={{ marginBottom: 24 }}>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '12px 14px',
-                                    background: '#f8f9fa',
-                                    borderRadius: 10,
-                                    border: '1px solid #e9ecef'
-                                }}>
-                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#222' }}>📊 Delta % vs Média</span>
-                                    <button
-                                        onClick={() => setShowDeltaPercent(!showDeltaPercent)}
-                                        style={{
-                                            position: 'relative',
-                                            width: 44,
-                                            height: 24,
-                                            background: showDeltaPercent ? '#8b5cf6' : '#cbd5e1',
-                                            border: 'none',
-                                            borderRadius: 12,
-                                            cursor: 'pointer',
-                                            padding: 0
-                                        }}
-                                    >
-                                        <div style={{
-                                            position: 'absolute',
-                                            top: 2,
-                                            left: showDeltaPercent ? 22 : 2,
-                                            width: 20,
-                                            height: 20,
-                                            background: 'white',
-                                            borderRadius: '50%',
-                                            transition: 'left 0.2s'
-                                        }} />
-                                    </button>
+                            {/* Delta Percent Toggle - Only for logic-heavy charts or if Show All */}
+                            {(showAllOptions || ['column', 'line', 'area', 'radar'].includes(chartType)) && (
+                                <div style={{ marginBottom: 24 }}>
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '12px 14px',
+                                        background: '#f8f9fa',
+                                        borderRadius: 10,
+                                        border: '1px solid #e9ecef'
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>📊 Indicadores de Variação</span>
+                                            <span style={{ fontSize: 11, color: '#666' }}>{chartType === 'area' || chartType === 'line' ? 'Delta vs Início' : 'Delta vs Média'}</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowDeltaPercent(!showDeltaPercent)}
+                                            style={{
+                                                position: 'relative',
+                                                width: 44,
+                                                height: 24,
+                                                background: showDeltaPercent ? '#8b5cf6' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: showDeltaPercent ? 22 : 2,
+                                                width: 20,
+                                                height: 20,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Column 2: Layout & Intelligence */}
                         <div>
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: '#000', borderBottom: '2px solid #8b5cf6', paddingBottom: 8, display: 'inline-block' }}>
-                                📐 Layout & Inteligência
+                                📏 Inteligência de Layout
                             </h3>
 
                             {/* Legend Position */}
@@ -311,7 +349,7 @@ export function InfographicControlsModal({
                             {/* Smart Toggles Section */}
                             <div style={{ marginTop: 32 }}>
                                 <h4 style={{ fontSize: 13, fontWeight: 700, color: '#666', marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    🤖 Automáticos (Fase 3)
+                                    🤖 Gatilhos Automáticos
                                 </h4>
 
                                 {/* Auto Extremes Toggle */}
@@ -326,8 +364,8 @@ export function InfographicControlsModal({
                                     marginBottom: 12
                                 }}>
                                     <div>
-                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🏆 Destacar Extremos</span>
-                                        <span style={{ fontSize: 11, color: '#666' }}>Auto detecta Máx / Mín</span>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🏆 Marcar Extremos</span>
+                                        <span style={{ fontSize: 11, color: '#666' }}>Badges automáticas de Máx / Mín</span>
                                     </div>
                                     <button
                                         onClick={() => setShowExtremes(!showExtremes)}
@@ -363,11 +401,12 @@ export function InfographicControlsModal({
                                     padding: '12px 14px',
                                     background: '#f8f9fa',
                                     borderRadius: 10,
-                                    border: '1px solid #e9ecef'
+                                    border: '1px solid #e9ecef',
+                                    marginBottom: 12
                                 }}>
                                     <div>
-                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🏷️ Usar Metadados</span>
-                                        <span style={{ fontSize: 11, color: '#666' }}>Lê anotações do JSON</span>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🎯 Eventos & Metadados</span>
+                                        <span style={{ fontSize: 11, color: '#666' }}>{chartType === 'area' ? 'Marcos verticais (milestones)' : 'Exibir notas extras do JSON'}</span>
                                     </div>
                                     <button
                                         onClick={() => setUseMetadata(!useMetadata)}
@@ -386,6 +425,46 @@ export function InfographicControlsModal({
                                             position: 'absolute',
                                             top: 2,
                                             left: useMetadata ? 22 : 2,
+                                            width: 20,
+                                            height: 20,
+                                            background: 'white',
+                                            borderRadius: '50%',
+                                            transition: 'left 0.2s'
+                                        }} />
+                                    </button>
+                                </div>
+
+                                {/* Show All Labels Override */}
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '12px 14px',
+                                    background: '#f8f9fa',
+                                    borderRadius: 10,
+                                    border: '1px solid #e9ecef'
+                                }}>
+                                    <div>
+                                        <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>🏷️ Exibir Todos os Rótulos</span>
+                                        <span style={{ fontSize: 11, color: '#666' }}>Desativar inteligência que oculta rótulos</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowAllLabels(!showAllLabels)}
+                                        style={{
+                                            position: 'relative',
+                                            width: 44,
+                                            height: 24,
+                                            background: showAllLabels ? '#0ea5e9' : '#cbd5e1',
+                                            border: 'none',
+                                            borderRadius: 12,
+                                            cursor: 'pointer',
+                                            padding: 0
+                                        }}
+                                    >
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: 2,
+                                            left: showAllLabels ? 22 : 2,
                                             width: 20,
                                             height: 20,
                                             background: 'white',

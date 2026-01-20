@@ -76,11 +76,18 @@ export class PDFExportService {
                     // RASTER STRATEGY: Use html-to-image to get high-res PNG
                     // This is more robust for gradients, web fonts, and glass effects.
                     // pixelRatio reduced from 6 to 3.5 to stay within canvas memory limits while maintaining high quality.
-                    const { dataUrl } = await generateChartImage(child as HTMLElement, {
+                    const result = await generateChartImage(child as HTMLElement, {
                         backgroundColor: '#ffffff', // Ensure white background for PDF rasterization
                         pixelRatio: 3.5,
                         padding: 0 // NO PADDING for PDF to ensure exact sizing/positioning
                     });
+
+                    if (!result || !result.dataUrl) {
+                        console.error(`Export failure for chart ${chart.id}: Empty result from generateChartImage`);
+                        continue;
+                    }
+
+                    const { dataUrl } = result;
 
                     const safeX = isNaN(x) ? 0 : x;
                     const safeY = isNaN(y) ? 0 : y;
@@ -99,11 +106,13 @@ export class PDFExportService {
                     // Add PNG to PDF with FAST compression (balances size/speed, good for PNGs)
                     doc.addImage(dataUrl, 'PNG', xMm, yMm, wMm, hMm, undefined, 'FAST');
 
-                    console.log(`Added raster chart to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
+                    console.log(`Added raster chart ${chart.id} to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
 
                 } catch (e) {
-                    console.error(`Failed to export raster chart ${chart.id}`, e);
+                    console.error(`CRITICAL: Failed to add chart ${chart.id} to PDF.`, e);
                 }
+            } else {
+                console.warn(`Chart container ${containerId} not found in DOM during PDF export.`);
             }
         }
 

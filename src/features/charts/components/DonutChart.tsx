@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient, getChartColor } from '@/utils/chartTheme';
 import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 
 interface DonutChartProps {
@@ -22,9 +22,20 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
 
     const isInfographic = style?.mode === 'infographic';
     const total = values.reduce((a, b) => a + b, 0);
-    const padding = isInfographic ? 80 : 20;
+
+    // Infographic Config
+    const infographicConfig = style?.infographicConfig || {};
+    const heroValueIndex = infographicConfig.heroValueIndex;
+    const finalShowValueAnnotations = infographicConfig.showValueAnnotations !== false;
+    const finalAnnotationLabels = infographicConfig.annotationLabels;
+    const finalShowExtremes = infographicConfig.showExtremes || false;
+    const finalUseMetadata = infographicConfig.useMetadata || false;
+    const finalShowAllLabels = infographicConfig.showAllLabels || false;
+    const finalLegendPosition = infographicConfig.legendPosition || 'top';
+
+    const padding = isInfographic ? 100 : 20;
     const outerRadius = (Math.min(width, height) / 2) - padding;
-    const innerRadius = outerRadius * 0.6;
+    const innerRadius = outerRadius * (isInfographic ? 0.75 : 0.6);
     const centerX = width / 2;
     const centerY = height / 2;
 
@@ -41,10 +52,66 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
     }
 
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const valueFont = isInfographic ? (CHART_THEME.fonts.data || 'monospace') : CHART_THEME.fonts.number;
     let startAngle = 0;
 
+    // Wrapping logic for external labels
+    const wrapLabel = (text: string, maxChars: number = 15) => {
+        const words = text.split(' ');
+        const lines: string[] = [];
+        let cur = words[0] || '';
+        for (let i = 1; i < words.length; i++) {
+            if ((cur + ' ' + words[i]).length <= maxChars) {
+                cur += ' ' + words[i];
+            } else {
+                lines.push(cur);
+                cur = words[i];
+            }
+        }
+        lines.push(cur);
+        return lines.slice(0, 3);
+    };
+
+    // Refined Legend Component with Grid and Wrapping (Consistency with PieChart)
+    const Legend = finalLegendPosition !== 'none' && values.length > 0 ? (
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '8px 16px',
+            justifyContent: 'center',
+            padding: '12px',
+            background: isInfographic ? 'rgba(255,255,255,0.05)' : 'transparent',
+            borderRadius: 8,
+            width: '90%',
+            maxWidth: width - 40,
+            margin: '0 auto'
+        }}>
+            {labels.map((label, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'start', gap: 6 }}>
+                    <div style={{
+                        width: 10, height: 10, marginTop: 4, flexShrink: 0, borderRadius: 2, background: colors[i % colors.length],
+                        ...(style?.finish === 'glass' && {
+                            backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(0,0,0,0.1))',
+                            border: '1px solid rgba(255,255,255,0.8)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                        })
+                    }} />
+                    <span style={{
+                        fontSize: getScaledFont(baseFontSize, baseFontUnit, 'tiny'),
+                        color: '#444',
+                        fontFamily,
+                        lineHeight: 1.3,
+                        fontWeight: CHART_THEME.fontWeights.medium
+                    }}>
+                        {label}
+                    </span>
+                </div>
+            ))}
+        </div>
+    ) : null;
+
     return (
-        <BaseChart width={width} height={height} data={data} type="donut">
+        <BaseChart width={width} height={height} data={data} type="donut" legend={Legend} legendPosition={finalLegendPosition}>
             <defs>
                 {useGradient && colors.map((color, i) => (
                     <radialGradient key={`grad-${i}`} id={`donutGradient-${i}`} cx="50%" cy="50%" r="50%">
@@ -52,7 +119,6 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                         <stop offset="100%" stopColor={color} stopOpacity="0.7" />
                     </radialGradient>
                 ))}
-                {/* Glass Definitions */}
                 {style?.finish === 'glass' && (
                     <>
                         <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
@@ -62,10 +128,51 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                     </>
                 )}
             </defs>
+
             <g transform={`translate(${centerX}, ${centerY})`}>
+                {/* Center Hero Narrative */}
+                {isInfographic && (
+                    <g>
+                        {heroValueIndex !== undefined ? (
+                            <>
+                                <text y={-innerRadius * 0.4} textAnchor="middle" dominantBaseline="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                    fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium} letterSpacing="0.1em">
+                                    {labels[heroValueIndex]?.toUpperCase() || "HERO"}
+                                </text>
+                                <text y={5} textAnchor="middle" dominantBaseline="middle" fontSize={innerRadius * 0.5}
+                                    fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
+                                    {((values[heroValueIndex] / total) * 100).toFixed(0)}%
+                                </text>
+                                <text y={innerRadius * 0.4} textAnchor="middle" dominantBaseline="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
+                                    fontFamily={valueFont} fill={CHART_THEME.colors.neutral.medium}>
+                                    {values[heroValueIndex]}
+                                </text>
+                            </>
+                        ) : (
+                            <>
+                                <text y={-innerRadius * 0.35} textAnchor="middle" dominantBaseline="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
+                                    fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium} letterSpacing="0.1em">
+                                    TOTAL
+                                </text>
+                                <text y={10} textAnchor="middle" dominantBaseline="middle" fontSize={innerRadius * 0.6}
+                                    fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
+                                    {total}
+                                </text>
+                            </>
+                        )}
+                    </g>
+                )}
+
                 {values.map((value, i) => {
                     const sliceAngle = (value / total) * 2 * Math.PI;
                     const endAngle = startAngle + sliceAngle;
+                    const isManualHero = heroValueIndex === i;
+
+                    // Explosion Effect
+                    const explosionOffset = (isInfographic && isManualHero) ? 15 : 0;
+                    const explosionAngle = startAngle + sliceAngle / 2 - Math.PI / 2;
+                    const ex = explosionOffset * Math.cos(explosionAngle);
+                    const ey = explosionOffset * Math.sin(explosionAngle);
 
                     const x1 = outerRadius * Math.cos(startAngle - Math.PI / 2);
                     const y1 = outerRadius * Math.sin(startAngle - Math.PI / 2);
@@ -89,15 +196,20 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
 
                     const percentage = ((value / total) * 100).toFixed(1);
                     const labelAngle = startAngle + sliceAngle / 2;
-                    const labelR = isInfographic ? outerRadius + 40 : (outerRadius + innerRadius) / 2;
-                    const lx = labelR * Math.cos(labelAngle - Math.PI / 2);
-                    const ly = labelR * Math.sin(labelAngle - Math.PI / 2);
+
+                    // Dynamic offset for external labels based on position
+                    const labelR = isInfographic ? outerRadius + 55 : (outerRadius + innerRadius) / 2;
+                    const lx = labelR * Math.cos(labelAngle - Math.PI / 2) + ex;
+                    const ly = labelR * Math.sin(labelAngle - Math.PI / 2) + ey;
 
                     const currentStartAngle = startAngle;
                     startAngle += sliceAngle;
 
+                    const shouldShowLabel = finalShowAllLabels || !isInfographic || (value / total >= 0.05) || isManualHero;
+                    const wrappedLabelLines = isInfographic ? wrapLabel(labels[i]) : [labels[i]];
+
                     return (
-                        <g key={i}>
+                        <g key={i} transform={`translate(${ex}, ${ey})`}>
                             <path
                                 d={pathData}
                                 fill={
@@ -107,48 +219,80 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                                 }
                                 filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
                                 stroke={style?.finish === 'glass' ? "none" : "#fff"}
-                                strokeWidth={isInfographic ? 3 : 1.5}
+                                strokeWidth={isInfographic ? (isManualHero ? 2 : 0.5) : 1}
                                 strokeLinejoin="round"
+                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.7 : 1}
                             />
 
-                            {isInfographic ? (
-                                <>
-                                    <text
-                                        x={lx}
-                                        y={ly - getScaledFont(baseFontSize, baseFontUnit, 'huge') / 2 - 5} // Adjust y based on font size
-                                        textAnchor="middle"
-                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true)}
-                                        fontFamily={CHART_THEME.fonts.number}
-                                        fontWeight={CHART_THEME.fontWeights.black}
-                                        fill={CHART_THEME.colors.neutral.dark}
-                                    >
-                                        {percentage}%
-                                    </text>
-                                    <text
-                                        x={lx}
-                                        y={ly + 5}
-                                        textAnchor="middle"
-                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                        fontFamily={fontFamily}
-                                        fontWeight={CHART_THEME.fontWeights.medium}
-                                        fill={CHART_THEME.colors.neutral.medium}
-                                    >
-                                        {labels[i]}
-                                    </text>
-                                </>
-                            ) : (
-                                <text
-                                    x={lx}
-                                    y={ly}
-                                    textAnchor="middle"
-                                    alignmentBaseline="middle"
-                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                    fontFamily={fontFamily}
-                                    fill="#fff"
-                                    fontWeight={CHART_THEME.fontWeights.semibold}
-                                >
-                                    {`${labels[i]} ${percentage}%`}
-                                </text>
+                            {shouldShowLabel && (
+                                <g transform={`translate(${-ex}, ${-ey})`}>
+                                    {isInfographic ? (
+                                        <g transform={`translate(${lx}, ${ly})`}>
+                                            {/* Badge for Extremes or Metadata */}
+                                            {(() => {
+                                                let bt = ""; let bc = CHART_THEME.colors.neutral.medium; let sb = false;
+                                                if (finalShowValueAnnotations && isManualHero) {
+                                                    bt = finalAnnotationLabels?.[i] !== undefined ? finalAnnotationLabels[i] : "DESTAQUE";
+                                                    sb = bt !== "";
+                                                }
+                                                else if (finalUseMetadata && dataset.metadata?.[i]) { bt = dataset.metadata[i]; bc = colors[i % colors.length]; sb = true; }
+                                                else if (finalShowExtremes && !isManualHero) {
+                                                    const maxV = Math.max(...values);
+                                                    const minV = Math.min(...values);
+                                                    if (value === maxV) { bt = "🏆 PICO"; bc = '#d97706'; sb = true; }
+                                                    else if (value === minV) { bt = "🔻 MÍNIMO"; bc = '#ef4444'; sb = true; }
+                                                }
+                                                if (!sb) return null;
+                                                return (
+                                                    <text y={-32} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                                        fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} letterSpacing="0.05em" fill={bc}>
+                                                        {bt.toUpperCase()}
+                                                    </text>
+                                                );
+                                            })()}
+
+                                            <text
+                                                y={-5}
+                                                textAnchor="middle"
+                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * (isManualHero ? 1.2 : 0.9)}
+                                                fontFamily={valueFont}
+                                                fontWeight={CHART_THEME.fontWeights.black}
+                                                fill={CHART_THEME.colors.neutral.dark}
+                                            >
+                                                {percentage}%
+                                            </text>
+
+                                            {wrappedLabelLines.map((line, idx) => (
+                                                <text
+                                                    key={idx}
+                                                    x={0}
+                                                    y={12 + (idx * 12)}
+                                                    textAnchor="middle"
+                                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                                    fontFamily={fontFamily}
+                                                    fontWeight={isManualHero ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.medium}
+                                                    fill={CHART_THEME.colors.neutral.medium}
+                                                    style={{ textTransform: 'uppercase' }}
+                                                >
+                                                    {line}
+                                                </text>
+                                            ))}
+                                        </g>
+                                    ) : (
+                                        <text
+                                            x={lx}
+                                            y={ly}
+                                            textAnchor="middle"
+                                            alignmentBaseline="middle"
+                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
+                                            fontFamily={fontFamily}
+                                            fill="#fff"
+                                            fontWeight={CHART_THEME.fontWeights.semibold}
+                                        >
+                                            {`${percentage}%`}
+                                        </text>
+                                    )}
+                                </g>
                             )}
                         </g>
                     );

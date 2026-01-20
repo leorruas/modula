@@ -1172,6 +1172,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 isOpen={infographicControlsOpen}
                 onClose={() => setInfographicControlsOpen(false)}
                 chartData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
+                chartType={chartType}
                 currentConfig={infographicConfig}
                 onSave={(config) => setInfographicConfig(config)}
             />

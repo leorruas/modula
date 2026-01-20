@@ -34,6 +34,17 @@ export async function generateChartImage(
             height: height,
             cacheBust: true,
             skipAutoScale: true,
+            // FONT SANITIZATION: html-to-image can crash if it finds CSS variables it can't resolve.
+            // We ensure that common chart elements have their font-family clamped to standard fallbacks.
+            // The library attempts to .trim() the font string; if it's undefined or malformed, it fails.
+            fontEmbedCSS: `
+                * { 
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+                }
+                .hero-number, .data-label { 
+                    font-family: "Courier New", Courier, monospace !important; 
+                }
+            `,
             // FILTER: Exclude selection UI elements
             filter: (node) => {
                 const el = node as HTMLElement;
@@ -55,10 +66,13 @@ export async function generateChartImage(
                 margin: '0',
                 left: `${padding}px`, // Offset content by padding
                 top: `${padding}px`,
+                // Explicitly set font-family on the cloned style to prevent inheritance of broken vars
+                fontFamily: '-apple-system, sans-serif'
             },
         });
 
         if (!dataUrl || dataUrl.length < 100) {
+            console.error("Export failure: Data URL is invalid", { dataUrlLength: dataUrl?.length });
             throw new Error("Generated image is empty or too small.");
         }
 
@@ -71,7 +85,12 @@ export async function generateChartImage(
         };
 
     } catch (error) {
-        console.error('Error generating chart image:', error);
+        console.error('Error in generateChartImage:', error);
+        // Provide more context to the error message if possible
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes('trim')) {
+            throw new Error(`Font error: a biblioteca de exportação falhou ao processar as fontes. Tente mudar a fonte do gráfico. (${msg})`);
+        }
         throw error;
     } // End try-catch
 }

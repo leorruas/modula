@@ -2,7 +2,7 @@
 
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient, getChartColor } from '@/utils/chartTheme';
 
 interface GaugeChartProps {
     width: number;
@@ -18,16 +18,18 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
     const target = data.datasets[0]?.data[1] || 100;
     const percentage = Math.min(100, Math.max(0, (value / target) * 100));
 
-    const color = style?.colorPalette?.[0] || '#3b82f6';
-    const fontFamily = style?.fontFamily || 'sans-serif';
-    const useGradient = style?.useGradient;
+    const color = style?.colorPalette?.[0] || getChartColor(0);
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const isInfographic = style?.mode === 'infographic';
+    const valueFont = isInfographic ? (CHART_THEME.fonts.data || 'monospace') : CHART_THEME.fonts.number;
+    const useGradient = style?.useGradient;
 
     // Standard positioning and sizes
     const centerX = width / 2;
-    const centerY = height * 0.75; // Positioned lower for semi-circle
-    const radius = Math.min(width / 2.5, height / 1.5);
-    const strokeWidth = isInfographic ? radius * 0.4 : radius * 0.25;
+    // Infographic mode might want more space at bottom for labels
+    const centerY = height * (isInfographic ? 0.7 : 0.75);
+    const radius = Math.min(width / 2.2, height / 1.5);
+    const strokeWidth = isInfographic ? radius * 0.35 : radius * 0.25;
 
     // SVG arc calculations
     const startAngle = -Math.PI; // -180 degrees
@@ -53,17 +55,11 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
     // Calculate current progress angle
     const currentAngle = startAngle + (percentage / 100) * (endAngle - startAngle);
 
+    // Coordinate for the end of the progress arc (for marker)
+    const progressEnd = polarToCartesian(centerX, centerY, radius, currentAngle);
+
     return (
         <BaseChart width={width} height={height} data={data} type="gauge">
-            {/* Background Track */}
-            <path
-                d={describeArc(centerX, centerY, radius, startAngle, endAngle)}
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-            />
-
             {/* Gradient Definition */}
             <defs>
                 <linearGradient id={`gaugeGradient-${value}`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -79,6 +75,16 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                 )}
             </defs>
 
+            {/* Background Track */}
+            <path
+                d={describeArc(centerX, centerY, radius, startAngle, endAngle)}
+                fill="none"
+                stroke={isInfographic ? CHART_THEME.colors.neutral.lighter : "#e5e7eb"}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                opacity={isInfographic ? 0.3 : 1}
+            />
+
             {/* Progress Bar */}
             <path
                 d={describeArc(centerX, centerY, radius, startAngle, currentAngle)}
@@ -86,34 +92,76 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                 stroke={style?.finish === 'glass' ? `url(#glassGradient)` : (useGradient ? `url(#gaugeGradient-${value})` : color)}
                 strokeWidth={strokeWidth}
                 strokeLinecap="round"
-                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
+                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : (isInfographic ? "url(#chartShadow)" : undefined)}
+                opacity={isInfographic ? 0.9 : 1}
             />
 
-            {/* Value Text */}
+            {/* Marker/Needle Tip (Infographic Only) */}
+            {isInfographic && (
+                <circle
+                    cx={progressEnd.x}
+                    cy={progressEnd.y}
+                    r={strokeWidth * 0.2}
+                    fill="#fff"
+                    stroke={color}
+                    strokeWidth={2}
+                />
+            )}
+
+            {/* Value Text (Big Percentage) */}
             <text
                 x={centerX}
-                y={centerY - radius * 0.1}
+                y={centerY - radius * 0.15}
                 textAnchor="middle"
                 style={{
-                    fontSize: isInfographic ? radius * 0.6 : radius * 0.4,
-                    fontWeight: 800,
-                    fontFamily,
-                    fill: '#111827'
+                    fontSize: isInfographic ? radius * 0.55 : radius * 0.4,
+                    fontWeight: isInfographic ? CHART_THEME.fontWeights.black : 800,
+                    fontFamily: valueFont,
+                    fill: CHART_THEME.colors.neutral.dark,
+                    letterSpacing: isInfographic ? '-0.02em' : '0'
                 }}
             >
                 {Math.round(percentage)}%
             </text>
 
-            {/* Label Text */}
+            {/* Limit Labels (0 and Target) - Infographic Only */}
+            {isInfographic && (
+                <>
+                    <text
+                        x={centerX - radius - strokeWidth / 2}
+                        y={centerY + 20}
+                        textAnchor="middle"
+                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                        fontFamily={fontFamily}
+                        fontWeight={CHART_THEME.fontWeights.bold}
+                        fill={CHART_THEME.colors.neutral.medium}
+                    >
+                        0
+                    </text>
+                    <text
+                        x={centerX + radius + strokeWidth / 2}
+                        y={centerY + 20}
+                        textAnchor="middle"
+                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                        fontFamily={fontFamily}
+                        fontWeight={CHART_THEME.fontWeights.bold}
+                        fill={CHART_THEME.colors.neutral.medium}
+                    >
+                        {target}
+                    </text>
+                </>
+            )}
+
+            {/* Label Text (Category/Title) */}
             <text
                 x={centerX}
-                y={centerY + radius * 0.2}
+                y={centerY + (isInfographic ? radius * 0.25 : radius * 0.2)}
                 textAnchor="middle"
                 style={{
-                    fontSize: isInfographic ? radius * 0.15 : radius * 0.12,
-                    fontWeight: isInfographic ? 700 : 500,
+                    fontSize: getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'small' : 'tiny'),
+                    fontWeight: isInfographic ? CHART_THEME.fontWeights.bold : 500,
                     fontFamily,
-                    fill: '#6b7280',
+                    fill: CHART_THEME.colors.neutral.medium,
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em'
                 }}
@@ -121,7 +169,7 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                 {data.datasets[0]?.label || 'Progresso'}
             </text>
 
-            {/* Absolute values (Current / Target) */}
+            {/* Absolute values (Current / Target) - Standard Mode */}
             {!isInfographic && (
                 <text
                     x={centerX}
@@ -134,6 +182,21 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                     }}
                 >
                     {value} de {target}
+                </text>
+            )}
+
+            {/* Absolute values - Infographic Mode (Smaller, below label) */}
+            {isInfographic && (
+                <text
+                    x={centerX}
+                    y={centerY + radius * 0.38}
+                    textAnchor="middle"
+                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                    fontFamily={valueFont}
+                    fill={color}
+                    fontWeight={CHART_THEME.fontWeights.medium}
+                >
+                    {value} / {target}
                 </text>
             )}
         </BaseChart>

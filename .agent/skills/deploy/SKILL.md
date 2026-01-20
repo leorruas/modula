@@ -20,12 +20,9 @@ To ensure both platforms serve identical content, we use **query parameters** (e
 
 Every deployment MUST be traceable. The `npm run deploy` script automatically handles this by:
 
-1.  **Git Tagging**: Creates a unique tag (e.g., `deploy-YYYY-MM-DDTHH-mm-ss`) for the release commit.
-2.  **Changelog**: Updates `docs/CHANGELOG.md` with:
-    -   A new section for the deployment.
-    -   A list of all commits since the last deployment.
-    -   Links to specific commits and authors.
-3.  **Audit Trail**: Commits the updated changelog back to the repo with the message `docs(changelog): update for deployment...`.
+1.  **Git Tagging**: Creates a unique `deploy-YYYY-MM-DDTHH-mm-ss` tag for the release.
+2.  **Technical Log**: Updates `docs/CHANGELOG.md` with the new deployment entry and its constituent commits.
+3.  **Audit Trail**: Commits the updated changelog back to the repo.
 
 ## 3. Account & Project Mapping
 

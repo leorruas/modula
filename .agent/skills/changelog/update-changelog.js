@@ -52,19 +52,38 @@ function isPublicRelease(tag) {
     return /^v\d+\.\d+\.\d+$/.test(tag);
 }
 
+function isDeployment(tag) {
+    return tag.startsWith('deploy-');
+}
+
+function isSync(tag) {
+    return tag.startsWith('sync-') || tag.startsWith('push-');
+}
+
 function generateReleaseEntry(version, date, commits) {
-    if (commits.length === 0) return '';
+    if (commits.length === 0 && version !== 'Unreleased') return '';
 
     // Determine release type
     const isPublic = version === 'Unreleased' || isPublicRelease(version);
-    const releaseIcon = isPublic ? '' : '🚧 ';
-    const headerLevel = isPublic ? '##' : '###';
+    const isDeploy = isDeployment(version);
+    const isGithubSync = isSync(version);
+
+    let releaseIcon = '🚧 ';
+    if (isPublic) releaseIcon = '🏆 ';
+    if (isDeploy) releaseIcon = '🚀 ';
+    if (isGithubSync) releaseIcon = '📤 ';
+
+    const headerLevel = '###';
     const versionDisplay = `${releaseIcon}${version}`;
 
     let md = `${headerLevel} ${versionDisplay} (${date})\n\n`;
 
-    if (!isPublic) {
-        md += `> **Tracking Version**: This is a pre-release or snapshot.\n\n`;
+    if (isDeploy) {
+        md += `> **Deployment**: Version sent to production environments.\n\n`;
+    } else if (isGithubSync) {
+        md += `> **GitHub Sync**: Changes pushed to the remote repository.\n\n`;
+    } else if (!isPublic) {
+        md += `> **Tracking Version**: Technical snapshot or internal tag.\n\n`;
     }
 
     const groups = {};
@@ -119,7 +138,7 @@ function main() {
         console.warn('No tags found or error listing tags.');
     }
 
-    let changelogContent = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n';
+    let changelogContent = '# Changelog\n\nAll notable changes to this project will be documented in this file.\nThis file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).\n\n';
 
     // 1. Unreleased (HEAD -> Last Tag)
     const lastTag = tags.length > 0 ? tags[0] : null;

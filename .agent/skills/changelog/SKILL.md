@@ -9,20 +9,29 @@ This skill allows you to generate a professional changelog from the project's gi
 
 ## Capabilities
 
-- **Generate Changelog**: Scans git tags and commits to create a versioned history.
-- **Release Types**: Distinguishes between Public Releases (`vX.Y.Z`) and Tracking Versions (other tags).
-- **Categorization**: Groups changes by type (Features, Fixes, Docs, etc.).
-- **Timestamps**: Includes date and time for each commit.
+- **Technical Logging**: Automatically tracks deployments and GitHub synchronizations via git tags.
+- **Categorization**: Groups entries by tag prefix:
+  - `🚀 deploy-*`: Production deployments.
+  - `📤 sync-*`: GitHub synchronizations/pushes.
+  - `🏆 v*`: Public releases (semver).
+- **Commit History**: Automatically extracts and categorizes commits (Features, Fixes, etc.) per version.
+- **Audit Trail**: Provides a clear technical history for reference, not for narrative walkthroughs.
 
 ## Usage
 
 ### Manual Execution
 
-You can run the changelog generator directly via npm:
-
+You can regenerate the changelog at any time:
 ```bash
 npm run changelog
 ```
+
+### GitHub Synchronization
+To push changes to GitHub and log the action:
+```bash
+npm run sync
+```
+This creates a `sync-TIMESTAMP` tag, pushes to origin, and updates the log.
 
 ### Script Location
 

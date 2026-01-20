@@ -1,34 +1,32 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
-### 🚀 Bar Chart Infographic Transformation (2026-01-20)
+### 🏆 Unreleased (2026-01-20)
 
-#### ✨ New Features
+### ✨ New Features
 
-- **Phased Infographic System**: Complete overhaul focused on editorial storytelling and visual impact.
-- **Typographic Hierarchy (Phase 1)**: Automatic scaling, weight, and casing adjustments based on data magnitude.
-- **User Controls Modal (Phase 2)**: Added a premium React Portal-based modal for manual hero selection, delta percentages, and custom annotations.
-- **Dynamic Legend Layout**: Added support for Top, Bottom, Left, Right and None legend positions with adaptive layout.
-- **Smart Data Detection (Phase 3)**: Implemented automatic Max/Min badges (🏆/🔻) and support for per-value metadata annotations directly from JSON.
+- **charts:** expansion of infographic mode to Radar and Area charts, with smart height/radius scaling, hero vertex highlights, automatic peak badges (Dominante/Pico/Mínimo), and "Hero Stream" area highlight. ([bdc1e98](https://github.com/leorruas/modula/commit/bdc1e98)) - *2026-01-20 15:30*
+- **editor:** implemented "Smart UI" filtering in Infographic Controls Modal, hiding irrelevant options based on chart type with a "Show All Options" toggle.
+- complete infographic transformation (Phases 1-3) and documentation update ([eafb782](https://github.com/leorruas/modula/commit/eafb782b2b290ef03c0c7697e17aac3624f2ceb5)) - *2026-01-20 11:29*
 
-#### 🐛 Bug Fixes
+### 📝 Documentation
 
-- **Modal UI**: Resolved clipping and z-index issues in the chart sidebar using React Portals.
-- **Variable Scoping**: Fixed runtime ReferenceError in BarChart annotation logic.
+- **changelog:** update for deployment deploy-2026-01-20T12-52-52 ([fca185c](https://github.com/leorruas/modula/commit/fca185c964623a4baef896ddbcf337cf9893a942)) - *2026-01-20 09:52*
 
-### 🚧 deploy-2026-01-20T12-52-52 (2026-01-20)
+### 🚀 deploy-2026-01-20T12-52-52 (2026-01-20)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### 📝 Documentation
 
 - update deploy skill with version tracking requirements ([5d50c6a](https://github.com/leorruas/modula/commit/5d50c6a4512c72afd9428e20778edce07addf0f3)) - *2026-01-20 09:49*
 - **changelog:** update for deployment deploy-2026-01-20T12-49-20 ([c711f4f](https://github.com/leorruas/modula/commit/c711f4f173214ae2bcbaba67bf889306b41ee8dd)) - *2026-01-20 09:49*
 
-### 🚧 deploy-2026-01-20T12-49-20 (2026-01-20)
+### 🚀 deploy-2026-01-20T12-49-20 (2026-01-20)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### ✨ New Features
 
@@ -47,9 +45,9 @@ All notable changes to this project will be documented in this file.
 
 - add html-to-image dependency ([fa70dc9](https://github.com/leorruas/modula/commit/fa70dc98d16719cd44b36b1421461462a8f62524)) - *2026-01-20 09:47*
 
-### 🚧 deploy-2026-01-20T11-02-56 (2026-01-20)
+### 🚀 deploy-2026-01-20T11-02-56 (2026-01-20)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### ✨ New Features
 
@@ -61,9 +59,9 @@ All notable changes to this project will be documented in this file.
 - **skills:** update premium polish skill with print vs app ui guidelines ([d208714](https://github.com/leorruas/modula/commit/d20871493936a4004c9dfa06a42a8dbd995960dc)) - *2026-01-20 07:10*
 - **changelog:** update for deployment deploy-2026-01-19T21-17-20 ([f39bb55](https://github.com/leorruas/modula/commit/f39bb55518aa15adde5ddc35d9caf759effec16f)) - *2026-01-19 18:17*
 
-### 🚧 deploy-2026-01-19T21-17-20 (2026-01-19)
+### 🚀 deploy-2026-01-19T21-17-20 (2026-01-19)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### ✨ New Features
 
@@ -74,17 +72,17 @@ All notable changes to this project will be documented in this file.
 
 - **changelog:** update for deployment deploy-2026-01-19T15-06-14 ([f4c1dd4](https://github.com/leorruas/modula/commit/f4c1dd4adb0a53bc3cbb6f3e2ec9136c1283d219)) - *2026-01-19 12:06*
 
-### 🚧 deploy-2026-01-19T15-06-14 (2026-01-18)
+### 🚀 deploy-2026-01-19T15-06-14 (2026-01-18)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### 📝 Documentation
 
 - **changelog:** update for deployment deploy-2026-01-18T17-00-17 ([fffe2ea](https://github.com/leorruas/modula/commit/fffe2ea8b9c9d613db0dc265f6378a4a67abbaf8)) - *2026-01-18 14:00*
 
-### 🚧 deploy-2026-01-18T17-00-17 (2026-01-18)
+### 🚀 deploy-2026-01-18T17-00-17 (2026-01-18)
 
-> **Tracking Version**: This is a pre-release or snapshot.
+> **Deployment**: Version sent to production environments.
 
 #### ✨ New Features
 

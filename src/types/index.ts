@@ -42,6 +42,7 @@ export interface ChartData {
         iconKey: string;
         enabled: boolean;
         position?: 'left' | 'right';
+        valuePerIcon?: number;
     };
 }
 
@@ -65,6 +66,7 @@ export interface ChartStyle {
         legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
         showExtremes?: boolean; // Phase 3: Highlight Max/Min automatically
         useMetadata?: boolean;  // Phase 3: Use metadata from data for annotations
+        showAllLabels?: boolean; // Toggle to disable smart hiding of labels in infographics
     };
 }
 
