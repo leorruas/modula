@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-20T22-37-08 (2026-01-20)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- infographic enhancements (sort, thickness, rose effect) ([b2de94b](https://github.com/leorruas/modula/commit/b2de94b75cf42fd3cfcf7614b1b2177039bcc7a1)) - *2026-01-20 19:37*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-20T21-08-05 ([01958ed](https://github.com/leorruas/modula/commit/01958ed4e38a486d3eb8040978d0d22df11aaa51)) - *2026-01-20 18:08*
+
 ### 🚀 deploy-2026-01-20T21-08-05 (2026-01-20)
 
 > **Deployment**: Version sent to production environments.
