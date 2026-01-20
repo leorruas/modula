@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-20T20-32-21 (2026-01-20)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- reset sidebar when switching pages ([519af64](https://github.com/leorruas/modula/commit/519af64109ca0ea7494b04a30fb40c815986092f)) - *2026-01-20 17:32*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-20T17-01-20 ([6984ec4](https://github.com/leorruas/modula/commit/6984ec4222468507058d5937698e84a274cf3feb)) - *2026-01-20 14:01*
+
 ### 🚀 deploy-2026-01-20T17-01-20 (2026-01-20)
 
 > **Deployment**: Version sent to production environments.
