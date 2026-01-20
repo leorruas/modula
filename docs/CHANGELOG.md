@@ -3,15 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
-### 🏆 Unreleased (2026-01-20)
+### 🚀 deploy-2026-01-20T17-01-20 (2026-01-20)
 
-### ✨ New Features
+> **Deployment**: Version sent to production environments.
+
+#### ✨ New Features
 
 - **charts:** finish batch 4 and gestalt refinements ([d98bb49](https://github.com/leorruas/modula/commit/d98bb49e1f18256986bc620e435e73299fcdf014)) - *2026-01-20 13:57*
 - complete infographic transformation (Phases 1-3) and documentation update ([eafb782](https://github.com/leorruas/modula/commit/eafb782b2b290ef03c0c7697e17aac3624f2ceb5)) - *2026-01-20 11:29*
 
-### 📝 Documentation
+#### 📝 Documentation
 
+- update changelog ([cb5ea0b](https://github.com/leorruas/modula/commit/cb5ea0b43931417e5fd3c532b930ec369d77b8d7)) - *2026-01-20 13:59*
 - **changelog:** update for deployment deploy-2026-01-20T12-52-52 ([fca185c](https://github.com/leorruas/modula/commit/fca185c964623a4baef896ddbcf337cf9893a942)) - *2026-01-20 09:52*
 
 ### 🚀 deploy-2026-01-20T12-52-52 (2026-01-20)
