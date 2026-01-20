@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+### 🚧 deploy-2026-01-20T12-52-52 (2026-01-20)
+
+> **Tracking Version**: This is a pre-release or snapshot.
+
+#### 📝 Documentation
+
+- update deploy skill with version tracking requirements ([5d50c6a](https://github.com/leorruas/modula/commit/5d50c6a4512c72afd9428e20778edce07addf0f3)) - *2026-01-20 09:49*
+- **changelog:** update for deployment deploy-2026-01-20T12-49-20 ([c711f4f](https://github.com/leorruas/modula/commit/c711f4f173214ae2bcbaba67bf889306b41ee8dd)) - *2026-01-20 09:49*
+
 ### 🚧 deploy-2026-01-20T12-49-20 (2026-01-20)
 
 > **Tracking Version**: This is a pre-release or snapshot.
