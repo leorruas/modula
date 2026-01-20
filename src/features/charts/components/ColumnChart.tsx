@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { ensureDistinctColors } from '@/utils/colors';
 
 interface ColumnChartProps {
@@ -102,6 +102,15 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                         <stop offset="100%" stopColor={color} stopOpacity="0.7" />
                     </linearGradient>
                 ))}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        {computedColors.map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                    </>
+                )}
             </defs>
 
             <g transform={`translate(${padding}, ${padding + topMargin})`}>
@@ -176,10 +185,14 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             y={y}
                                             width={colWidth - colInnerGap}
                                             height={barH}
-                                            fill={useGradient ? `url(#colGradient-${dsIndex % computedColors.length})` : color}
-                                            opacity={0.9}
+                                            fill={
+                                                style?.finish === 'glass'
+                                                    ? `url(#glassGradient-${dsIndex % computedColors.length})`
+                                                    : (useGradient ? `url(#colGradient-${dsIndex % computedColors.length})` : color)
+                                            }
+                                            opacity={style?.finish === 'glass' ? 1 : 0.9}
                                             rx={(colWidth - colInnerGap) / 2}
-                                            filter="url(#colShadow)"
+                                            filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#colShadow)"}
                                         />
 
                                         {/* Value label */}

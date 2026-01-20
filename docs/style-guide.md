@@ -110,6 +110,11 @@ The design uses shadows very sparingly, primarily for depth in editing modes ("l
 *   **Gradients Premium**:
     *   **Radiais**: Opacidade 1.0 → 0.85 → 0.6.
     *   **Lineares**: Opacidade 1.0 → 0.7.
+*   **Acabamento Cristal (Liquid Glass)**:
+    *   **Conceito**: Efeito "Gummy" ou "Vidro Líquido".
+    *   **Técnica**: Não usa bordas físicas (strokes). Usa um filtro SVG (`iosGlassFilter`) que cria um *Rim Light* (luz de borda) interno através de erosão morfológica.
+    *   **Aplicação**: Barras, Fatias de Pizza, Áreas Preenchidas.
+    *   **Linhas**: Usa uma variação (`glassLineFilter`) com erosão reduzida (0.5px) para manter a visibilidade de traços finos.
 
 
 ### Radius

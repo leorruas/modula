@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient } from '@/utils/chartTheme';
 
 interface AreaChartProps {
     width: number;
@@ -102,6 +102,15 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
                         <stop offset="100%" stopColor={primaryColor} stopOpacity="0.6" />
                     </linearGradient>
                 )}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('glassAreaFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassLineFilter('glassLineFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('glassPointFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createGlassGradient('glassAreaGradient', primaryColor) }} />
+                    </>
+                )}
             </defs>
 
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
@@ -123,8 +132,9 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
                 {/* Area fill */}
                 <path
                     d={areaPath}
-                    fill={useGradient ? "url(#areaGradient)" : primaryColor}
-                    fillOpacity={useGradient ? 1 : 0.3}
+                    fill={style?.finish === 'glass' ? "url(#glassAreaGradient)" : (useGradient ? "url(#areaGradient)" : primaryColor)}
+                    fillOpacity={style?.finish === 'glass' ? 1 : (useGradient ? 1 : 0.3)}
+                    filter={style?.finish === 'glass' ? "url(#glassAreaFilter)" : undefined}
                 />
 
                 {/* Line outline */}
@@ -135,7 +145,8 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
                     strokeWidth={isInfographic ? 3 : 2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    filter="url(#chartShadow)"
+                    filter={style?.finish === 'glass' ? "url(#glassLineFilter)" : "url(#chartShadow)"}
+                    strokeOpacity={style?.finish === 'glass' ? 0.8 : 1}
                 />
 
                 {/* Points and values */}
@@ -145,9 +156,10 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
                             cx={p.x}
                             cy={p.y}
                             r={isInfographic ? 5 : 3}
-                            fill="#fff"
-                            stroke={primaryColor}
+                            fill={style?.finish === 'glass' ? primaryColor : "#fff"}
+                            stroke={style?.finish === 'glass' ? "none" : primaryColor}
                             strokeWidth={2}
+                            filter={style?.finish === 'glass' ? "url(#glassPointFilter)" : undefined}
                         />
                         <text
                             x={p.x}

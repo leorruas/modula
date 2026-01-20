@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { getIcon, getIconComponent } from '@/utils/iconLibrary';
 
 interface PictogramChartProps {
@@ -57,6 +57,18 @@ export function PictogramChart({ width, height, data, style, baseFontSize = 11, 
                         <stop offset="100%" stopColor={primaryColor} stopOpacity="0.7" />
                     </radialGradient>
                 )}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        {(style?.colorPalette || [primaryColor]).map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                        {!style?.colorPalette && (
+                            <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-default`, primaryColor) }} />
+                        )}
+                    </>
+                )}
             </defs>
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
                 {values.map((value, rowIndex) => {
@@ -103,10 +115,19 @@ export function PictogramChart({ width, height, data, style, baseFontSize = 11, 
                                         y={iconY + 2}
                                         width={iconSize - 4}
                                         height={iconSize - 4}
-                                        color={useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor}
+                                        color={
+                                            style?.finish === 'glass'
+                                                ? (style?.colorPalette ? `url(#glassGradient-${rowIndex % style.colorPalette.length})` : `url(#glassGradient-default)`)
+                                                : (useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor)
+                                        }
                                         strokeWidth={1}
-                                        fill={useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor}
+                                        fill={
+                                            style?.finish === 'glass'
+                                                ? (style?.colorPalette ? `url(#glassGradient-${rowIndex % style.colorPalette.length})` : `url(#glassGradient-default)`)
+                                                : (useGradient ? (style?.colorPalette ? `url(#pictogramGrad-${rowIndex % style.colorPalette.length})` : "url(#pictogramGrad-default)") : rowColor)
+                                        }
                                         fillOpacity={1}
+                                        filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
                                     />
                                 );
                             })}

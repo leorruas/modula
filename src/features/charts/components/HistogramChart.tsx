@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 
 interface HistogramChartProps {
     width: number;
@@ -65,6 +65,18 @@ export function HistogramChart({ width, height, data, style, baseFontSize = 11, 
                         <stop offset="100%" stopColor={primaryColor} stopOpacity="0.7" />
                     </linearGradient>
                 )}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        {(style?.colorPalette || [primaryColor]).map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                        {!style?.colorPalette && (
+                            <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-default`, primaryColor) }} />
+                        )}
+                    </>
+                )}
             </defs>
 
             <g transform={`translate(${padding}, ${padding})`}>
@@ -94,9 +106,14 @@ export function HistogramChart({ width, height, data, style, baseFontSize = 11, 
                                 y={y}
                                 width={barWidth - (isInfographic ? 4 : 1)}
                                 height={barH}
-                                fill={useGradient ? "url(#histGradient)" : barColor}
-                                stroke={isInfographic ? 'none' : '#fff'}
+                                fill={
+                                    style?.finish === 'glass'
+                                        ? (style?.colorPalette ? `url(#glassGradient-${i % style.colorPalette.length})` : `url(#glassGradient-default)`)
+                                        : (useGradient ? "url(#histGradient)" : barColor)
+                                }
+                                stroke={style?.finish === 'glass' ? "none" : (isInfographic ? 'none' : '#fff')}
                                 strokeWidth={1}
+                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
                             />
                             {isInfographic && (
                                 <text

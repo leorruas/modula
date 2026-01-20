@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassLineFilter, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { ensureDistinctColors } from '@/utils/colors';
 
 interface LineChartProps {
@@ -105,6 +105,16 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                     );
                 })}
 
+                {/* Glass Definitions */}
+                <defs>
+                    {style?.finish === 'glass' && (
+                        <>
+                            <g dangerouslySetInnerHTML={{ __html: createIOSGlassLineFilter('glassLineFilter') }} />
+                            <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('glassPointFilter') }} />
+                        </>
+                    )}
+                </defs>
+
                 {/* Axes */}
                 <line
                     x1={0}
@@ -147,7 +157,8 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 points={points}
-                                filter="url(#chartShadow)"
+                                filter={style?.finish === 'glass' ? "url(#glassLineFilter)" : "url(#chartShadow)"}
+                                opacity={style?.finish === 'glass' ? 0.9 : 1}
                             />
 
                             {/* Points & Labels */}
@@ -160,9 +171,10 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                                             cx={x}
                                             cy={y}
                                             r={isInfographic ? 6 : 4}
-                                            fill="#fff"
-                                            stroke={color}
+                                            fill={style?.finish === 'glass' ? color : "#fff"}
+                                            stroke={style?.finish === 'glass' ? "none" : color}
                                             strokeWidth={isInfographic ? 3 : 2.5}
+                                            filter={style?.finish === 'glass' ? "url(#glassPointFilter)" : undefined}
                                         />
 
                                         {/* Show label only for first dataset to avoid clutter? 

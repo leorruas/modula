@@ -30,6 +30,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
 
     const [chartMode, setChartMode] = useState<'classic' | 'infographic'>('classic');
     const [useGradient, setUseGradient] = useState(false);
+    const [finish, setFinish] = useState<'standard' | 'glass'>('standard');
     const [colorPreset, setColorPreset] = useState<ColorPresetKey>('vibrantModern');
 
     const [inputMode, setInputMode] = useState<'csv' | 'json'>('csv');
@@ -65,6 +66,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     if (project.defaultStyle.fontFamily) setFontFamily(project.defaultStyle.fontFamily);
                     if (project.defaultStyle.mode) setChartMode(project.defaultStyle.mode);
                     if (project.defaultStyle.useGradient !== undefined) setUseGradient(project.defaultStyle.useGradient);
+                    if (project.defaultStyle.finish) setFinish(project.defaultStyle.finish);
                 } else if (user) {
                     // Apply User Defaults if no project defaults
                     const prefs = await userPreferencesService.getUserPreferences(user.uid);
@@ -72,6 +74,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         if (prefs.defaultStyle.fontFamily) setFontFamily(prefs.defaultStyle.fontFamily);
                         if (prefs.defaultStyle.mode) setChartMode(prefs.defaultStyle.mode);
                         if (prefs.defaultStyle.useGradient !== undefined) setUseGradient(prefs.defaultStyle.useGradient);
+                        if (prefs.defaultStyle.finish) setFinish(prefs.defaultStyle.finish);
                     }
                 }
             }
@@ -221,6 +224,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     if (chart.style?.useGradient !== undefined) {
                         setUseGradient(chart.style.useGradient);
                     }
+                    if (chart.style?.finish) {
+                        setFinish(chart.style.finish);
+                    }
+                    if (chart.style?.finish) {
+                        setFinish(chart.style.finish);
+                    }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
                 }
@@ -328,7 +337,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     colorPalette: palette,
                     fontFamily,
                     mode: chartMode,
-                    useGradient
+                    useGradient,
+                    finish
                 }
             });
             triggerRefresh();
@@ -367,7 +377,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     colorPalette: palette,
                     fontFamily,
                     mode: chartMode,
-                    useGradient
+                    useGradient,
+                    finish
                 }
             });
             triggerRefresh();
@@ -411,7 +422,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 defaultStyle: {
                     fontFamily,
                     mode: chartMode,
-                    useGradient
+                    useGradient,
+                    finish
                 }
             });
             toast.success("Padrões salvos no projeto");
@@ -429,7 +441,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 defaultStyle: {
                     fontFamily,
                     mode: chartMode,
-                    useGradient
+                    useGradient,
+                    finish
                 }
             });
             toast.success("Suas preferências foram salvas");
@@ -861,7 +874,13 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <span style={{ fontSize: 11, color: !useGradient ? '#666' : '#bbb' }}>Não</span>
                             <button
-                                onClick={() => setUseGradient(!useGradient)}
+                                onClick={() => {
+                                    const newValue = !useGradient;
+                                    setUseGradient(newValue);
+                                    if (newValue && finish === 'glass') {
+                                        setFinish('standard');
+                                    }
+                                }}
                                 style={{
                                     position: 'relative',
                                     width: 44,
@@ -887,6 +906,57 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                 }} />
                             </button>
                             <span style={{ fontSize: 11, color: useGradient ? '#8b5cf6' : '#bbb', fontWeight: useGradient ? 600 : 400 }}>Sim</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Glass Finish Toggle */}
+                <div style={{ marginTop: 10 }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#f8f9fa',
+                        borderRadius: 8,
+                        border: '1px solid #e9ecef'
+                    }}>
+                        <span style={{ fontSize: 13, color: '#444' }}>Acabamento Cristal? (Glass)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 11, color: finish !== 'glass' ? '#666' : '#bbb' }}>Padrão</span>
+                            <button
+                                onClick={() => {
+                                    const newFinish = finish === 'glass' ? 'standard' : 'glass';
+                                    setFinish(newFinish);
+                                    if (newFinish === 'glass' && useGradient) {
+                                        setUseGradient(false);
+                                    }
+                                }}
+                                style={{
+                                    position: 'relative',
+                                    width: 44,
+                                    height: 24,
+                                    background: finish === 'glass' ? '#0ea5e9' : '#cbd5e1', // Cyan for Glass
+                                    border: 'none',
+                                    borderRadius: 12,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.2s',
+                                    padding: 0
+                                }}
+                            >
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 2,
+                                    left: finish === 'glass' ? 22 : 2,
+                                    width: 20,
+                                    height: 20,
+                                    background: 'white',
+                                    borderRadius: '50%',
+                                    transition: 'left 0.2s',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                }} />
+                            </button>
+                            <span style={{ fontSize: 11, color: finish === 'glass' ? '#0ea5e9' : '#bbb', fontWeight: finish === 'glass' ? 600 : 400 }}>Vidro</span>
                         </div>
                     </div>
                 </div>

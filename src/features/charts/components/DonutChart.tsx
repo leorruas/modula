@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 
 interface DonutChartProps {
@@ -52,6 +52,15 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                         <stop offset="100%" stopColor={color} stopOpacity="0.7" />
                     </radialGradient>
                 ))}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        {colors.map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                    </>
+                )}
             </defs>
             <g transform={`translate(${centerX}, ${centerY})`}>
                 {values.map((value, i) => {
@@ -91,9 +100,13 @@ export function DonutChart({ width, height, data, style, baseFontSize = 11, base
                         <g key={i}>
                             <path
                                 d={pathData}
-                                fill={useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length]}
-                                filter="url(#chartShadow)"
-                                stroke="#fff"
+                                fill={
+                                    style?.finish === 'glass'
+                                        ? `url(#glassGradient-${i % colors.length})`
+                                        : (useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length])
+                                }
+                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
+                                stroke={style?.finish === 'glass' ? "none" : "#fff"}
                                 strokeWidth={isInfographic ? 3 : 1.5}
                                 strokeLinejoin="round"
                             />

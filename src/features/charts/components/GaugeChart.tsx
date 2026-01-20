@@ -2,7 +2,7 @@
 
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 
 interface GaugeChartProps {
     width: number;
@@ -70,16 +70,23 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                     <stop offset="0%" stopColor={color} stopOpacity={0.8} />
                     <stop offset="100%" stopColor={color} stopOpacity={1} />
                 </linearGradient>
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient`, color) }} />
+                    </>
+                )}
             </defs>
 
             {/* Progress Bar */}
             <path
                 d={describeArc(centerX, centerY, radius, startAngle, currentAngle)}
                 fill="none"
-                stroke={useGradient ? `url(#gaugeGradient-${value})` : color}
+                stroke={style?.finish === 'glass' ? `url(#glassGradient)` : (useGradient ? `url(#gaugeGradient-${value})` : color)}
                 strokeWidth={strokeWidth}
                 strokeLinecap="round"
-                filter="url(#chartShadow)"
+                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#chartShadow)"}
             />
 
             {/* Value Text */}

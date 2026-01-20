@@ -141,6 +141,11 @@ O sistema deve oferecer um modo de visualização limpa para simular o resultado
     *   **Radiais**: (Pie, Bubble, Radar, Scatter) Usam transição de 100% → 85% → 60% de opacidade para profundidade 3D.
     *   **Lineares**: (Column, Bar, Area, Histogram, Mixed) Usam transição de 100% → 70%.
 *   **Sombras (Depth)**: Aplicado um filtro SVG `chartShadow` (drop-shadow sutil) aos elementos de dados para destacar o gráfico do canvas.
+*   **Acabamento Cristal (Liquid Glass)**:
+    *   **Definição**: Acabamento estético que simula vidro líquido ("Gummy") usando filtros morfológicos internos (Rim Light) em vez de bordas físicas.
+    *   **Exclusividade**: Este acabamento é **mutuamente exclusivo** com o efeito de Gradiente. Ativar um desativa o outro automaticamente na interface.
+    *   **Disponibilidade**: Disponível para todos os tipos de gráfico.
+    *   **Comportamento em Linhas**: Em gráficos de linha (Line, Mixed), o filtro aplica uma erosão reduzida (0.5px) para evitar o desaparecimento de traços finos.
 
 ### 2.9 Tipos de Gráficos
 O sistema deve suportar uma ampla gama de visualizações para cobrir necessidades editoriais:

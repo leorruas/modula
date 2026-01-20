@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## Unreleased (2026-01-20)
+
+### 📝 Documentation
+
+- **skills:** update premium polish skill with print vs app ui guidelines ([d208714](https://github.com/leorruas/modula/commit/d20871493936a4004c9dfa06a42a8dbd995960dc)) - *2026-01-20 07:10*
+- **changelog:** update for deployment deploy-2026-01-19T21-17-20 ([f39bb55](https://github.com/leorruas/modula/commit/f39bb55518aa15adde5ddc35d9caf759effec16f)) - *2026-01-19 18:17*
+
 ### 🚧 deploy-2026-01-19T21-17-20 (2026-01-19)
 
 > **Tracking Version**: This is a pre-release or snapshot.

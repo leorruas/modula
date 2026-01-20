@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient } from '@/utils/chartTheme';
 
 interface MixedChartProps {
     width: number;
@@ -91,6 +91,20 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                         )}
                     </>
                 )}
+                {/* Glass Definitions */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassLineFilter('glassLineFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('glassPointFilter') }} />
+                        {(style?.colorPalette || [color1]).map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                        {!style?.colorPalette && (
+                            <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-default`, color1) }} />
+                        )}
+                    </>
+                )}
             </defs>
             <g transform={`translate(${padding}, ${padding})`}>
                 {!isInfographic && (
@@ -116,8 +130,13 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                                 y={y}
                                 width={barWidth}
                                 height={barHeight}
-                                fill={useGradient ? (style?.colorPalette ? `url(#mixedBarGrad-${i % style.colorPalette.length})` : "url(#mixedBarGrad-default)") : barColor}
+                                fill={
+                                    style?.finish === 'glass'
+                                        ? (style?.colorPalette ? `url(#glassGradient-${i % style.colorPalette.length})` : `url(#glassGradient-default)`)
+                                        : (useGradient ? (style?.colorPalette ? `url(#mixedBarGrad-${i % style.colorPalette.length})` : "url(#mixedBarGrad-default)") : barColor)
+                                }
                                 rx={isInfographic ? 4 : 0}
+                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
                             />
                             <text
                                 x={i * slotWidth + slotWidth / 2}
@@ -152,15 +171,18 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             points={polylinePoints}
+                            filter={style?.finish === 'glass' ? "url(#glassLineFilter)" : undefined}
+                            opacity={style?.finish === 'glass' ? 0.9 : 1}
                         />
                         {linePoints.map((p, i) => (
                             <circle
                                 key={`dot-${i}`}
                                 cx={p.x} cy={p.y}
                                 r={isInfographic ? 5 : 3}
-                                fill="#fff"
-                                stroke={color2}
+                                fill={style?.finish === 'glass' ? color2 : "#fff"}
+                                stroke={style?.finish === 'glass' ? "none" : color2}
                                 strokeWidth={2}
+                                filter={style?.finish === 'glass' ? "url(#glassPointFilter)" : undefined}
                             />
                         ))}
                     </>

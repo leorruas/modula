@@ -143,6 +143,127 @@ export const createShadowFilter = (id: string) => {
 };
 
 /**
+ * Generate glass effect filter
+ * Simulates glass with inner highlight, shadow, and blur
+ */
+/**
+ * Creates an iOS-style "Liquid Glass" filter
+ * Mimics inner glow/rim light using morphology
+ */
+/**
+ * Creates an iOS-style "Liquid Glass" filter
+ * uses morphological erosion to create a sharp rim light *inside* the shape
+ */
+export const createIOSGlassFilter = (id: string) => {
+    return `
+        <defs>
+            <filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">
+                
+                <!-- 1. The Rim Light (Top/Left Highlight) -->
+                <!-- Erode the alpha to shrink it by 1px -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="1.2" result="eroded" />
+                <!-- Blur it slightly to soften -->
+                <feGaussianBlur in="eroded" stdDeviation="0.8" result="blurredErode" />
+                <!-- Cut the eroded part OUT of the original to leave just the edge -->
+                <!-- Use 'out' to keep SourceAlpha where blurredErode is NOT -->
+                <feComposite in="SourceAlpha" in2="blurredErode" operator="out" result="rimMask" />
+                
+                <!-- Color the rim white -->
+                <feFlood flood-color="white" flood-opacity="0.95" result="whiteColor" />
+                <feComposite in="whiteColor" in2="rimMask" operator="in" result="rimLight" />
+
+                <!-- 2. The Inner Glow (Volume/Gummy feel) -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="4" result="deepErode" />
+                <feGaussianBlur in="deepErode" stdDeviation="5" result="innerBlur" />
+                <feComposite in="SourceAlpha" in2="innerBlur" operator="out" result="innerGlowMask" />
+                <feFlood flood-color="white" flood-opacity="0.3" result="glowColor" />
+                <feComposite in="glowColor" in2="innerGlowMask" operator="in" result="innerGlow" />
+
+                <!-- 3. Soft Drop Shadow (Light transmission) -->
+                <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="shadowBlur" />
+                <feOffset dx="0" dy="3" in="shadowBlur" result="shadowOffset" />
+                <feFlood flood-color="black" flood-opacity="0.1" result="shadowColor" />
+                <feComposite in="shadowColor" in2="shadowOffset" operator="in" result="dropShadow" />
+
+                <!-- 4. Merge Stack -->
+                <feMerge>
+                    <feMergeNode in="dropShadow" />
+                    <feMergeNode in="SourceGraphic" />
+                    <feMergeNode in="innerGlow" />
+                    <feMergeNode in="rimLight" />
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+};
+
+export const createGlassGradient = (id: string, color: string) => {
+    return `
+        <defs>
+            <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${color}" stop-opacity="0.85" />
+                <stop offset="100%" stop-color="${color}" stop-opacity="0.4" />
+            </linearGradient>
+        </defs>
+    `;
+};
+
+/**
+ * Optimized Glass Filter for Thin Lines
+ * Uses smaller erosion to prevent the line from disappearing
+ */
+export const createIOSGlassLineFilter = (id: string) => {
+    return `
+        <defs>
+            <filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">
+                <!-- 1. Rim Light (Gentler Erosion for Lines) -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="0.5" result="eroded" />
+                <feGaussianBlur in="eroded" stdDeviation="0.4" result="blurredErode" />
+                <feComposite in="SourceAlpha" in2="blurredErode" operator="out" result="rimMask" />
+                
+                <feFlood flood-color="white" flood-opacity="0.95" result="whiteColor" />
+                <feComposite in="whiteColor" in2="rimMask" operator="in" result="rimLight" />
+
+                <!-- 2. Inner Glow (Reduced for thinner stroke) -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="1" result="deepErode" />
+                <feGaussianBlur in="deepErode" stdDeviation="2" result="innerBlur" />
+                <feComposite in="SourceAlpha" in2="innerBlur" operator="out" result="innerGlowMask" />
+                <feFlood flood-color="white" flood-opacity="0.4" result="glowColor" />
+                <feComposite in="glowColor" in2="innerGlowMask" operator="in" result="innerGlow" />
+
+                <!-- 3. Soft Drop Shadow -->
+                <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="shadowBlur" />
+                <feOffset dx="0" dy="2" in="shadowBlur" result="shadowOffset" />
+                <feFlood flood-color="black" flood-opacity="0.15" result="shadowColor" />
+                <feComposite in="shadowColor" in2="shadowOffset" operator="in" result="dropShadow" />
+
+                <!-- 4. Merge Stack -->
+                <feMerge>
+                    <feMergeNode in="dropShadow" />
+                    <feMergeNode in="SourceGraphic" />
+                    <feMergeNode in="innerGlow" />
+                    <feMergeNode in="rimLight" />
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+};
+
+export const createGlassBorderGradient = (id: string) => {
+    return `
+        <defs>
+            <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="white" stop-opacity="0.9" />
+                <stop offset="20%" stop-color="white" stop-opacity="0.2" />
+                <stop offset="80%" stop-color="white" stop-opacity="0.2" />
+                <stop offset="100%" stop-color="white" stop-opacity="0.9" />
+            </linearGradient>
+        </defs>
+    `;
+};
+
+
+/**
  * Get color from palette with fallback
  */
 export const getChartColor = (index: number, customPalette?: string[]): string => {

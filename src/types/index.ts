@@ -49,6 +49,9 @@ export interface ChartStyle {
     mode?: 'classic' | 'infographic'; // Dual-mode system
     useGradient?: boolean;
     showShadow?: boolean;
+    finish?: 'standard' | 'glass'; // New finish option
+    glassIntensity?: 'light' | 'medium' | 'heavy';
+    glassColor?: string; // Custom tint for glass
 }
 
 export interface Chart {

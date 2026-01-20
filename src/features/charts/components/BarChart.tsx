@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createGlassBorderGradient } from '@/utils/chartTheme';
 
 import { ensureDistinctColors } from '@/utils/colors';
 
@@ -144,6 +144,18 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                         <stop offset="100%" stopColor={color} stopOpacity="0.7" />
                     </linearGradient>
                 ))}
+
+                {/* Transparency / Glass Filter */}
+                {/* Transparency / Glass Filter */}
+                {style?.finish === 'glass' && (
+                    <>
+                        <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
+                        <g dangerouslySetInnerHTML={{ __html: createGlassBorderGradient('glassBorder') }} />
+                        {computedColors.map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-${i}`, color) }} />
+                        ))}
+                    </>
+                )}
             </defs>
 
             <g transform={`translate(${marginLeft}, ${marginTop})`}>
@@ -227,10 +239,16 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             y={barY}
                                             width={barW}
                                             height={barHeight - barInnerGap}
-                                            fill={useGradient ? `url(#barGradient-${dsIndex % computedColors.length})` : color}
-                                            opacity={0.9}
+                                            fill={
+                                                style?.finish === 'glass'
+                                                    ? `url(#glassGradient-${dsIndex % computedColors.length})`
+                                                    : useGradient
+                                                        ? `url(#barGradient-${dsIndex % computedColors.length})`
+                                                        : color
+                                            }
+                                            opacity={style?.finish === 'glass' ? 1 : 0.9}
                                             rx={radius}
-                                            filter="url(#barShadow)"
+                                            filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#barShadow)"}
                                         />
 
                                         {/* Value label */}
