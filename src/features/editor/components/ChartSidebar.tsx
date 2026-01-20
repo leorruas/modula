@@ -35,6 +35,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
 
     const [inputMode, setInputMode] = useState<'csv' | 'json'>('csv');
     const [csvInput, setCsvInput] = useState('');
+    const [isDragging, setIsDragging] = useState(false);
     const [recommendedType, setRecommendedType] = useState<ChartType | null>(null);
     const [recommendationReason, setRecommendationReason] = useState('');
 
@@ -282,8 +283,37 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 setRecommendedType(null);
                 setRecommendationReason('');
             }
+            toast.success("CSV processado com sucesso!");
         } catch (e) {
             console.error("CSV Parse Error", e);
+            toast.error("Erro ao processar CSV");
+        }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target?.result as string;
+                setCsvInput(text);
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        } else {
+            toast.error("Por favor, solte um arquivo .csv válido");
         }
     };
 
@@ -546,7 +576,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 {/* CSV Input Area */}
                 {inputMode === 'csv' && (
                     <>
-                        <div style={{ marginBottom: 10 }}>
+                        <div
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            style={{ marginBottom: 10 }}
+                        >
                             <label
                                 htmlFor="csv-upload"
                                 style={{
@@ -555,21 +590,25 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     width: '100%',
-                                    border: '1px dashed #ccc',
-                                    padding: '16px',
+                                    border: `2px dashed ${isDragging ? '#0ea5e9' : '#ccc'}`,
+                                    padding: '24px 16px',
                                     textAlign: 'center',
                                     cursor: 'pointer',
                                     borderRadius: 8,
                                     fontSize: 13,
-                                    color: '#666',
-                                    background: '#f9f9f9',
-                                    transition: 'background 0.2s'
+                                    color: isDragging ? '#0ea5e9' : '#666',
+                                    background: isDragging ? '#f0f9ff' : '#f9f9f9',
+                                    transition: 'all 0.2s',
+                                    transform: isDragging ? 'scale(1.02)' : 'scale(1)'
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.background = '#f0f0f0'}
-                                onMouseLeave={(e) => e.currentTarget.style.background = '#f9f9f9'}
                             >
-                                <span style={{ fontSize: 20, marginBottom: 4 }}>📂</span>
-                                <span>Upload CSV</span>
+                                <span style={{ fontSize: 24, marginBottom: 8 }}>{isDragging ? '📂' : '📄'}</span>
+                                <span style={{ fontWeight: 600, marginBottom: 4 }}>
+                                    {isDragging ? 'Solte para enviar' : 'Clique ou Arraste o CSV'}
+                                </span>
+                                <span style={{ fontSize: 11, color: '#999' }}>
+                                    Suporta arquivos .csv simples
+                                </span>
                             </label>
                             <input
                                 id="csv-upload"
@@ -590,15 +629,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                 }}
                             />
                         </div>
-                        <textarea
-                            value={csvInput}
-                            onChange={(e) => {
-                                setCsvInput(e.target.value);
-                                parseCSV(e.target.value);
-                            }}
-                            placeholder="Categoria, Valor 1, Valor 2&#10;A, 10, 20&#10;B, 30, 40"
-                            style={{ width: '100%', height: 100, fontFamily: 'monospace', fontSize: 12, padding: 10, borderRadius: 6, border: '1px solid #ddd', marginBottom: 8, resize: 'vertical' }}
-                        />
+                        {csvInput && !recommendedType && (
+                            <div style={{ padding: '8px 12px', background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: 6, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 14 }}>✅</span>
+                                <span style={{ fontSize: 12, color: '#047857', fontWeight: 500 }}>CSV Carregado com sucesso</span>
+                            </div>
+                        )}
                         {recommendedType && (
                             <div style={{ marginTop: 10, padding: 12, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 6 }}>
                                 <p style={{ fontSize: 12, color: '#0369a1', margin: '0 0 6px 0', fontWeight: 600 }}>

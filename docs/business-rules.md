@@ -121,13 +121,17 @@ O sistema deve oferecer um modo de visualização limpa para simular o resultado
 
 ### 2.7. Importação em Lote (Bulk Import)
 *   **Upload CSV/Excel**: O sistema deve permitir o upload de um arquivo contendo múltiplos datasets.
+    *   **Drag & Drop**: A interface deve suportar arrastar e soltar arquivos CSV diretamente na sidebar para carregamento rápido.
 *   **Fluxo de Mapeamento (Wizard)**: Após o upload, deve haver uma etapa intermediária obrigatória onde o usuário define para cada dataset identificado:
     1.  **Tipo de Gráfico**: (ex: Linha, Barras, Pizza).
     2.  **Ocupação Modular**: (ex: 2x2, 4x3, Largura Total).
 *   **Geração Automática**: O sistema distribuirá os gráficos automaticamente nas páginas disponíveis ou criará novas páginas/capítulos conforme necessário para acomodar o lote.
 
 ### 2.8. Estilização
-*   **Cores**: O sistema deve permitir a definição de **paletas de cores** (múltiplas cores) para um gráfico, não apenas uma cor única. Isso é essencial para diferenciar séries de dados ou categorias (ex: Pizza, Barras Empilhadas).
+*   **Cores**: O sistema deve permitir a definição de **paletas de cores** (múltiplas cores) para um gráfico.
+    *   **Lógica de Cores Inteligente**:
+        *   *Série Única*: Se o gráfico (Barra/Coluna) tiver apenas 1 dataset, ele deve usar **uma cor diferente para cada categoria** (ciclando pela paleta).
+        *   *Múltiplas Séries*: Se houver >1 dataset, cada série tem uma cor única uniforme para fins de comparação.
 *   **Cores do Projeto**: O projeto deve manter uma paleta de cores global que pode ser aplicada rapidamente aos gráficos.
 *   **Tipografia**: Deve seguir a estética editorial (fontes serifadas/modernas).
 *   **Rótulos de Eixos**: Gráficos devem suportar rótulos opcionais para eixos X e Y (ex: "Mês", "Vendas em R$"), essenciais para clareza editorial.

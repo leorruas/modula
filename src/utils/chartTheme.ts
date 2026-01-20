@@ -249,7 +249,42 @@ export const createIOSGlassLineFilter = (id: string) => {
     `;
 };
 
+// ... existing code ...
+/**
+ * Optimized Glass Filter for Mini Icons (Legend)
+ * Scaled down for 12px-14px usage
+ */
+export const createMiniIOSGlassFilter = (id: string) => {
+    return `
+        <defs>
+            <filter id="${id}" x="-50%" y="-50%" width="200%" height="200%">
+                <!-- Mini Rim Light -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="0.5" result="eroded" />
+                <feGaussianBlur in="eroded" stdDeviation="0.3" result="blurredErode" />
+                <feComposite in="SourceAlpha" in2="blurredErode" operator="out" result="rimMask" />
+                <feFlood flood-color="white" flood-opacity="0.9" result="whiteColor" />
+                <feComposite in="whiteColor" in2="rimMask" operator="in" result="rimLight" />
+
+                <!-- Mini Inner Glow -->
+                <feMorphology in="SourceAlpha" operator="erode" radius="1.5" result="deepErode" />
+                <feGaussianBlur in="deepErode" stdDeviation="1.5" result="innerBlur" />
+                <feComposite in="SourceAlpha" in2="innerBlur" operator="out" result="innerGlowMask" />
+                <feFlood flood-color="white" flood-opacity="0.4" result="glowColor" />
+                <feComposite in="glowColor" in2="innerGlowMask" operator="in" result="innerGlow" />
+
+                <!-- Merge -->
+                <feMerge>
+                    <feMergeNode in="SourceGraphic" />
+                    <feMergeNode in="innerGlow" />
+                    <feMergeNode in="rimLight" />
+                </feMerge>
+            </filter>
+        </defs>
+    `;
+};
+
 export const createGlassBorderGradient = (id: string) => {
+    // ... existing code ...
     return `
         <defs>
             <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1">

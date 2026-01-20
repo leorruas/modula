@@ -1,6 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 import { ensureDistinctColors } from '@/utils/colors';
 
 interface ColumnChartProps {
@@ -64,7 +64,8 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
 
     // Color logic
     const baseColors = style?.colorPalette || [getChartColor(0)];
-    const computedColors = ensureDistinctColors(baseColors, barsPerGroup);
+    const isSingleSeries = data.datasets.length === 1;
+    const computedColors = ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
 
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const useGradient = style?.useGradient;
@@ -74,7 +75,20 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
             {data.datasets.map((ds, i) => (ds.label && (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: 3, background: computedColors[i % computedColors.length] }} />
+                    {style?.finish === 'glass' ? (
+                        <svg width="14" height="14" viewBox="0 0 14 14" style={{ overflow: 'visible' }}>
+                            <g dangerouslySetInnerHTML={{ __html: createMiniIOSGlassFilter(`miniGlassCol-${i}`) }} />
+                            <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`miniGradCol-${i}`, computedColors[i % computedColors.length]) }} />
+                            <rect
+                                x="1" y="1" width="12" height="12" rx="3"
+                                fill={`url(#miniGradCol-${i})`}
+                                filter={`url(#miniGlassCol-${i})`}
+                                stroke="white" strokeWidth="0.5" strokeOpacity="0.5"
+                            />
+                        </svg>
+                    ) : (
+                        <div style={{ width: 12, height: 12, borderRadius: 3, background: computedColors[i % computedColors.length] }} />
+                    )}
                     <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily }}>{ds.label}</span>
                 </div>
             )))}
@@ -187,8 +201,8 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             height={barH}
                                             fill={
                                                 style?.finish === 'glass'
-                                                    ? `url(#glassGradient-${dsIndex % computedColors.length})`
-                                                    : (useGradient ? `url(#colGradient-${dsIndex % computedColors.length})` : color)
+                                                    ? `url(#glassGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})`
+                                                    : (useGradient ? `url(#colGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})` : (isSingleSeries ? computedColors[i % computedColors.length] : computedColors[dsIndex % computedColors.length]))
                                             }
                                             opacity={style?.finish === 'glass' ? 1 : 0.9}
                                             rx={(colWidth - colInnerGap) / 2}

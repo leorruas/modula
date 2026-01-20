@@ -4,7 +4,8 @@
 30) [RESOLVIDO] no gráfico de coluna, eu não gostei do layout das legendas na diagonal.
 31) [RESOLVIDO] no gráfico de barras, se o texto é muito longo, ele poderia ter múltiplas linhas também né? 
 porque na hora que diminui o gráfico, ele não quebra a linha
-32) quando tiver usando o estilo de glass tem que tirar o toggle ativo de gradiente e o mesmo vale ao contrário, não tem diferença nenhuma ao usar os dois. 
-33) lembra que tínhamos uma regra: quando o usuário tiver só uma coluna de dados, a gente usuaria o máximo de cores possível nos gráficos. quando tiver mais de uma, daí temos que usar cores para diferenciar para comparar os dados. 
+32) [RESOLVIDO] quando tiver usando o estilo de glass tem que tirar o toggle ativo de gradiente e o mesmo vale ao contrário, não tem diferença nenhuma ao usar os dois. 
+33) [RESOLVIDO] lembra que tínhamos uma regra: quando o usuário tiver só uma coluna de dados, a gente usuaria o máximo de cores possível nos gráficos. quando tiver mais de uma, daí temos que usar cores para diferenciar para comparar os dados. 
+34) [RESOLVIDO] no upload de csv, o usuário deveria poder arrastar o arquivo até a área de upload. e aí não precisa mostrar aquele campo com o código logo abaixo. 
 ------
 usa as skills de debug, construction e documentation pra criar um plano?

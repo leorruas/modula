@@ -29,7 +29,9 @@ The interface uses a strictly neutral palette to avoid competing with the artwor
 O sistema agora oferece 18 paletas segmentadas por intenção editorial (Economist, Financial Times, Guardian, Vibrant, Pastel, CB-Safe, etc.), acessíveis via `src/utils/chartTheme.ts`.
 
 #### Maximum Color Usage Rule
-For **Pictograms, Histograms, Mixed Charts, and Bubble Charts**, the system maximizes the use of the palette.
+For **Single Series Bar/Column Charts, Pictograms, Histograms, Mixed Charts, and Bubble Charts**, the system maximizes the use of the palette.
+*   **Smart Color Logic**: When a chart has only one data column (single series), it cycles through the entire palette to distinct each data point (bar/column).
+*   **Multi-Series**: When multiple datasets exist, standard color-per-series logic applies for comparison.
 *   Instead of a single primary color, these charts cycle through the entire selected palette.
 *   **Purpose**: To create more vibrant and distinguishable data points, especially in infographic modes.
 

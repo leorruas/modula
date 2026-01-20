@@ -16,6 +16,7 @@ You must update the following documents, when the improvement has been approved,
 - **docs/engineering-handbook.md**: Reference for coding standards.
 - **docs/business-rules.md**: Source of truth for logic. Update if logic changes.
 - **docs/style-guide.md**: Reference for UI/UX patterns.
+- **docs/coisas-a-alterar.md**: Update the status of the items you have resolved (mark as [RESOLVIDO]).
 
 ## 3. Update skills
 In case, any of those changes have created some new rule to update the skills, you should also update the skills with the new rule. And inform the user about it.

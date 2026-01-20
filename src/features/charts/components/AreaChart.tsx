@@ -85,7 +85,17 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
             {data.datasets.map((ds, i) => (ds.label && (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <div style={{ width: 12, height: 12, borderRadius: 3, background: getChartColor(i) }} />
+                    <div style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 3,
+                        background: getChartColor(i),
+                        ...(style?.finish === 'glass' && {
+                            backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.5), rgba(0,0,0,0.1))',
+                            border: '1px solid rgba(255,255,255,0.8)',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+                        })
+                    }} />
                     <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily: CHART_THEME.fonts.label }}>{ds.label}</span>
                 </div>
             )))}
