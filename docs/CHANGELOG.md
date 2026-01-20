@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+### 🚀 Bar Chart Infographic Transformation (2026-01-20)
+
+#### ✨ New Features
+
+- **Phased Infographic System**: Complete overhaul focused on editorial storytelling and visual impact.
+- **Typographic Hierarchy (Phase 1)**: Automatic scaling, weight, and casing adjustments based on data magnitude.
+- **User Controls Modal (Phase 2)**: Added a premium React Portal-based modal for manual hero selection, delta percentages, and custom annotations.
+- **Dynamic Legend Layout**: Added support for Top, Bottom, Left, Right and None legend positions with adaptive layout.
+- **Smart Data Detection (Phase 3)**: Implemented automatic Max/Min badges (🏆/🔻) and support for per-value metadata annotations directly from JSON.
+
+#### 🐛 Bug Fixes
+
+- **Modal UI**: Resolved clipping and z-index issues in the chart sidebar using React Portals.
+- **Variable Scoping**: Fixed runtime ReferenceError in BarChart annotation logic.
+
 ### 🚧 deploy-2026-01-20T12-52-52 (2026-01-20)
 
 > **Tracking Version**: This is a pre-release or snapshot.

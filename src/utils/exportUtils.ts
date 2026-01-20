@@ -34,16 +34,20 @@ export async function generateChartImage(
             height: height,
             cacheBust: true,
             skipAutoScale: true,
-            // FILTER: Eclude selection UI elements
+            // FILTER: Exclude selection UI elements
             filter: (node) => {
                 const el = node as HTMLElement;
+                if (!el) return true;
+
                 // Exclude selection border
-                if (el.classList?.contains('selection-outline')) return false;
-                // Exclude resize handles (identified by cursor style or specific box-shadow if needed, but usually sibling divs)
-                // The resize handle in Canvas.tsx is a div with explicit style.cursor = 'se-resize'.
-                if (el.style?.cursor === 'se-resize') return false;
+                if (el.classList && typeof el.classList.contains === 'function' && el.classList.contains('selection-outline')) return false;
+
+                // Exclude resize handles
+                if (el.style && el.style.cursor === 'se-resize') return false;
+
                 // Exclude validation messages
-                if (el.innerText?.includes('Validation Issues')) return false;
+                if (el.innerText && typeof el.innerText === 'string' && el.innerText.includes('Validation Issues')) return false;
+
                 return true;
             },
             style: {
@@ -52,8 +56,11 @@ export async function generateChartImage(
                 left: `${padding}px`, // Offset content by padding
                 top: `${padding}px`,
             },
-            fontEmbedCSS: '', // WORKAROUND: Prevent "font is undefined" crash
         });
+
+        if (!dataUrl || dataUrl.length < 100) {
+            throw new Error("Generated image is empty or too small.");
+        }
 
         return {
             dataUrl,

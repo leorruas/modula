@@ -11,18 +11,49 @@ interface BarChartProps {
     style?: ChartStyle;
     baseFontSize?: number;
     baseFontUnit?: 'pt' | 'px' | 'mm';
+
+    // Phase 2: Optional Controls
+    heroValueIndex?: number;           // Manual hero value highlighting (index)
+    showValueAnnotations?: boolean;    // Show annotation badges
+    showDeltaPercent?: boolean;        // Show % vs average
+    annotationLabels?: string[];       // Custom labels for annotations (by index)
+    legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
 }
 
-export function BarChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: BarChartProps) {
+export function BarChart({
+    width,
+    height,
+    data,
+    style,
+    baseFontSize = 11,
+    baseFontUnit = 'pt',
+    heroValueIndex,
+    showValueAnnotations = false,
+    showDeltaPercent = false,
+    annotationLabels,
+    legendPosition
+}: BarChartProps) {
     if (!data.datasets || data.datasets.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
     const labels = data.labels || [];
     const isInfographic = style?.mode === 'infographic';
 
+    // Extract infographic config from style (allows control via style or direct props)
+    const infographicConfig = style?.infographicConfig;
+    const finalHeroValueIndex = heroValueIndex ?? infographicConfig?.heroValueIndex;
+    const finalShowValueAnnotations = showValueAnnotations || infographicConfig?.showValueAnnotations || false;
+    const finalShowDeltaPercent = showDeltaPercent || infographicConfig?.showDeltaPercent || false;
+    const finalAnnotationLabels = annotationLabels ?? infographicConfig?.annotationLabels;
+    const finalLegendPosition = legendPosition || style?.legendPosition || infographicConfig?.legendPosition || 'bottom';
+    const finalShowExtremes = infographicConfig?.showExtremes || false;
+    const finalUseMetadata = infographicConfig?.useMetadata || false;
+
     // Calculate global max value across all datasets
     const allValues = data.datasets.flatMap(d => d.data || []);
     const maxValue = Math.max(...allValues, 1); // Avoid 0
+    const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
+    const avgValue = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
 
     // Smart Margins & Dynamic Label Space
     const maxLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
@@ -91,8 +122,12 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
 
     // 2. Calculate scaling or centering
     // If it exceeds chartHeight, scale everything. If not, just center vertically.
-    const scaleFactor = totalNaturalHeight > chartHeight ? chartHeight / totalNaturalHeight : 1;
-    const verticalOffset = totalNaturalHeight < chartHeight ? (chartHeight - totalNaturalHeight) / 2 : 0;
+    // In Infographic mode, we ALWAYS scale to fill the height (Responsiveness rule)
+    const scaleFactor = isInfographic
+        ? (chartHeight / totalNaturalHeight)
+        : (totalNaturalHeight > chartHeight ? chartHeight / totalNaturalHeight : 1);
+
+    const verticalOffset = (!isInfographic && totalNaturalHeight < chartHeight) ? (chartHeight - totalNaturalHeight) / 2 : 0;
 
     // 3. Final positions and scaled dimensions
     const groupLayout: { y: number; height: number }[] = [];
@@ -105,7 +140,12 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
     }
 
     const barHeight = baseBarHeight * scaleFactor;
-    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif';
+
+    // Typography Skill: Dual-font system for Infographic
+    const narrativeFont = isInfographic ? (CHART_THEME.fonts.narrative || fontFamily) : fontFamily;
+    const dataFont = isInfographic ? (CHART_THEME.fonts.data || CHART_THEME.fonts.number || 'sans-serif') : (CHART_THEME.fonts.number || 'sans-serif');
+
     const useGradient = style?.useGradient;
 
     // Color logic
@@ -115,8 +155,16 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
     const computedColors = ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
 
     // Legend Component
-    const Legend = data.datasets.length > 1 ? (
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+    const isSideLegend = finalLegendPosition === 'left' || finalLegendPosition === 'right';
+    const Legend = (data.datasets.length > 1 && finalLegendPosition !== 'none') ? (
+        <div style={{
+            display: 'flex',
+            gap: isSideLegend ? 12 : 16,
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+            flexDirection: isSideLegend ? 'column' : 'row',
+            alignItems: isSideLegend ? 'flex-start' : 'center'
+        }}>
             {data.datasets.map((ds, i) => (ds.label && (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     {style?.finish === 'glass' ? (
@@ -133,14 +181,14 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                     ) : (
                         <div style={{ width: 12, height: 12, borderRadius: 3, background: computedColors[i % computedColors.length] }} />
                     )}
-                    <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily }}>{ds.label}</span>
+                    <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily: narrativeFont }}>{ds.label}</span>
                 </div>
             )))}
         </div>
     ) : null;
 
     return (
-        <BaseChart width={width} height={height} data={data} type="bar" legend={Legend}>
+        <BaseChart width={width} height={height} data={data} type="bar" legend={Legend} legendPosition={finalLegendPosition}>
             <defs>
                 <filter id="barShadow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur in="SourceAlpha" stdDeviation={CHART_THEME.effects.shadowBlur} />
@@ -204,10 +252,12 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                                 y={isStackedLayout ? fontSize * 0.8 * scaleFactor : (groupHeight - (barsPerGroup * barHeight)) / 2}
                                 dy={isStackedLayout ? ".35em" : ".35em"}
                                 textAnchor={isStackedLayout ? "start" : "end"}
-                                fontSize={fontSize}
-                                fontFamily={fontFamily}
-                                fontWeight={isInfographic || isStackedLayout ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                fontSize={fontSize * (isInfographic ? 0.85 : 1)}
+                                fontFamily={narrativeFont}
+                                fontWeight={isInfographic ? CHART_THEME.fontWeights.bold : (isStackedLayout ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium)}
+                                letterSpacing={isInfographic ? "0.08em" : "normal"}
                                 fill={CHART_THEME.colors.neutral.dark}
+                                opacity={isInfographic ? 0.6 : 1}
                             >
                                 <title>{label}</title>
                                 {isStackedLayout ? (
@@ -217,13 +267,16 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             x={0}
                                             dy={lineIdx === 0 ? 0 : fontSize * 1.2}
                                         >
-                                            {line}
+                                            {isInfographic ? line.toUpperCase() : line}
                                         </tspan>
                                     ))
                                 ) : (
-                                    label.length * charWidth > dynamicLabelSpace
-                                        ? label.substring(0, Math.floor(dynamicLabelSpace / charWidth) - 3) + '...'
-                                        : label
+                                    (() => {
+                                        const displayText = label.length * charWidth > dynamicLabelSpace
+                                            ? label.substring(0, Math.floor(dynamicLabelSpace / charWidth) - 3) + '...'
+                                            : label;
+                                        return isInfographic ? displayText.toUpperCase() : displayText;
+                                    })()
                                 )}
                             </text>
 
@@ -267,17 +320,167 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                                         />
 
                                         {/* Value label */}
-                                        <text
-                                            x={barW + 8}
-                                            y={barY + (barHeight - barInnerGap) / 2}
-                                            dy=".35em"
-                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small', isInfographic)}
-                                            fontFamily={CHART_THEME.fonts.number}
-                                            fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
-                                            fill={CHART_THEME.colors.neutral.dark}
-                                        >
-                                            {value}
-                                        </text>
+                                        {(() => {
+                                            // Calculate proportion for hierarchy
+                                            const ratio = value / maxValue;
+
+                                            // Typography hierarchy based on value proportion (only in infographic mode)
+                                            const getTypographyForValue = (ratio: number) => {
+                                                if (!isInfographic) {
+                                                    return {
+                                                        fontWeight: CHART_THEME.fontWeights.semibold,
+                                                        letterSpacing: 'normal',
+                                                        textTransform: 'none' as const,
+                                                        opacity: 1,
+                                                        sizeMultiplier: 1
+                                                    };
+                                                }
+
+                                                if (ratio >= 0.8) {
+                                                    // High values (80%+ of max): UPPERCASE + BLACK + TIGHT + 2x
+                                                    return {
+                                                        fontWeight: CHART_THEME.fontWeights.black,
+                                                        letterSpacing: '-0.04em',
+                                                        textTransform: 'uppercase' as const,
+                                                        opacity: 1,
+                                                        sizeMultiplier: 2.0
+                                                    };
+                                                } else if (ratio >= 0.5) {
+                                                    // Medium values (50-80%): normal + SEMIBOLD + slight tight + 1.5x
+                                                    return {
+                                                        fontWeight: CHART_THEME.fontWeights.semibold,
+                                                        letterSpacing: '-0.01em',
+                                                        textTransform: 'none' as const,
+                                                        opacity: 0.85,
+                                                        sizeMultiplier: 1.5
+                                                    };
+                                                } else {
+                                                    // Low values (<50%): normal + NORMAL + normal spacing + 1x
+                                                    return {
+                                                        fontWeight: CHART_THEME.fontWeights.normal,
+                                                        letterSpacing: 'normal',
+                                                        textTransform: 'none' as const,
+                                                        opacity: 0.6,
+                                                        sizeMultiplier: 1.0
+                                                    };
+                                                }
+                                            };
+
+                                            const typo = getTypographyForValue(ratio);
+
+                                            // PHASE 2: Hero Override
+                                            const isManualHero = heroValueIndex !== undefined
+                                                && heroValueIndex >= 0
+                                                && heroValueIndex < labels.length
+                                                && heroValueIndex === i;
+
+                                            const finalSizeMultiplier = isManualHero
+                                                ? typo.sizeMultiplier * 1.3  // 30% boost extra
+                                                : typo.sizeMultiplier;
+
+                                            const heroOpacityBoost = isManualHero ? 1 : typo.opacity;
+
+                                            const baseFontSizeValue = getScaledFont(
+                                                baseFontSize,
+                                                baseFontUnit,
+                                                isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small',
+                                                isInfographic
+                                            );
+
+                                            return (
+                                                <>
+                                                    {/* Annotation Badge (Phase 2 & 3) */}
+                                                    {(() => {
+                                                        let badgeText = "";
+                                                        let badgeColor = CHART_THEME.colors.neutral.medium;
+                                                        let showBadge = false;
+
+                                                        // 1. Manual Annotation (Highest Priority)
+                                                        if (finalShowValueAnnotations && isManualHero) {
+                                                            badgeText = finalAnnotationLabels?.[i] || "DESTAQUE";
+                                                            showBadge = true;
+                                                        }
+                                                        // 2. Metadata Annotation (Phase 3)
+                                                        else if (finalUseMetadata && dataset.metadata?.[i]) {
+                                                            badgeText = dataset.metadata[i];
+                                                            badgeColor = CHART_THEME.colors.primary[0] || '#3b82f6';
+                                                            showBadge = true;
+                                                        }
+                                                        // 3. Automatic Extremes (Phase 3)
+                                                        else if (finalShowExtremes && !isManualHero) {
+                                                            if (value === maxValue && value > avgValue) {
+                                                                badgeText = "🏆 MÁXIMO";
+                                                                badgeColor = '#d97706'; // Amber/Gold
+                                                                showBadge = true;
+                                                            } else if (value === minValue && value < avgValue) {
+                                                                badgeText = "🔻 MÍNIMO";
+                                                                badgeColor = '#ef4444'; // Red
+                                                                showBadge = true;
+                                                            }
+                                                        }
+
+                                                        if (!showBadge) return null;
+
+                                                        return (
+                                                            <text
+                                                                x={barW + 8}
+                                                                y={barY - 8}
+                                                                fontSize={baseFontSizeValue * 0.65}
+                                                                fontFamily={dataFont}
+                                                                fontWeight={CHART_THEME.fontWeights.bold}
+                                                                letterSpacing="0.1em"
+                                                                textAnchor="start"
+                                                                fill={badgeColor}
+                                                                opacity={0.6}
+                                                            >
+                                                                {badgeText.toUpperCase()}
+                                                            </text>
+                                                        );
+                                                    })()}
+
+                                                    {/* Value Text */}
+                                                    <text
+                                                        x={barW + 8}
+                                                        y={barY + (barHeight - barInnerGap) / 2}
+                                                        dy=".35em"
+                                                        fontSize={baseFontSizeValue * finalSizeMultiplier}
+                                                        fontFamily={dataFont}
+                                                        fontWeight={typo.fontWeight}
+                                                        letterSpacing={typo.letterSpacing}
+                                                        fill={CHART_THEME.colors.neutral.dark}
+                                                        opacity={heroOpacityBoost}
+                                                    >
+                                                        {typo.textTransform === 'uppercase' ? String(value).toUpperCase() : value}
+                                                    </text>
+
+                                                    {/* Delta Percent (Phase 2) */}
+                                                    {finalShowDeltaPercent && (() => {
+                                                        const delta = ((value - avgValue) / avgValue) * 100;
+                                                        const sign = delta > 0 ? '+' : '';
+                                                        const deltaText = delta === 0 ? '±0%' : `${sign}${delta.toFixed(0)}%`;
+
+                                                        // Calculate approximate width of main value
+                                                        const valueTextWidth = String(value).length * baseFontSizeValue * finalSizeMultiplier * 0.6;
+
+                                                        return (
+                                                            <text
+                                                                x={barW + 8 + valueTextWidth + 8}
+                                                                y={barY + (barHeight - barInnerGap) / 2}
+                                                                dy=".35em"
+                                                                fontSize={baseFontSizeValue * 0.55}
+                                                                fontFamily={dataFont}
+                                                                fontWeight={CHART_THEME.fontWeights.medium}
+                                                                letterSpacing="0.02em"
+                                                                fill={delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : CHART_THEME.colors.neutral.medium}
+                                                                opacity={0.65}
+                                                            >
+                                                                {deltaText}
+                                                            </text>
+                                                        );
+                                                    })()}
+                                                </>
+                                            );
+                                        })()}
                                     </g>
                                 );
                             })}
@@ -286,15 +489,17 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                 })}
 
                 {/* Y-axis line */}
-                <line
-                    x1={0}
-                    y1={0}
-                    x2={0}
-                    y2={chartHeight}
-                    stroke={CHART_THEME.colors.neutral.medium}
-                    strokeWidth={CHART_THEME.strokeWidths.axis}
-                    opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}
-                />
+                {!isInfographic && (
+                    <line
+                        x1={0}
+                        y1={0}
+                        x2={0}
+                        y2={chartHeight}
+                        stroke={CHART_THEME.colors.neutral.medium}
+                        strokeWidth={CHART_THEME.strokeWidths.axis}
+                        opacity={CHART_THEME.effects.axisOpacity}
+                    />
+                )}
 
                 {/* Axis labels */}
                 {data.xAxisLabel && (
@@ -302,26 +507,30 @@ export function BarChart({ width, height, data, style, baseFontSize = 11, baseFo
                         x={chartWidth / 2}
                         y={chartHeight + 25}
                         textAnchor="middle"
-                        fontSize={CHART_THEME.fontSizes.medium}
-                        fontFamily={CHART_THEME.fonts.title}
-                        fontWeight={CHART_THEME.fontWeights.semibold}
+                        fontSize={isInfographic ? CHART_THEME.fontSizes.small * 0.8 : CHART_THEME.fontSizes.medium}
+                        fontFamily={isInfographic ? dataFont : narrativeFont}
+                        fontWeight={CHART_THEME.fontWeights.medium}
+                        letterSpacing={isInfographic ? "0.12em" : "normal"}
                         fill={CHART_THEME.colors.neutral.medium}
+                        opacity={isInfographic ? 0.35 : 1}
                     >
-                        {data.xAxisLabel}
+                        {isInfographic ? data.xAxisLabel.toUpperCase() : data.xAxisLabel}
                     </text>
                 )}
                 {data.yAxisLabel && (
                     <text
                         transform="rotate(-90)"
                         x={-chartHeight / 2}
-                        y={-marginLeft + 15} // Position relative to new left margin
+                        y={-marginLeft + 15}
                         textAnchor="middle"
-                        fontSize={CHART_THEME.fontSizes.medium}
-                        fontFamily={CHART_THEME.fonts.title}
-                        fontWeight={CHART_THEME.fontWeights.semibold}
+                        fontSize={isInfographic ? CHART_THEME.fontSizes.small * 0.8 : CHART_THEME.fontSizes.medium}
+                        fontFamily={isInfographic ? dataFont : CHART_THEME.fonts.title}
+                        fontWeight={CHART_THEME.fontWeights.medium}
+                        letterSpacing={isInfographic ? "0.12em" : "normal"}
                         fill={CHART_THEME.colors.neutral.medium}
+                        opacity={isInfographic ? 0.35 : 1}
                     >
-                        {data.yAxisLabel}
+                        {isInfographic ? data.yAxisLabel.toUpperCase() : data.yAxisLabel}
                     </text>
                 )}
             </g>

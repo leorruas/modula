@@ -14,7 +14,7 @@ This skill is the "Art Director" of the agent. It separates the "Tool" (The App)
     - **Hover**: Scale (1.02) or Brightness.
     - **Active**: Scale down (0.98).
     - **Transition**: Always `duration-300 ease-out`.
-- [ ] **Typography**: Use tracking (`tracking-tight` on headings) and hierarchy (bold titles, muted subtitles).
+- [ ] **Typography**: Follow the [Typography Skill](../typography/SKILL.md). Use tracking (`tracking-tight` on headings) and hierarchy.
 
 ## 2. The Chart Output: "Print Perfection"
 *Guidance for the SVGs/Canvas inside the Grid.*

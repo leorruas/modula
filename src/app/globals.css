@@ -27,7 +27,7 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-geist-sans), Arial, sans-serif;
   /* Clean sans */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -39,9 +39,10 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: 'Georgia', serif;
-  /* Editorial serif */
-  font-weight: normal;
+  font-family: var(--font-geist-sans), sans-serif;
+  /* Standardizing on Geist Sans for clean modern look */
+  font-weight: 500;
+  letter-spacing: -0.02em; /* Tracking tight for headings */
 }
 
 * {

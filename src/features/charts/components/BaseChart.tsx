@@ -8,20 +8,37 @@ interface BaseChartProps {
     type: Chart['type'];
     children: ReactNode;
     legend?: ReactNode;
+    legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
 }
 
-export function BaseChart({ width, height, children, type, legend }: BaseChartProps) {
+export function BaseChart({ width, height, children, type, legend, legendPosition = 'bottom' }: BaseChartProps) {
+    if (legendPosition === 'none') {
+        legend = null;
+    }
+
+    const isSide = legendPosition === 'left' || legendPosition === 'right';
+    const isBottom = legendPosition === 'bottom';
+
     return (
         <div style={{
             width,
             height,
             position: 'relative',
             display: 'flex',
-            flexDirection: 'column',
-            gap: 12
+            flexDirection: isSide ? 'row' : (isBottom ? 'column-reverse' : 'column'),
+            gap: 16,
+            alignItems: isSide ? 'center' : 'stretch'
         }}>
-            {legend && <div>{legend}</div>}
-            <div style={{ flex: 1, position: 'relative' }}>
+            {legend && (
+                <div style={{
+                    flexShrink: 0,
+                    maxWidth: isSide ? '30%' : '100%',
+                    padding: isSide ? '0 8px' : '0'
+                }}>
+                    {legend}
+                </div>
+            )}
+            <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
                 <svg
                     width="100%"
                     height="100%"

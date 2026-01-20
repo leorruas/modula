@@ -33,6 +33,7 @@ export interface ChartData {
     datasets: {
         label: string;
         data: number[];
+        metadata?: string[]; // Phase 3: Per-value custom annotations
     }[];
     xAxisLabel?: string; // Optional X-axis label
     yAxisLabel?: string; // Optional Y-axis label
@@ -53,6 +54,18 @@ export interface ChartStyle {
     finish?: 'standard' | 'glass'; // New finish option
     glassIntensity?: 'light' | 'medium' | 'heavy';
     glassColor?: string; // Custom tint for glass
+    legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+
+    // Phase 2: Infographic Controls
+    infographicConfig?: {
+        heroValueIndex?: number;           // Manual hero value highlighting (index)
+        showValueAnnotations?: boolean;    // Show annotation badges
+        showDeltaPercent?: boolean;        // Show % vs average
+        annotationLabels?: string[];       // Custom labels for annotations (by index)
+        legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+        showExtremes?: boolean; // Phase 3: Highlight Max/Min automatically
+        useMetadata?: boolean;  // Phase 3: Use metadata from data for annotations
+    };
 }
 
 export interface Chart {

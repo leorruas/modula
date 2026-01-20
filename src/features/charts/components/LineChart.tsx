@@ -66,7 +66,8 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
     const chartHeight = height - marginTop - marginBottom;
     const effectiveBaselineY = chartHeight;
 
-    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif';
+    const dataFont = isInfographic ? (CHART_THEME.fonts.data || CHART_THEME.fonts.number || 'sans-serif') : (CHART_THEME.fonts.number || 'sans-serif');
 
     // Color logic: distinct color per dataset
     const baseColors = style?.colorPalette || [getChartColor(0)];

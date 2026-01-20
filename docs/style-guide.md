@@ -59,10 +59,12 @@ Used inside the chart renders. The user can switch between these.
 *   **Serif**: `Georgia, serif` (Editorial, Classic)
 *   **Monospace**: `monospace` (Data-heavy, Technical)
 
-### Hierarchy (Infographic Mode)
-*   **Big Numbers**: `56px - 96px`, Black (900) weight. The "Hero" of the visualization.
-*   **Titles**: `16px`, Semibold.
-*   **Labels**: `12px - 14px`, Regular or Medium.
+### Hierarchy (Infographic Mode - Proportional Scaling)
+- **High Values (80%+ of Max)**: **2.0x** relative size, `font-black`, `uppercase`, `tracking-tighter`.
+- **Medium Values (50-80% of Max)**: **1.5x** relative size, `font-semibold`, normal case.
+- **Low Values (<50% of Max)**: **1.0x** relative size, `font-normal`, muted opacity (0.6).
+- **Manual Hero Highlight**: **1.3x extra boost** over calculated hierarchy.
+- **Titles/Annotations**: `text-xs font-mono uppercase tracking-widest`.
 
 ---
 

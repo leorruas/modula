@@ -49,8 +49,13 @@ Strict adherence to these accounts is required to avoid permission errors or dep
 
 ## 4. Workflows
 
-### Automatic (Git Push)
-Vercel is linked to the GitHub repository. Pushing to the `main` branch triggers an automatic build and deploy to `modula-app.vercel.app`.
+### Vercel (Production)
+Since automatic git-based deployment has proven unreliable, we now enforce **Manual CLI Deployment** via the deploy script. This guarantees:
+1.  The deployed code exactly matches the local build.
+2.  Immediate feedback on deployment success/failure.
+3.  No "pending" states or sync delays.
+
+The script runs `npx vercel --prod --yes` automatically.
 
 ### Manual (Vercel CLI)
 Use this if the automated sync is delayed or if you need to bypass the Git flow for immediate testing.

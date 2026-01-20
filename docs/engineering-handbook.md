@@ -23,6 +23,12 @@
 *   **Modals & Overlays**: Always use React Portals (`ReactDOM.createPortal`) for modals, tooltips, and overlays to escape the stacking context ('z-index wars') of parent containers.
 *   **Component Isolation**: Sidebar components should handle their own visibility logic but rely on global stores for data.
 
+### Editorial Data Visualization (Infographic Mode)
+*   **Proportional Scale**: Don't use fixed font sizes for data values. Scale them based on magnitude (2.0x for max, 1.0x for min).
+*   **Narrative Badges**: Use contextual badges (🏆/🔻) for extremes instead of cluttered axes.
+*   **Hierarchy Priority**: Respect the precedence: Manual Overrides > Automated Indicators > Default Styles.
+*   **Transparency**: Supporting data (context) should hover at ~60% opacity to let the "Hero" data shine.
+
 ### Z-Index Hierarchy
 To maintain a predictable stacking order, follow these tiers:
 *   **Level 0 (Base)**: Canvas, Grids, Backgrounds.

@@ -7,6 +7,7 @@ import { userPreferencesService } from '@/services/userPreferencesService';
 import { ChartType } from '@/types';
 import { toast } from 'sonner';
 import { DataEditorModal } from './DataEditorModal';
+import { InfographicControlsModal } from './InfographicControlsModal';
 import { recommendChartType, getRecommendationReason } from '@/services/chartRecommendationService';
 import { generateMonochromaticPalette } from '@/utils/colors';
 import { COLOR_PRESETS, type ColorPresetKey } from '@/utils/chartTheme';
@@ -42,6 +43,18 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
     // Icon states
     const [iconModalOpen, setIconModalOpen] = useState(false);
     const [selectedIcon, setSelectedIcon] = useState<{ category: string; iconKey: string } | null>(null);
+
+    // Infographic Controls (Phase 2)
+    const [infographicControlsOpen, setInfographicControlsOpen] = useState(false);
+    const [infographicConfig, setInfographicConfig] = useState<{
+        heroValueIndex?: number;
+        showValueAnnotations?: boolean;
+        showDeltaPercent?: boolean;
+        annotationLabels?: string[];
+        legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+        showExtremes?: boolean;
+        useMetadata?: boolean;
+    }>({});
 
     // Data Modal
     const [dataModalOpen, setDataModalOpen] = useState(false);
@@ -228,8 +241,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     if (chart.style?.finish) {
                         setFinish(chart.style.finish);
                     }
-                    if (chart.style?.finish) {
-                        setFinish(chart.style.finish);
+                    if (chart.style?.infographicConfig) {
+                        setInfographicConfig(chart.style.infographicConfig);
                     }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
@@ -368,7 +381,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     fontFamily,
                     mode: chartMode,
                     useGradient,
-                    finish
+                    finish,
+                    infographicConfig: chartMode === 'infographic' ? infographicConfig : undefined
                 }
             });
             triggerRefresh();
@@ -408,7 +422,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     fontFamily,
                     mode: chartMode,
                     useGradient,
-                    finish
+                    finish,
+                    infographicConfig: chartMode === 'infographic' ? infographicConfig : undefined
                 }
             });
             triggerRefresh();
@@ -895,6 +910,41 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     </div>
                 </div>
 
+                {/* Infographic Controls Button (Phase 2) */}
+                {chartMode === 'infographic' && (
+                    <div style={{ marginTop: 10 }}>
+                        <button
+                            onClick={() => setInfographicControlsOpen(true)}
+                            style={{
+                                width: '100%',
+                                padding: '12px 16px',
+                                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                                border: '1px solid #bae6fd',
+                                borderRadius: 8,
+                                cursor: 'pointer',
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: '#0369a1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)';
+                                e.currentTarget.style.transform = 'translateY(-1px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            <span>⚙️ Controles Infográficos</span>
+                            <span style={{ fontSize: 14 }}>→</span>
+                        </button>
+                    </div>
+                )}
+
                 {/* Gradient Effect Toggle */}
                 <div style={{ marginTop: 10 }}>
                     <div style={{
@@ -1116,6 +1166,14 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 onClose={() => setDataModalOpen(false)}
                 initialData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
                 onSave={(newData) => setDataInput(JSON.stringify(newData, null, 2))}
+            />
+
+            <InfographicControlsModal
+                isOpen={infographicControlsOpen}
+                onClose={() => setInfographicControlsOpen(false)}
+                chartData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
+                currentConfig={infographicConfig}
+                onSave={(config) => setInfographicConfig(config)}
             />
         </div >
     );

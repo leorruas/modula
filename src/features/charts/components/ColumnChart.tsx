@@ -67,7 +67,8 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
     const isSingleSeries = data.datasets.length === 1;
     const computedColors = ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
 
-    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
+    const fontFamily = style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif';
+    const dataFont = isInfographic ? (CHART_THEME.fonts.data || CHART_THEME.fonts.number || 'sans-serif') : (CHART_THEME.fonts.number || 'sans-serif');
     const useGradient = style?.useGradient;
 
     // Legend Component

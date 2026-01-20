@@ -42,6 +42,12 @@ async function main() {
     console.log('🔥 Deploying to Firebase...');
     run('firebase deploy --only hosting');
 
+    // 6. Deploy to Vercel (Manual/CLI Override)
+    console.log('▲ Deploying to Vercel (Production)...');
+    // Using --yes to skip confirmation and --prod for production deployment
+    // We strictly use modula-app project as defined in SKILL.md
+    run('npx vercel --prod --yes --token $VERCEL_TOKEN || npx vercel --prod --yes');
+
     console.log('✅ Deployment successful!');
     console.log(`Version Tag: ${tagName}`);
 }

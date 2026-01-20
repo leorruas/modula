@@ -210,6 +210,23 @@ O sistema suporta **dois modos de visualização** por chart, permitindo flexibi
 - Labels externos (Pie/Donut)
 - Ideal para: publicações, apresentações
 
+#### 2.11.1.b Hierarquia Tipográfica Proporcional (Fase 1)
+- **Escalabilidade Automática**: O tamanho das fontes e pesos deve ser proporcional ao valor da barra/coluna:
+    - **Valores Altos (80%+ do Max)**: 2.0x tamanho base, Peso Black (900), Caixa Alta.
+    - **Valores Médios (50-80%)**: 1.5x tamanho base, Peso Semibold (600).
+    - **Valores Baixos (<50%)**: 1.0x tamanho base, Opacidade Reduzida (0.6).
+
+#### 2.11.2. Controles de Usuário (Fase 2)
+- **Hero Value Override**: O usuário pode selecionar manualmente um ponto de dados como "Hero". Este ponto recebe um bônus de 1.3x de tamanho sobre sua hierarquia calculada.
+- **Delta Percentage**: Exibição opcional da variação percentual (`+X%` ou `-Y%`) de cada valor em relação à média do dataset.
+- **Legendas Dinâmicas**: Suporte para posicionamento em Top, Bottom, Left, Right ou ocultação total.
+- **Anotações Customizadas**: Suporte para badges de texto (ex: "RECORDE") definidos manualmente no modal.
+
+#### 2.11.3. Inteligência de Dados (Fase 3)
+- **Destaque de Extremos (Opcional)**: Detecção automática e aplicação de badges 🏆 **MÁXIMO** e 🔻 **MÍNIMO**.
+- **Metadados de Dados**: Suporte para leitura de anotações diretamente do objeto de dados (campo `metadata` no JSON).
+- **Precedência de Badge**: Anotação Manual > Metadados > Extremos Automáticos.
+
 #### 2.11.2. UI Toggle
 
 **Implementação**: Toggle switch animado no ChartSidebar

@@ -70,11 +70,15 @@ export class PDFExportService {
                 try {
                     console.log(`Processing chart ${chart.id} for PDF (Raster)...`);
 
+                    // Wait a tiny bit for any layout/rendering to stabilize
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
                     // RASTER STRATEGY: Use html-to-image to get high-res PNG
                     // This is more robust for gradients, web fonts, and glass effects.
+                    // pixelRatio reduced from 6 to 3.5 to stay within canvas memory limits while maintaining high quality.
                     const { dataUrl } = await generateChartImage(child as HTMLElement, {
-                        // backgroundColor: '#fdfbf7', // REMOVED: Use transparent background to match editor
-                        pixelRatio: 6, // Ultra High resolution (approx 600 DPI)
+                        backgroundColor: '#ffffff', // Ensure white background for PDF rasterization
+                        pixelRatio: 3.5,
                         padding: 0 // NO PADDING for PDF to ensure exact sizing/positioning
                     });
 
