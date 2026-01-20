@@ -13,5 +13,7 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 38) [RESOLVIDO]no PNG, a legenda do gráfico não está saindo na imagem. 
 39) [RESOLVIDO]na verdade a proporção da página também tá errada. eu tenho um arquivo que é 1920x1080. ele não exporta no mesmo formato... ele tá exportando só a área do grid? porque era pra exportar o tamanho da página inteira. 
 40) [RESOLVIDO]teve uma coisa na configuração do projeto que a gente tinha mudado ontem, tem que dar ao usuário a possibilidade de escolher a unidade do projeto também nas configurações do projeto. para margem, tamanho de fonte, formato, gutter, etc. 
+41) [RESOLVIDO] quando eu crio uma nova página a sidebar não reseta pra criar um novo gráfico... (Bug Fix)
+42) [RESOLVIDO] o gráfico de coluna tá precisando de rever com a skill de gestalt_grid pra quando tem muito texto (Preventive Staggering, Editorial Labels, Leader Lines)
 ------
 usa as skills de debug, construction e documentation pra criar um plano?

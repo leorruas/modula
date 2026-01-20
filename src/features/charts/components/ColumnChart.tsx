@@ -72,7 +72,11 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
 
     const wrappedLabels = labels.map(wrapLabel);
     const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
-    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
+    // Dynamic Bottom Padding:
+    // If dense, we reserve double height for staggering + buffer
+    const isDenseLayout = groupWidth < 100;
+    const staggerBuffer = isDenseLayout ? (maxLinesNeeded * fontSize * 1.4) + 15 : 0;
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.3) + 20 + staggerBuffer;
 
     // Color logic
     const baseColors = style?.colorPalette || [getChartColor(0)];
@@ -171,28 +175,61 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
 
                     return (
                         <g key={i} transform={`translate(${groupX}, 0)`}>
-                            {/* Wrapped Horizontal Labels */}
-                            <text
-                                x={(groupWidth - groupGap) / 2}
-                                y={effectiveChartHeight + 20}
-                                textAnchor="middle"
-                                fontSize={fontSize}
-                                fontFamily={fontFamily}
-                                fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
-                                fill={CHART_THEME.colors.neutral.dark}
-                                opacity={isInfographic ? 0.7 : 1}
-                            >
-                                <title>{label}</title>
-                                {wrappedLabels[i].map((line, lineIdx) => (
-                                    <tspan
-                                        key={lineIdx}
-                                        x={(groupWidth - groupGap) / 2}
-                                        dy={lineIdx === 0 ? 0 : fontSize * 1.2}
-                                    >
-                                        {isInfographic ? line.toUpperCase() : line}
-                                    </tspan>
-                                ))}
-                            </text>
+                            {/* Wrapped Horizontal Labels with Staggering */}
+                            {(() => {
+                                // STAGGERING LOGIC
+                                // 1. Detect density
+                                const isDense = groupWidth < 100;
+                                // 2. Calculate offset
+                                const isStaggered = isDense && i % 2 !== 0; // Stagger odd items
+                                const staggerOffset = isStaggered ? (maxLinesNeeded * fontSize * 1.4) + 15 : 0;
+                                const labelY = effectiveChartHeight + 20 + staggerOffset;
+
+                                // 3. Leader Lines (The "Why")
+                                // Connect staggered labels back to their column so the eye can follow (Common Fate)
+                                const showLeaderLine = isStaggered && isInfographic;
+
+                                return (
+                                    <>
+                                        {/* Leader Line for Staggered Items */}
+                                        {showLeaderLine && (
+                                            <line
+                                                x1={(groupWidth - groupGap) / 2}
+                                                y1={effectiveChartHeight + 5}
+                                                x2={(groupWidth - groupGap) / 2}
+                                                y2={effectiveChartHeight + 15 + staggerOffset - (fontSize)}
+                                                stroke={CHART_THEME.colors.neutral.medium}
+                                                strokeWidth={1}
+                                                strokeDasharray="2 2"
+                                                opacity={0.3}
+                                            />
+                                        )}
+
+                                        <text
+                                            x={(groupWidth - groupGap) / 2}
+                                            y={labelY}
+                                            textAnchor="middle"
+                                            fontSize={fontSize * (isInfographic ? 0.9 : 1)}
+                                            fontFamily={narrativeFont}
+                                            fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
+                                            fill={CHART_THEME.colors.neutral.dark}
+                                            opacity={isInfographic ? 0.8 : 1}
+                                            letterSpacing={isInfographic ? "0.03em" : "normal"}
+                                        >
+                                            <title>{label}</title>
+                                            {wrappedLabels[i].map((line, lineIdx) => (
+                                                <tspan
+                                                    key={lineIdx}
+                                                    x={(groupWidth - groupGap) / 2}
+                                                    dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                                >
+                                                    {isInfographic ? line.toUpperCase() : line}
+                                                </tspan>
+                                            ))}
+                                        </text>
+                                    </>
+                                );
+                            })()}
 
                             {/* Grouped Columns */}
                             {data.datasets.map((dataset, dsIndex) => {
