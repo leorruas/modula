@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-21T21-21-44 (2026-01-21)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **charts:** mixed chart gestalt refactor, multi-column support, and doc updates ([d6976c1](https://github.com/leorruas/modula/commit/d6976c15b52da23c6b160caf406b61f46aa0fc27)) - *2026-01-21 18:21*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-21T20-36-14 ([726d5ab](https://github.com/leorruas/modula/commit/726d5ab41488522463930408510c1c72f333c4fb)) - *2026-01-21 17:36*
+
 ### 🚀 deploy-2026-01-21T20-36-14 (2026-01-21)
 
 > **Deployment**: Version sent to production environments.
