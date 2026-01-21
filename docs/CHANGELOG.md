@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 🚀 deploy-2026-01-21T20-36-14 (2026-01-21)
+
+> **Deployment**: Version sent to production environments.
+
+#### ✨ New Features
+
+- implement chapter and page reordering with drag-and-drop ([22136d6](https://github.com/leorruas/modula/commit/22136d6fc431083369e5d7c2475bfdc91ce6a661)) - *2026-01-21 17:33*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-21T19-24-54 ([9ce14f8](https://github.com/leorruas/modula/commit/9ce14f887e44d9d6837b9c0feec8b77d2d10a44a)) - *2026-01-21 16:24*
+
 ### 🚀 deploy-2026-01-21T19-24-54 (2026-01-20)
 
 > **Deployment**: Version sent to production environments.
