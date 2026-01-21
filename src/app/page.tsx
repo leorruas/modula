@@ -24,9 +24,21 @@ export default function Home() {
     return (
       <div className={styles.page}>
         <main className={styles.main}>
-          <h1>Modula</h1>
-          <p style={{ marginBottom: 20 }}>Editorial Chart System</p>
-          <LoginButton />
+          <div className={styles.intro}>
+            <h1>Modula</h1>
+            <p>
+              O Modula é uma ferramenta de gráficos editoriais. Ideal para designers e jornalistas criarem visualizações de dados bonitas e precisas com agilidade.
+            </p>
+            <div className={styles.ctas}>
+              <LoginButton />
+            </div>
+          </div>
+
+          <footer className={styles.footer}>
+            <p>
+              Criado por <a href="https://leoruas.com" target="_blank" rel="noopener noreferrer">Leo Ruas</a>
+            </p>
+          </footer>
         </main>
       </div>
     );

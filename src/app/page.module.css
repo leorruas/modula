@@ -139,3 +139,18 @@ a.secondary {
     --button-secondary-border: #1a1a1a;
   }
 }
+
+.footer {
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.footer a {
+   color: var(--text-primary);
+   text-decoration: none;
+}
+
+.footer a:hover {
+   text-decoration: underline;
+}

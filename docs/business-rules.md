@@ -74,6 +74,12 @@ Quando o usuário altera a configuração do grid (ex: de 12×8 para 10×10), **
 *   **Excluir Capítulo**:
     *   **Remover Apenas Capítulo**: Remove a marcação do capítulo, mas mantém as páginas (que passam a pertencer ao capítulo anterior ou ficam sem capítulo).
     *   **Remover Capítulo e Páginas**: Exclui o capítulo e todas as páginas associadas a ele.
+*   **Reorganizar Capítulos**: O usuário pode alterar a ordem dos capítulos.
+    *   **Logística de Blocos**: Ao mover um capítulo, todo o bloco de páginas associado a ele (do `startPage` até a página anterior ao próximo capítulo) é movido junto, preservando a integridade do conteúdo do capítulo.
+    *   **Numeração**: As páginas são renumeradas automaticamente para refletir a nova sequência.
+*   **Reorganizar Páginas**: O usuário pode mover páginas individuais (contendo gráficos) entre posições e capítulos.
+    *   **Deslocamento**: Mover uma página "empurra" as páginas existentes para acomodar a nova posição (shift).
+    *   **Capítulos Estáticos**: Os marcadores de início de capítulo (`startPage`) se ajustam automaticamente se páginas forem inseridas ou removidas antes deles, mantendo a consistência da estrutura.
 
 ### 1.6. Modo de Pré-visualização (Preview Mode) 👁️
 O sistema deve oferecer um modo de visualização limpa para simular o resultado final da exportação:
