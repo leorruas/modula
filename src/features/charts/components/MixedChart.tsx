@@ -1,6 +1,8 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
-import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient } from '@/utils/chartTheme';
+import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
+import { getMixedChartDatasetType } from '@/utils/chartHelpers';
+import { ensureDistinctColors } from '@/utils/colors';
 
 interface MixedChartProps {
     width: number;
@@ -12,20 +14,11 @@ interface MixedChartProps {
 }
 
 export function MixedChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: MixedChartProps) {
-    const datasetBars = data.datasets?.[0];
-    const datasetLine = data.datasets?.length > 1 ? data.datasets[1] : null;
-
-    if (!datasetBars || !datasetBars.data || datasetBars.data.length === 0) {
+    if (!data.datasets || data.datasets.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
 
     const labels = data.labels || [];
-    const valuesBar = datasetBars.data;
-    const valuesLine = datasetLine ? datasetLine.data : [];
-
-    const allValues = [...valuesBar, ...valuesLine];
-    const maxValue = Math.max(...allValues, 1);
-
     const isInfographic = style?.mode === 'infographic';
     const useGradient = style?.useGradient;
 
@@ -37,18 +30,46 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const finalShowExtremes = infographicConfig.showExtremes || false;
     const finalUseMetadata = infographicConfig.useMetadata || false;
     const finalShowAllLabels = infographicConfig.showAllLabels || false;
+    const finalLegendPosition = style?.legendPosition || 'bottom';
 
-    const padding = isInfographic ? 60 : 20;
-    const marginLeft = isInfographic ? 60 : (CHART_THEME.padding.small + 30);
-    const marginRight = isInfographic ? 40 : CHART_THEME.padding.small;
-    const marginTop = isInfographic ? 60 : 20;
+    // 1. Split Datasets
+    const barDatasets = data.datasets.filter((_, i) => getMixedChartDatasetType(i, data.datasets.length, style) === 'bar');
+    const lineDatasets = data.datasets.filter((_, i) => getMixedChartDatasetType(i, data.datasets.length, style) === 'line');
 
-    const chartWidth = width - marginLeft - marginRight;
+    // 2. Calculate Ranges
+    // We need to normalize values if we want them on the same axis (simple implementation assumes shared axis)
+    const allValues = data.datasets.flatMap(d => d.data);
+    const maxValue = Math.max(...allValues, 1);
+
+    // 3. Layout Dimensions & Proximity (Gestalt)
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
 
-    // Wrapping
+    // "Breath Rule": Spacing relative to font size
+    const GAP_LABEL_GRAPH = fontSize * 0.5;
+    const GAP_TICK_LABEL = fontSize * 1.5;
+
+    // "Box Rule": Dynamic Padding
+    const minPadding = isInfographic ? fontSize * 4 : fontSize * 2;
+    // Calculate max room needed for layout
+    const dynamicMarginLeft = Math.max(minPadding, width * 0.05); // Min 5% or padding
+    const dynamicMarginRight = Math.max(minPadding * 0.6, width * 0.05);
+    const dynamicMarginTop = isInfographic ? fontSize * 4 : fontSize * 2; // Room for hero values
+
+    const chartWidth = width - dynamicMarginLeft - dynamicMarginRight;
+
+    // Grouping Logic (Matching ColumnChart)
+    const categoryCount = labels.length;
+    const groupWidth = chartWidth / Math.max(categoryCount, 1);
+    const groupGap = groupWidth * 0.2; // 20% gap between groups
+    const barsPerGroup = barDatasets.length || 1;
+    // If no bars, we still need logic to place lines
+    const effectiveBarGroupWidth = groupWidth - groupGap;
+    const colWidth = (effectiveBarGroupWidth) / barsPerGroup;
+    const colInnerGap = colWidth * 0.1;
+
+    // Wrapping & Staggering Logic
     const charWidth = fontSize * 0.5;
-    const maxCharsPerLine = Math.floor((chartWidth / Math.max(labels.length, 1)) / charWidth) || 12;
+    const maxCharsPerLine = Math.floor(effectiveBarGroupWidth / charWidth) || 12;
     const wrapLabel = (text: string) => {
         const words = text.split(' ');
         const lines: string[] = [];
@@ -66,170 +87,238 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     };
     const wrappedLabels = labels.map(wrapLabel);
     const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
-    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
 
-    const chartHeight = height - marginTop - (isInfographic ? padding : 20) - labelBottomPadding;
+    // Preventive Staggering ("Air Gap")
+    const isDenseLayout = groupWidth < (fontSize * 8); // Dynamic threshold based on text size
+    const staggerBuffer = isDenseLayout ? (maxLinesNeeded * fontSize * 1.3) + GAP_TICK_LABEL : 0;
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + GAP_LABEL_GRAPH + staggerBuffer;
+
+    const chartHeight = height - dynamicMarginTop - (isInfographic ? fontSize * 2 : fontSize) - labelBottomPadding;
     const effectiveBaselineY = chartHeight;
-    const barWidth = (chartWidth / valuesBar.length) * 0.7;
 
-    const color1 = style?.colorPalette?.[0] || getChartColor(0);
-    const color2 = style?.colorPalette?.[1] || getChartColor(1);
+    const colorPalette = ensureDistinctColors(style?.colorPalette || [], data.datasets.length);
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const valueFont = isInfographic ? (CHART_THEME.fonts.data || 'monospace') : CHART_THEME.fonts.number;
 
-    const slotWidth = chartWidth / valuesBar.length;
-
-    const linePoints = valuesLine.map((value, i) => {
-        const cx = i * slotWidth + slotWidth / 2;
-        const cy = chartHeight - ((value / maxValue) * chartHeight);
-        return { x: cx, y: cy };
-    });
-
-    const polylinePoints = linePoints.map(p => `${p.x},${p.y}`).join(' ');
+    // Legend Component (Narrative Grid)
+    const Legend = finalLegendPosition !== 'none' ? (
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', // Narrative Grid
+            gap: '8px 16px',
+            padding: '10px',
+            background: isInfographic ? 'rgba(255,255,255,0.05)' : 'transparent',
+            borderRadius: 8
+        }}>
+            {data.datasets.map((ds, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {style?.finish === 'glass' ? (
+                        <svg width="14" height="14" viewBox="0 0 14 14" style={{ overflow: 'visible' }}>
+                            <g dangerouslySetInnerHTML={{ __html: createMiniIOSGlassFilter(`miniGlassMixed-${i}`) }} />
+                            <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`miniGradMixed-${i}`, colorPalette[i % colorPalette.length]) }} />
+                            <rect
+                                x="1" y="1" width="12" height="12" rx="3"
+                                fill={`url(#miniGradMixed-${i})`}
+                                filter={`url(#miniGlassMixed-${i})`}
+                                stroke="white" strokeWidth="0.5" strokeOpacity="0.5"
+                            />
+                        </svg>
+                    ) : (
+                        <div style={{ width: 12, height: 12, borderRadius: 3, background: colorPalette[i % colorPalette.length] }} />
+                    )}
+                    <span style={{ fontSize: getScaledFont(baseFontSize, baseFontUnit, 'small'), color: '#444', fontFamily }}>{ds.label}</span>
+                </div>
+            ))}
+        </div>
+    ) : null;
 
     return (
-        <BaseChart width={width} height={height} data={data} type="mixed">
+        <BaseChart width={width} height={height} data={data} type="mixed" legend={Legend} legendPosition={finalLegendPosition}>
             <defs>
-                {useGradient && (
-                    <>
-                        <linearGradient id="mixedBarGrad-0" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color1} stopOpacity="1" />
-                            <stop offset="100%" stopColor={color1} stopOpacity="0.7" />
-                        </linearGradient>
-                        <linearGradient id="mixedBarGrad-hero" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={color1} stopOpacity="1" />
-                            <stop offset="100%" stopColor={color1} stopOpacity="0.9" />
-                        </linearGradient>
-                    </>
-                )}
+                <filter id="mixedShadow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                    <feOffset dx="0" dy="2" result="offsetblur" />
+                    <feComponentTransfer>
+                        <feFuncA type="linear" slope="0.2" />
+                    </feComponentTransfer>
+                    <feMerge>
+                        <feMergeNode />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+                {useGradient && colorPalette.map((color, i) => (
+                    <linearGradient key={`grad-${i}`} id={`mixedGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={color} stopOpacity="1" />
+                        <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+                    </linearGradient>
+                ))}
                 {style?.finish === 'glass' && (
                     <>
                         <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('iosGlassFilter') }} />
                         <g dangerouslySetInnerHTML={{ __html: createIOSGlassLineFilter('glassLineFilter') }} />
                         <g dangerouslySetInnerHTML={{ __html: createIOSGlassFilter('glassPointFilter') }} />
-                        <g dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassGradient-0`, color1) }} />
+                        {colorPalette.map((color, i) => (
+                            <g key={`glass-grad-${i}`} dangerouslySetInnerHTML={{ __html: createGlassGradient(`glassMixedGrad-${i}`, color) }} />
+                        ))}
                     </>
                 )}
             </defs>
 
-            <g transform={`translate(${marginLeft}, ${marginTop})`}>
+            <g transform={`translate(${dynamicMarginLeft}, ${dynamicMarginTop})`}>
+                {/* Horizontal Grid */}
                 {!isInfographic && [0.25, 0.5, 0.75, 1].map((f, i) => (
                     <line key={`grid-${i}`} x1={0} y1={chartHeight * f} x2={chartWidth} y2={chartHeight * f}
                         stroke={CHART_THEME.colors.neutral.lighter} strokeWidth={1} opacity={0.1} strokeDasharray={"4 4"} />
                 ))}
 
                 {/* Vertical Milestones / Crosshairs */}
-                {isInfographic && valuesBar.map((_, i) => {
+                {isInfographic && labels.map((_, i) => {
                     const isManualHero = heroValueIndex === i;
-                    if (!isManualHero && (!finalUseMetadata || !datasetBars.metadata?.[i])) return null;
-                    const x = i * slotWidth + slotWidth / 2;
+                    if (!isManualHero && (!finalUseMetadata || !data.datasets[0]?.metadata?.[i])) return null;
+                    const x = i * groupWidth + groupWidth / 2;
                     return (
                         <line key={`vguide-${i}`} x1={x} y1={0} x2={x} y2={chartHeight}
-                            stroke={isManualHero ? color1 : CHART_THEME.colors.neutral.lighter}
+                            stroke={isManualHero ? colorPalette[0] : CHART_THEME.colors.neutral.lighter}
                             strokeWidth={isManualHero ? 1 : 0.5} opacity={isManualHero ? 0.3 : 0.1}
                             strokeDasharray={isManualHero ? undefined : "4 4"} />
                     );
                 })}
 
-                {/* Bars Layer */}
-                {valuesBar.map((value, i) => {
-                    const barHeight = (value / maxValue) * chartHeight;
-                    const x = i * slotWidth + (slotWidth - barWidth) / 2;
-                    const y = chartHeight - barHeight;
-                    const isManualHero = heroValueIndex === i;
-                    const barColor = isManualHero ? color1 : (style?.colorPalette?.[i % (style.colorPalette?.length || 1)] || getChartColor(i));
+                {/* Bars Rendering */}
+                {labels.map((label, i) => {
+                    const groupX = i * groupWidth + (groupGap / 2); // Start of group content
+
+                    // Staggering Logic
+                    const isStaggered = isDenseLayout && i % 2 !== 0;
+                    const currentStaggerOffset = isStaggered ? staggerBuffer : 0;
+                    const labelY = effectiveBaselineY + GAP_TICK_LABEL + currentStaggerOffset;
 
                     return (
-                        <g key={`bar-${i}`}>
-                            <rect
-                                x={x} y={y} width={barWidth} height={barHeight}
-                                fill={
-                                    style?.finish === 'glass'
-                                        ? `url(#glassGradient-0)`
-                                        : (useGradient ? (isManualHero ? "url(#mixedBarGrad-hero)" : "url(#mixedBarGrad-0)") : barColor)
-                                }
-                                rx={isInfographic ? 6 : 0}
-                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.5 : 1}
-                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
-                            />
-
-                            {/* Bar Value Label - Infographic */}
-                            {isInfographic && (isManualHero || finalShowAllLabels || value / maxValue > 0.6) && (
-                                <text x={x + barWidth / 2} y={y - 8} textAnchor="middle"
-                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small') * (isManualHero ? 1.2 : 1)}
-                                    fontFamily={valueFont} fontWeight={isManualHero ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
-                                    fill={CHART_THEME.colors.neutral.dark} opacity={isManualHero ? 1 : 0.7}>
-                                    {value}
-                                </text>
-                            )}
-
+                        <g key={`group-${i}`}>
+                            {/* X-Axis Label */}
                             <text
-                                x={i * slotWidth + slotWidth / 2}
-                                y={effectiveBaselineY + 20}
+                                x={i * groupWidth + groupWidth / 2}
+                                y={labelY}
                                 textAnchor="middle"
                                 fontSize={fontSize}
                                 fontFamily={fontFamily}
-                                fontWeight={isInfographic && isManualHero ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.medium}
+                                fontWeight={isInfographic && heroValueIndex === i ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.medium}
                                 fill={CHART_THEME.colors.neutral.dark}
-                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.6 : 1}
+                                opacity={isInfographic && heroValueIndex !== undefined && heroValueIndex !== i ? 0.6 : 1}
                                 style={{ textTransform: isInfographic ? 'uppercase' : 'none' }}
                             >
-                                <title>{labels[i]}</title>
+                                <title>{label}</title>
                                 {wrappedLabels[i].map((line, lineIdx) => (
-                                    <tspan key={lineIdx} x={i * slotWidth + slotWidth / 2} dy={lineIdx === 0 ? 0 : fontSize * 1.2}>
+                                    <tspan key={lineIdx} x={i * groupWidth + groupWidth / 2} dy={lineIdx === 0 ? 0 : fontSize * 1.2}>
                                         {line}
                                     </tspan>
                                 ))}
                             </text>
+
+                            {/* Stagger Leader Line */}
+                            {isStaggered && isInfographic && (
+                                <line x1={i * groupWidth + groupWidth / 2} y1={effectiveBaselineY + 5} x2={i * groupWidth + groupWidth / 2} y2={labelY - fontSize}
+                                    stroke={CHART_THEME.colors.neutral.medium} strokeWidth={1} strokeDasharray="2 2" opacity={0.3} />
+                            )}
+
+                            {/* Render Bars for this Group */}
+                            {barDatasets.map((ds, barDsIndex) => {
+                                // Find original index for color consistency
+                                const originalIndex = data.datasets.indexOf(ds);
+                                const value = ds.data[i] || 0;
+                                const barHeight = (value / maxValue) * chartHeight;
+                                // Layout:
+                                const x = groupX + (barDsIndex * colWidth);
+                                const y = chartHeight - barHeight;
+
+                                const isManualHero = heroValueIndex === i;
+                                const color = colorPalette[originalIndex % colorPalette.length];
+
+                                return (
+                                    <g key={`bar-${originalIndex}-${i}`}>
+                                        <rect
+                                            x={x} y={y} width={colWidth - colInnerGap} height={barHeight}
+                                            fill={
+                                                style?.finish === 'glass'
+                                                    ? `url(#glassMixedGrad-${originalIndex % colorPalette.length})`
+                                                    : (useGradient ? `url(#mixedGrad-${originalIndex % colorPalette.length})` : color)
+                                            }
+                                            rx={isInfographic ? 4 : 0}
+                                            opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.5 : 1}
+                                            filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : (isInfographic ? undefined : undefined)}
+                                        />
+                                        {isInfographic && (isManualHero || finalShowAllLabels) && (
+                                            <text x={x + (colWidth - colInnerGap) / 2} y={y - (fontSize * 0.5)} textAnchor="middle"
+                                                fontSize={fontSize * 0.8}
+                                                fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.bold}
+                                                fill={CHART_THEME.colors.neutral.dark} opacity={0.8}>
+                                                {value}
+                                            </text>
+                                        )}
+                                    </g>
+                                )
+                            })}
                         </g>
                     )
                 })}
 
-                {/* Line Layer */}
-                {datasetLine && (
-                    <>
-                        <polyline
-                            fill="none" stroke={isInfographic ? color1 : color2}
-                            strokeWidth={isInfographic ? 5 : 2}
-                            strokeLinecap="round" strokeLinejoin="round"
-                            points={polylinePoints}
-                            filter={style?.finish === 'glass' ? "url(#glassLineFilter)" : (isInfographic ? "url(#chartShadow)" : undefined)}
-                            opacity={isInfographic ? 0.8 : (style?.finish === 'glass' ? 0.9 : 1)}
-                        />
-                        {linePoints.map((p, i) => {
-                            const isManualHero = heroValueIndex === i;
-                            const showLineLabel = isInfographic && (isManualHero || finalShowAllLabels || valuesLine[i] / maxValue > 0.8);
-                            return (
-                                <g key={`dot-${i}`}>
-                                    <circle
-                                        cx={p.x} cy={p.y}
-                                        r={isInfographic ? (isManualHero ? 8 : 4) : 3}
-                                        fill={isInfographic ? (isManualHero ? "#fff" : color1) : (style?.finish === 'glass' ? color2 : "#fff")}
-                                        stroke={isInfographic ? color1 : (style?.finish === 'glass' ? "none" : color2)}
-                                        strokeWidth={isInfographic ? 3 : 2}
-                                        filter={style?.finish === 'glass' ? "url(#glassPointFilter)" : undefined}
-                                    />
-                                    {showLineLabel && (
-                                        <text x={p.x} y={p.y - (isManualHero ? 15 : 10)} textAnchor="middle"
-                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small') * (isManualHero ? 1.2 : 0.9)}
-                                            fontFamily={valueFont} fontWeight={isManualHero ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.bold}
-                                            fill={color1}>
-                                            {valuesLine[i]}
-                                        </text>
-                                    )}
+                {/* Line Datasets (Figure - Rendered ON TOP) */}
+                {lineDatasets.map((ds, lineDsIndex) => {
+                    const originalIndex = data.datasets.indexOf(ds);
+                    const color = colorPalette[originalIndex % colorPalette.length];
 
-                                    {/* Editorial Badge for Hero in Mixed Chart */}
-                                    {isInfographic && isManualHero && (
-                                        <text x={p.x} y={-25} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                            fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} letterSpacing="0.1em" fill={color1}>
-                                            {finalAnnotationLabels?.[i]?.toUpperCase() || "DESTAQUE COMBINADO"}
-                                        </text>
-                                    )}
-                                </g>
-                            );
-                        })}
-                    </>
-                )}
+                    const linePoints = ds.data.map((value, i) => {
+                        // Line points should be centered in the GROUP
+                        const cx = i * groupWidth + groupWidth / 2;
+                        const cy = chartHeight - ((value / maxValue) * chartHeight);
+                        return { x: cx, y: cy };
+                    });
+
+                    const polylinePoints = linePoints.map(p => `${p.x},${p.y}`).join(' ');
+
+                    return (
+                        <g key={`line-ds-${originalIndex}`} filter="url(#mixedShadow)">
+                            <polyline
+                                fill="none" stroke={color}
+                                strokeWidth={isInfographic ? 4 : 2}
+                                strokeLinecap="round" strokeLinejoin="round"
+                                points={polylinePoints}
+                                opacity={0.9} // Slight transparency for layering
+                            />
+                            {linePoints.map((p, i) => {
+                                const isManualHero = heroValueIndex === i;
+                                const showLineLabel = isInfographic && (isManualHero || finalShowAllLabels);
+                                return (
+                                    <g key={`dot-${i}`}>
+                                        <circle
+                                            cx={p.x} cy={p.y}
+                                            r={isInfographic ? (isManualHero ? 6 : 4) : 3}
+                                            fill="#fff"
+                                            stroke={color}
+                                            strokeWidth={2}
+                                        />
+                                        {/* Line Labels */}
+                                        {showLineLabel && (
+                                            <text x={p.x} y={p.y - 12} textAnchor="middle"
+                                                fontSize={fontSize * 0.9}
+                                                fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black}
+                                                fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">
+                                                {ds.data[i]}
+                                            </text>
+                                        )}
+                                        {/* Editorial Badge for Hero in Mixed Chart */}
+                                        {isInfographic && isManualHero && (
+                                            <text x={p.x} y={-25} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                                fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} letterSpacing="0.1em" fill={color}>
+                                                {finalAnnotationLabels?.[i]?.toUpperCase() || "DESTAQUE"}
+                                            </text>
+                                        )}
+                                    </g>
+                                );
+                            })}
+                        </g>
+                    )
+                })}
 
                 <line x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight}
                     stroke={CHART_THEME.colors.neutral.medium}

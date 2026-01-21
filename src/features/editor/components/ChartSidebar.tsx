@@ -56,6 +56,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         useMetadata?: boolean;
         showAllLabels?: boolean;
         sortSlices?: boolean;
+        datasetTypes?: ('bar' | 'line')[];
     }>({});
 
     // Data Modal
@@ -220,8 +221,9 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             return {
                 labels: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun"],
                 datasets: [
-                    { label: "Volume (Eixo Esq)", data: [500, 700, 600, 800, 750, 900] },
-                    { label: "Taxa % (Eixo Dir)", data: [20, 40, 30, 50, 45, 60] }
+                    { label: "Produto A (Barra)", data: [65, 59, 80, 81, 56, 55] },
+                    { label: "Produto B (Barra)", data: [28, 48, 40, 19, 86, 27] },
+                    { label: "Meta (Linha)", data: [45, 55, 60, 50, 70, 40] }
                 ]
             };
         }
@@ -262,7 +264,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         setFinish(chart.style.finish);
                     }
                     if (chart.style?.infographicConfig) {
-                        setInfographicConfig(chart.style.infographicConfig);
+                        setInfographicConfig({
+                            ...chart.style.infographicConfig,
+                            datasetTypes: chart.style.datasetTypes
+                        });
+                    } else if (chart.style?.datasetTypes) {
+                        setInfographicConfig(prev => ({ ...prev, datasetTypes: chart.style?.datasetTypes }));
                     }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
@@ -402,7 +409,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     mode: chartMode,
                     useGradient,
                     finish,
-                    infographicConfig: chartMode === 'infographic' ? infographicConfig : undefined
+                    infographicConfig: chartMode === 'infographic' ? (() => {
+                        const { datasetTypes, ...rest } = infographicConfig;
+                        return rest;
+                    })() : undefined,
+                    datasetTypes: infographicConfig.datasetTypes
                 }
             });
             triggerRefresh();
@@ -443,7 +454,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     mode: chartMode,
                     useGradient,
                     finish,
-                    infographicConfig: chartMode === 'infographic' ? infographicConfig : undefined
+                    infographicConfig: chartMode === 'infographic' ? (() => {
+                        const { datasetTypes, ...rest } = infographicConfig;
+                        return rest;
+                    })() : undefined,
+                    datasetTypes: infographicConfig.datasetTypes
                 }
             });
             triggerRefresh();
@@ -1187,7 +1202,14 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 isOpen={dataModalOpen}
                 onClose={() => setDataModalOpen(false)}
                 initialData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
-                onSave={(newData) => setDataInput(JSON.stringify(newData, null, 2))}
+                onSave={(newData, newDatasetTypes) => {
+                    setDataInput(JSON.stringify(newData, null, 2));
+                    if (newDatasetTypes) {
+                        setInfographicConfig(prev => ({ ...prev, datasetTypes: newDatasetTypes }));
+                    }
+                }}
+                chartType={chartType}
+                datasetTypes={infographicConfig.datasetTypes}
             />
 
             <InfographicControlsModal

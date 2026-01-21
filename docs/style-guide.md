@@ -99,6 +99,9 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Margin Left**: `140px` (Space for large category labels).
 *   **Line/Area Charts (Infographic)**:
     *   **Margin Top**: `60px` (Prevents hero numbers from clipping at the top).
+*   **Mixed Charts (Gestalt Optimized)**:
+    *   **Container Intelligence (Box Rule)**: As margens são calculadas dinamicamente (`5%` ou `minPadding`) em vez de fixas, adaptando-se a qualquer tamanho de container.
+    *   **Proportional Spacing (Breath Rule)**: O espaçamento vertical é derivado do `fontSize` (ex: `1.5em`), garantindo que rótulos e gráficos mantenham distância segura ao escalar a fonte.
 *   **Pie/Donut Charts (Infographic)**:
     *   **Padding**: Reduced to `60px` (Pie) and `40px` (Donut) to maximize chart scale.
     *   **Pie Style**: "Nightingale Rose" effect - Radius varies by value intensity.
@@ -162,6 +165,11 @@ The design uses shadows very sparingly, primarily for depth in editing modes ("l
 *   **Border**: 1px solid `#ddd`.
 *   **Focus**: Blue outline `#3b82f6`.
 *   **Padding**: Comfortable (8px-12px).
+*   **Embedded Data Controls**:
+    *   **Context**: Usado no *SimpleDataEditor* para configurações granulares (ex: "Barra | Linha").
+    *   **Visual**: Botões pequenos (text-xs), contorno suave, feedback de cor imediato (Cyan para Barras, Roxo para Linhas).
+    *   **Location**: Inserido diretamente no cabeçalho da coluna de dados para associação cognitiva imediata.
+
 
 ### Toast Notifications
 *   **Library**: `sonner`.

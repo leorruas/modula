@@ -16,5 +16,6 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 41) [RESOLVIDO] quando eu crio uma nova página a sidebar não reseta pra criar um novo gráfico... (Bug Fix)
 42) [RESOLVIDO] o gráfico de coluna tá precisando de rever com a skill de gestalt_grid pra quando tem muito texto (Preventive Staggering, Editorial Labels, Leader Lines)
 43) [RESOLVIDO] implementar funcionalidade de reordenar capítulos e páginas (Drag & Drop) conforme solicitado.
+44) [RESOLVIDO] Melhorar gráfico misto: Suporte a múltiplas colunas/linhas e controle explícito de tipo no Editor Avançado.
 ------
 usa as skills de debug, construction e documentation pra criar um plano?

@@ -9,24 +9,28 @@ interface DataEditorModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialData: ChartData;
-    onSave: (data: ChartData) => void;
+    onSave: (data: ChartData, datasetTypes?: ('bar' | 'line')[]) => void;
+    chartType?: string;
+    datasetTypes?: ('bar' | 'line')[];
 }
 
-export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEditorModalProps) {
+export function DataEditorModal({ isOpen, onClose, initialData, onSave, chartType, datasetTypes: initialDatasetTypes }: DataEditorModalProps) {
     const [data, setData] = useState<ChartData>(initialData);
     const [jsonMode, setJsonMode] = useState(false);
+    const [datasetTypes, setDatasetTypes] = useState<('bar' | 'line')[] | undefined>(initialDatasetTypes);
 
     // Reset data when modal opens
     useEffect(() => {
         if (isOpen) {
             setData(initialData);
+            setDatasetTypes(initialDatasetTypes);
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, initialDatasetTypes]);
 
     if (!isOpen) return null;
 
     const handleSave = () => {
-        onSave(data);
+        onSave(data, datasetTypes);
         onClose();
     };
 
@@ -144,6 +148,14 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave }: DataEd
                             <SimpleDataEditor
                                 data={data}
                                 onChange={setData}
+                                chartType={chartType}
+                                datasetTypes={datasetTypes}
+                                onDatasetTypeChange={(index, type) => {
+                                    const currentTypes = datasetTypes || new Array(data.datasets.length).fill('bar');
+                                    const newTypes = [...currentTypes];
+                                    newTypes[index] = type;
+                                    setDatasetTypes(newTypes);
+                                }}
                             />
                         </div>
                     )}

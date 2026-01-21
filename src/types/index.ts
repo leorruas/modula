@@ -69,6 +69,7 @@ export interface ChartStyle {
         showAllLabels?: boolean; // Toggle to disable smart hiding of labels in infographics
         sortSlices?: boolean; // Sort slices by value (Largest to Smallest)
     };
+    datasetTypes?: ('bar' | 'line')[]; // Explicit type definition for mixed charts
 }
 
 export interface Chart {

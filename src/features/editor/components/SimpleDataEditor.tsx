@@ -4,9 +4,12 @@ import { ChartData } from '@/types';
 interface SimpleDataEditorProps {
     data: ChartData;
     onChange: (newData: ChartData) => void;
+    chartType?: string;
+    datasetTypes?: ('bar' | 'line')[];
+    onDatasetTypeChange?: (index: number, type: 'bar' | 'line') => void;
 }
 
-export function SimpleDataEditor({ data, onChange }: SimpleDataEditorProps) {
+export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDatasetTypeChange }: SimpleDataEditorProps) {
     // Local state for the table to avoid jitter
     // We assume data has labels and datasets
     // Structure: 
@@ -83,6 +86,52 @@ export function SimpleDataEditor({ data, onChange }: SimpleDataEditorProps) {
                                         <button onClick={() => removeSeries(i)} style={{ border: 'none', background: 'transparent', color: '#999', cursor: 'pointer', fontSize: 10 }}>×</button>
                                     )}
                                 </div>
+                                {chartType === 'mixed' && onDatasetTypeChange && (
+                                    <div style={{ marginTop: 4, display: 'flex', gap: 2 }}>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onDatasetTypeChange(i, 'bar');
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                fontSize: 9,
+                                                padding: '2px',
+                                                border: '1px solid',
+                                                borderColor: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : '#e5e5e5', // Default to bar if undefined
+                                                background: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : 'transparent',
+                                                color: (!datasetTypes || datasetTypes[i] === 'bar') ? 'white' : '#999',
+                                                borderRadius: 3,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Barra
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                onDatasetTypeChange(i, 'line');
+                                            }}
+                                            style={{
+                                                flex: 1,
+                                                fontSize: 9,
+                                                padding: '2px',
+                                                border: '1px solid',
+                                                borderColor: datasetTypes?.[i] === 'line' ? '#8b5cf6' : '#e5e5e5',
+                                                background: datasetTypes?.[i] === 'line' ? '#8b5cf6' : 'transparent',
+                                                color: datasetTypes?.[i] === 'line' ? 'white' : '#999',
+                                                borderRadius: 3,
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            Linha
+                                        </button>
+                                    </div>
+                                )}
                             </th>
                         ))}
                         <th style={{ padding: 8, width: 30 }}>
@@ -136,6 +185,6 @@ export function SimpleDataEditor({ data, onChange }: SimpleDataEditorProps) {
                     </tr>
                 </tfoot>
             </table>
-        </div>
+        </div >
     );
 }

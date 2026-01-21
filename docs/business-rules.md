@@ -166,7 +166,10 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   *Variações*: Agrupada, Empilhada.
 3.  **Linha (Line)**: Evolução temporal ou sequencial.
     *   *Variações*: Simples, Múltipla.
-4.  **Área (Area)**: Volume e tendência.
+4.  **Misto (Mixed)**: Combinação de Barras (quantitativo) e Linhas (tendência/meta).
+    *   *Variações*: Múltiplas colunas agrupadas + Múltiplas linhas sobrepostas.
+    *   *Controle*: Definição de tipo (Barra vs Linha) granular por dataset via Editor Avançado.
+5.  **Área (Area)**: Volume e tendência.
     *   *Variações*: Simples, Empilhada.
 5.  **Pizza (Pie)**: Distribuição proporcional.
 6.  **Donut**: Variação da Pizza com centro vazado.
@@ -190,6 +193,16 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   **Radar**: Detecta múltiplas métricas (3-8). Otimizado para ocupar o máximo de espaço modular disponível (Margens: 35px Classic / 60px Infographic).
     *   **Mixed**: Detecta 2+ datasets com valores em escalas muito diferentes.
     *   **Bar/Column**: Fallback padrão para comparações categóricas.
+    *   **Mixed**: Detecta 2+ datasets com escalas ou tipos de dados mistos (ex: valor absoluto vs percentual).
+
+### 2.10.1. Lógica do Gráfico Misto (Mixed Chart Logic)
+*   **Flexibilidade**: Suporta **N** Colunas agrupadas e **M** Linhas simultâneas.
+*   **Definição de Tipo**:
+    *   **Explícita**: O usuário define via `datasetTypes: ('bar' | 'line')[]` no Editor Avançado.
+    *   **Implícita (Fallback)**: Se não definido, os primeiros N-1 datasets são Barras, e o último é Linha.
+*   **Visualização**:
+    *   **Colunas Agrupadas**: Datasets do tipo 'bar' são renderizados lado a lado, com espaçamento calculado automaticamente (`groupWidth`, `colWidth`).
+    *   **Linhas em Camadas**: Datasets do tipo 'line' são renderizados **sobre** as barras, com sombra (`drop-shadow`) para separação visual (Figura-Fundo).
 *   **Interface**: Exibir card de sugestão com botão "Aplicar Sugestão" logo abaixo da área de input CSV. A recomendação deve incluir uma breve justificativa (ex: "Série temporal detectada").
 
 ---

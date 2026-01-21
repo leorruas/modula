@@ -17,6 +17,7 @@ interface InfographicControlsModalProps {
         useMetadata?: boolean;
         showAllLabels?: boolean;
         sortSlices?: boolean;
+        datasetTypes?: ('bar' | 'line')[];
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -28,6 +29,7 @@ interface InfographicControlsModalProps {
         useMetadata?: boolean;
         showAllLabels?: boolean;
         sortSlices?: boolean;
+        datasetTypes?: ('bar' | 'line')[];
     }) => void;
 }
 
@@ -48,6 +50,17 @@ export function InfographicControlsModal({
     const [useMetadata, setUseMetadata] = useState(currentConfig.useMetadata || false);
     const [showAllLabels, setShowAllLabels] = useState(currentConfig.showAllLabels || false);
     const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
+
+    // Initialize with existing config OR fallback logic
+    const [datasetTypes, setDatasetTypes] = useState<('bar' | 'line')[]>(() => {
+        if (currentConfig.datasetTypes) return currentConfig.datasetTypes;
+        if (chartType === 'mixed') {
+            const count = chartData.datasets.length;
+            return chartData.datasets.map((_, i) => (count > 1 && i === count - 1 ? 'line' : 'bar'));
+        }
+        return [];
+    });
+
     const [showAllOptions, setShowAllOptions] = useState(false);
 
     useEffect(() => {
@@ -61,8 +74,14 @@ export function InfographicControlsModal({
             setUseMetadata(currentConfig.useMetadata || false);
             setShowAllLabels(currentConfig.showAllLabels || false);
             setSortSlices(currentConfig.sortSlices || false);
+            if (currentConfig.datasetTypes) {
+                setDatasetTypes(currentConfig.datasetTypes);
+            } else if (chartType === 'mixed') {
+                const count = chartData.datasets.length;
+                setDatasetTypes(chartData.datasets.map((_, i) => (count > 1 && i === count - 1 ? 'line' : 'bar')));
+            }
         }
-    }, [isOpen, currentConfig]);
+    }, [isOpen, currentConfig, chartData, chartType]);
 
     if (!isOpen) return null;
 
@@ -76,7 +95,8 @@ export function InfographicControlsModal({
             showExtremes,
             useMetadata,
             showAllLabels,
-            sortSlices
+            sortSlices,
+            datasetTypes: chartType === 'mixed' ? datasetTypes : undefined
         });
         onClose();
     };
@@ -85,6 +105,12 @@ export function InfographicControlsModal({
         const newLabels = [...annotationLabels];
         newLabels[index] = value;
         setAnnotationLabels(newLabels);
+    };
+
+    const toggleDatasetType = (index: number) => {
+        const newTypes = [...datasetTypes];
+        newTypes[index] = newTypes[index] === 'bar' ? 'line' : 'bar';
+        setDatasetTypes(newTypes);
     };
 
     const modalContent = (
@@ -179,6 +205,9 @@ export function InfographicControlsModal({
                             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: '#000', borderBottom: '2px solid #0ea5e9', paddingBottom: 8, display: 'inline-block' }}>
                                 ✨ Destaques & Narração
                             </h3>
+
+                            {/* Mixed Chart: Dataset Type Configuration */}
+
 
                             {/* Hero Value Selection */}
                             <div style={{ marginBottom: 24 }}>
@@ -610,5 +639,6 @@ export function InfographicControlsModal({
         </div>
     );
 
+    if (typeof document === 'undefined') return null;
     return createPortal(modalContent, document.body);
 }

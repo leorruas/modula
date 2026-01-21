@@ -47,3 +47,42 @@ In infographic modes (Pie, Donut), avoid thick borders that look "cartoonish".
 -   **Labels (Context)**: `Geist Sans` / `FontWeight 600` / `uppercase` / `letterSpacing: 0.05em`
 
 This specific contrast is critical for separating *quantitative* data from *categorical* context.
+
+## 5. Container Intelligence (The "Box" Rule)
+
+Visualizations must respect their bounding box strictly. They should "fill" the container intelligently, maximizing Data Ink without bleeding.
+
+### The "Zero-margin" Philosophy
+Do not rely on external CSS margins. Calculate all clearance *inside* the SVG `width/height`.
+1.  **Hard Bounds**: `x < 0` or `x > width` is FORBIDDEN.
+2.  **Dynamic Padding**: Never use static padding (e.g., `paddingLeft = 40`). Instead, calculate padding based on the *actual* max label width.
+    ```typescript
+    const maxLabelSpace = Math.min(width * 0.35, maxLabelWidth); // Cap at 35%
+    const chartBodyWidth = width - maxLabelSpace - rightPadding;
+    ```
+3.  **Responsive Text**: If the container is small (`width < 300px`), automatically switch labels to a "Compact Mode" (e.g., hide axis titles, use abbreviations) to preserve space for the graph.
+
+## 6. Proximity & Spacing (The "Breath" Rule)
+
+Use **Proportional Spacing** (EM-based) instead of Fixed Pixels to ensure the chart "breathes" correctly at any size.
+
+### Spacing Constants
+Define these relationships relative to the base `fontSize`:
+
+| Relationship | Gap Size | Reasoning |
+| :--- | :--- | :--- |
+| **Label ↔ Graph** | `0.5em` | Close association (Law of Proximity). |
+| **Label ↔ Axis Title** | `1.5em` | Distinct grouping. Title describes the whole axis. |
+| **Graph ↔ Legend** | `2.0em` | Major separation. Legend is a global key. |
+| **Tick ↔ Tick** | `>= 1.2em` | Prevent clutter. If gaps < 1.2em, trigger **Staggering**. |
+
+### Implementation pattern
+Instead of:
+```typescript
+y={chartHeight + 25} // Bad: Magic number
+```
+Use:
+```typescript
+y={chartHeight + (fontSize * 1.5) + axisLabelHeight}
+```
+This ensures that if the font size increases, the captions don't overlap the labels.
