@@ -39,3 +39,23 @@ This creates a premium, razor-sharp separation suitable for editorial design.
 - **Values (Data)**: Always `Geist Mono`, FontWeight 800 (Black).
 - **Labels (Context)**: Always `Geist Sans`, FontWeight 600, `uppercase`, `letterSpacing: 0.05em`.
 This contrast helps the user instantly distinguish *what* (category) from *how much* (value).
+
+## 5. Ink-to-Space Ratio (Density Orchestration)
+To prevent visual saturation, the system monitors the "Data Ink" density.
+- **Dynamic Decluttering**: If the area occupied by bars/lines exceeds 80% of the plot area, secondary axes and secondary grid lines are automatically hidden.
+- **Breathing Room**: A mandatory 12px safety gap is maintained between any data label and a chart boundary.
+
+## 6. Level of Detail (LOD)
+Charts must degrade gracefully. The system switches between contexts based on pixel density:
+- **Full**: (> 600px wide) All annotations, secondary axes, and full legends.
+- **Normal**: (300px - 600px) Smart labels, compact legends.
+- **Compact**: (150px - 300px) Hero values only, no secondary axes.
+- **Iconographic**: (< 150px) No text or axes; only the data silhouette (Sparkline).
+
+## 7. Contrast-Aware Accessibility (Legibility First)
+When labels move *inside* colored elements (e.g., labels inside bars in Sub-Project 1.16/1.17):
+- **Luminance Checker**: The system calculates the perceived brightness of the background color.
+- **Dynamic Color Swap**:
+    - `Luminance > 0.5` (Light background) -> Text becomes **Black**.
+    - `Luminance <= 0.5` (Dark background) -> Text becomes **White**.
+This ensures 100% legibility regardless of the palette used.

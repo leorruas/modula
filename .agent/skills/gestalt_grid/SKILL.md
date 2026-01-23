@@ -49,17 +49,19 @@ In infographic modes (Pie, Donut), avoid thick borders that look "cartoonish".
 This specific contrast is critical for separating *quantitative* data from *categorical* context.
 
 ## 5. Container Intelligence (The "Box" Rule)
-
 Visualizations must respect their bounding box strictly. They should "fill" the container intelligently, maximizing Data Ink without bleeding.
 
-### The "Zero-margin" Philosophy
-Do not rely on external CSS margins. Calculate all clearance *inside* the SVG `width/height`.
-1.  **Hard Bounds**: `x < 0` or `x > width` is FORBIDDEN.
-2.  **Dynamic Padding**: Never use static padding (e.g., `paddingLeft = 40`). Instead, calculate padding based on the *actual* max label width.
-    ```typescript
-    const maxLabelSpace = Math.min(width * 0.35, maxLabelWidth); // Cap at 35%
-    const chartBodyWidth = width - maxLabelSpace - rightPadding;
-    ```
+### The "Vacuum-Seal" Strategy
+Instead of centering a chart with static margins, the Engine must "Vacuum Seal" the layout:
+1.  **Elastic Core**: The chart expands to touch the boundaries of titles and legends.
+2.  **Gravity Balance**: Títulos and legendas "puxam" o gráfico (Proximity Gravity), mantendo uma distância constante de `24px`.
+3.  **Hard Bounds**: All content must stay within SVG `width/height`.
+
+### The "No-Ellipsis" Policy (Atomic Labels)
+A label must be whole to be read (Gestalt Continuity).
+1.  **Atomic Measurement**: Measure the `maxWordWidth` in labels.
+2.  **Margin Protection**: `marginLeft` can never be smaller than `maxWordWidth + buffer`.
+3.  **Elastic Override**: If labels collide with the bar, compress the *Chart Plot* area instead of the text.
 3.  **Responsive Text**: If the container is small (`width < 300px`), automatically switch labels to a "Compact Mode" (e.g., hide axis titles, use abbreviations) to preserve space for the graph.
 
 ## 6. Proximity & Spacing (The "Breath" Rule)

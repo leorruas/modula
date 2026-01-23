@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 🏆 Unreleased (2026-01-23)
+
+### 🐛 Bug Fixes
+
+- **export:** correct LineChart cutoff, positioning, and visual fidelity ([6899b6b](https://github.com/leorruas/modula/commit/6899b6bf3020bb1571c07e81fcb00f7b68d44815)) - *2026-01-23 10:23*
+
+### 🚀 deploy-2026-01-21T22-23-02 (2026-01-21)
+
+> **Deployment**: Version sent to production environments.
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-21T21-23-35 ([26e88e0](https://github.com/leorruas/modula/commit/26e88e09286c9fd382c30ff213c94d9283faad1f)) - *2026-01-21 18:23*
+
+### 🚀 deploy-2026-01-21T21-23-35 (2026-01-21)
+
+> **Deployment**: Version sent to production environments.
+
+#### 📝 Documentation
+
+- **changelog:** sync update sync-2026-01-21T21-21-44 ([646b11b](https://github.com/leorruas/modula/commit/646b11b753bd97e43cd26ff2dc883de61d0b9fb1)) - *2026-01-21 18:21*
+
 ### 📤 sync-2026-01-21T21-21-44 (2026-01-21)
 
 > **GitHub Sync**: Changes pushed to the remote repository.

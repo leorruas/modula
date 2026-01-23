@@ -108,6 +108,24 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Donut Style**: "Variable Thickness" - Slice thickness varies by value (heavier values = thicker).
     *   **Sorting**: Optional "Largest to Smallest" sorting (Clockwise).
 
+### 3.4. Advanced Layout Intelligence (The Brain)
+To maintain the "Editorial & Minimalist" look, the system follows these invisible rules:
+*   **Anti-Wrapping Hierarchy**: When space is tight, labels evolve rather than just cutting off:
+    1.  **Wrapping**: 3-line max with semantic balance.
+    2.  **Staggering**: Odd/Even vertical offset for neighbor labels.
+    3.  **Abbreviation**: Semantic term replacement (e.g., "Setembro" -> "Set").
+    4.  **Rotation**: 45° tilt as an optical last resort.
+*   **Grid Elasticity (Vacuum-Seal)**:
+    *   **Vertical Fill**: If the module is tall but data is sparse, bars grow (up to 120px) to eliminate "floating chart" syndrome.
+    *   **Vacuum-Seal**: The chart plot area physically expands to touch the boundaries of titles and legends (24px proximity).
+*   **LOD (Level of Detail)**: Content degrades gracefully. At "Tiny" sizes (<150px), the chart becomes a **Sparkline** (axes and legends are purged to preserve the data shape).
+
+### 3.5. Zero-Truncation Elasticity (Atomic Labels)
+A core principle is the **No-Ellipsis Policy**:
+*   **Atomic Word Protection**: The system measures the widest *single word* in a label. The side margin (`marginLeft`) will never shrink below this word's width + buffer.
+*   **Lateral Elasticity**: If a label absolutely needs more space, the Engine will compress the Chart Plot instead of truncating the text.
+*   **Hierarchy-Aware Cap**: For complex grouped headers, the Engine can expand margins up to 50% of the total width to ensure readability.
+
 ---
 
 ## 4. Visual Styles

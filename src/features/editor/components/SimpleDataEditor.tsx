@@ -10,11 +10,14 @@ interface SimpleDataEditorProps {
 }
 
 export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDatasetTypeChange }: SimpleDataEditorProps) {
-    // Local state for the table to avoid jitter
-    // We assume data has labels and datasets
-    // Structure: 
-    // Rows = labels.length
-    // Cols = 1 (Label) + datasets.length
+    // Local state to handle string inputs (allowing decimals, empty states, etc.)
+    const [localData, setLocalData] = useState(data);
+    const [editingCells, setEditingCells] = useState<Record<string, string>>({});
+
+    // Sync local state when external data changes (but not while editing to avoid focus jumps)
+    useEffect(() => {
+        setLocalData(data);
+    }, [data]);
 
     const handleLabelChange = (index: number, value: string) => {
         const newLabels = [...data.labels];
@@ -22,16 +25,73 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
         onChange({ ...data, labels: newLabels });
     };
 
+    const getCellValue = (dsIndex: number, rowIdx: number) => {
+        const key = `${dsIndex}-${rowIdx}`;
+        if (editingCells[key] !== undefined) {
+            return editingCells[key];
+        }
+        return data.datasets[dsIndex].data[rowIdx]?.toString() || '0';
+    };
+
     const handleValueChange = (datasetIndex: number, dataIndex: number, value: string) => {
-        const newDatasets = [...data.datasets];
+        const key = `${datasetIndex}-${dataIndex}`;
+
+        // Update local editing state immediately
+        setEditingCells(prev => ({ ...prev, [key]: value }));
+
+        // Try to sync to parent if it's a valid number
+        // We allow intermediate states in the local key, but sync the parsed value
         const numValue = parseFloat(value);
-        newDatasets[datasetIndex].data[dataIndex] = isNaN(numValue) ? 0 : numValue;
-        onChange({ ...data, datasets: newDatasets });
+        if (!isNaN(numValue)) {
+            const newDatasets = data.datasets.map((ds, idx) => {
+                if (idx !== datasetIndex) return ds;
+                const newData = [...ds.data];
+                newData[dataIndex] = numValue;
+                return { ...ds, data: newData };
+            });
+            onChange({ ...data, datasets: newDatasets });
+        } else if (value === '') {
+            const newDatasets = data.datasets.map((ds, idx) => {
+                if (idx !== datasetIndex) return ds;
+                const newData = [...ds.data];
+                newData[dataIndex] = 0;
+                return { ...ds, data: newData };
+            });
+            onChange({ ...data, datasets: newDatasets });
+        }
+    };
+
+    const handleBlur = (datasetIndex: number, dataIndex: number) => {
+        const key = `${datasetIndex}-${dataIndex}`;
+        const finalValue = editingCells[key];
+
+        if (finalValue !== undefined) {
+            const numValue = parseFloat(finalValue);
+            const newValue = isNaN(numValue) ? 0 : numValue;
+
+            // Final sync to parent
+            const newDatasets = data.datasets.map((ds, idx) => {
+                if (idx !== datasetIndex) return ds;
+                const newData = [...ds.data];
+                newData[dataIndex] = newValue;
+                return { ...ds, data: newData };
+            });
+            onChange({ ...data, datasets: newDatasets });
+
+            // Clear editing state
+            setEditingCells(prev => {
+                const next = { ...prev };
+                delete next[key];
+                return next;
+            });
+        }
     };
 
     const handleSeriesNameChange = (datasetIndex: number, value: string) => {
-        const newDatasets = [...data.datasets];
-        newDatasets[datasetIndex].label = value;
+        const newDatasets = data.datasets.map((ds, idx) => {
+            if (idx !== datasetIndex) return ds;
+            return { ...ds, label: value };
+        });
         onChange({ ...data, datasets: newDatasets });
     };
 
@@ -41,7 +101,7 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
             ...d,
             data: [...d.data, 0]
         }));
-        onChange({ labels: newLabels, datasets: newDatasets });
+        onChange({ ...data, labels: newLabels, datasets: newDatasets });
     };
 
     const removeRow = (index: number) => {
@@ -50,7 +110,7 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
             ...d,
             data: d.data.filter((_, i) => i !== index)
         }));
-        onChange({ labels: newLabels, datasets: newDatasets });
+        onChange({ ...data, labels: newLabels, datasets: newDatasets });
     };
 
     const addSeries = () => {
@@ -62,7 +122,7 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
     };
 
     const removeSeries = (index: number) => {
-        if (data.datasets.length <= 1) return; // Keep at least one
+        if (data.datasets.length <= 1) return;
         const newDatasets = data.datasets.filter((_, i) => i !== index);
         onChange({ ...data, datasets: newDatasets });
     };
@@ -100,7 +160,7 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
                                                 fontSize: 9,
                                                 padding: '2px',
                                                 border: '1px solid',
-                                                borderColor: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : '#e5e5e5', // Default to bar if undefined
+                                                borderColor: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : '#e5e5e5',
                                                 background: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : 'transparent',
                                                 color: (!datasetTypes || datasetTypes[i] === 'bar') ? 'white' : '#999',
                                                 borderRadius: 3,
@@ -153,10 +213,12 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
                             {data.datasets.map((ds, colIndex) => (
                                 <td key={colIndex} style={{ padding: 4 }}>
                                     <input
-                                        type="number"
-                                        value={ds.data[rowIndex]}
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={getCellValue(colIndex, rowIndex)}
                                         onChange={(e) => handleValueChange(colIndex, rowIndex, e.target.value)}
-                                        style={{ width: '100%', border: 'none', padding: 4, textAlign: 'right' }}
+                                        onBlur={() => handleBlur(colIndex, rowIndex)}
+                                        style={{ width: '100%', border: 'none', padding: 4, textAlign: 'right', outline: 'none' }}
                                     />
                                 </td>
                             ))}
@@ -164,7 +226,6 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
                                 <button
                                     onClick={() => removeRow(rowIndex)}
                                     style={{ border: 'none', background: 'transparent', color: '#ccc', cursor: 'pointer', fontWeight: 'bold' }}
-                                    className="hover-danger"
                                 >
                                     ×
                                 </button>
@@ -185,6 +246,6 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
                     </tr>
                 </tfoot>
             </table>
-        </div >
+        </div>
     );
 }

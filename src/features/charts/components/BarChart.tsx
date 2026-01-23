@@ -1,5 +1,6 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
+import { ComputedLayout } from '@/services/smartLayout/types';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createGlassBorderGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 
 import { ensureDistinctColors } from '@/utils/colors';
@@ -18,6 +19,9 @@ interface BarChartProps {
     showDeltaPercent?: boolean;        // Show % vs average
     annotationLabels?: string[];       // Custom labels for annotations (by index)
     legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+
+    // Smart Layout Integration
+    computedLayout?: ComputedLayout;
 }
 
 export function BarChart({
@@ -31,7 +35,8 @@ export function BarChart({
     showValueAnnotations = false,
     showDeltaPercent = false,
     annotationLabels,
-    legendPosition
+    legendPosition,
+    computedLayout
 }: BarChartProps) {
     if (!data.datasets || data.datasets.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
@@ -94,10 +99,11 @@ export function BarChart({
     const wrappedLabels = labels.map(wrapLabel);
     const maxLinesUsed = isStackedLayout ? Math.max(...wrappedLabels.map(l => l.length), 1) : 1;
 
-    const marginTop = isStackedLayout ? (isInfographic ? 40 : 10) : padding;
-    const marginRight = isInfographic ? 80 : 40;
-    const marginBottom = padding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20);
-    const marginLeft = isStackedLayout ? 25 : (dynamicLabelSpace + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 20));
+    // Smart Layout Integration: Use computed margins if available, otherwise fall back to legacy
+    const marginTop = computedLayout?.margins.top ?? (isStackedLayout ? (isInfographic ? 40 : 10) : padding);
+    const marginRight = computedLayout?.margins.right ?? (isInfographic ? 80 : 40);
+    const marginBottom = computedLayout?.margins.bottom ?? (padding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20));
+    const marginLeft = computedLayout?.margins.left ?? (isStackedLayout ? 25 : (dynamicLabelSpace + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 20)));
 
     const chartWidth = width - marginLeft - marginRight;
     const chartHeight = height - marginTop - marginBottom;

@@ -50,6 +50,29 @@ If a phase causes a build error or regression that takes > 5 minutes to fix:
 2.  **ROLL BACK** to the previous stable phase.
 3.  **RE-EVALUATE** the approach. -> Do not "fix forward" blindly.
 
+## Handling Gigantic Tasks (Epics)
+For massive undertakings (e.g., "Rewrite the entire rendering engine" or "Migrate database"), the standard 4-phase ACID protocol applies **recursively**.
+
+### 1. Recursive Decomposition
+Do not try to fit the entire epic into one `task.md`. Instead, break the Epic into **Sub-Projects**.
+
+> **Pro Tip**: Use the **Exhaustive Legacy Analysis & System Design Skill** first to map out the "terrain" before defining these sub-projects.
+
+*   **Epic**: "Migrate to New Database"
+    *   **Sub-Project 1**: "Create new Schema types and Migration Scripts" (Follows ACID Phases 1-4)
+    *   **Sub-Project 2**: "Double-write to both DBs" (Follows ACID Phases 1-4)
+    *   **Sub-Project 3**: "Switch Read Path" (Follows ACID Phases 1-4)
+
+### 2. Tracer Bullets
+Before committing to a full implementation of an Epic, fire a "Tracer Bullet":
+*   Implement a **thin, end-to-end slice** of the functionality first.
+*   **Goal**: Prove the architecture works before building the weight of the whole feature.
+*   *Example*: If building a new Charting Engine, implementing *one* simple line chart from API to Pixel to prove the data flow.
+
+### 3. Explicit Milestones
+Define "Save Points" where the code is merged and stable.
+*   Never go more than 2-3 sub-projects without a full user review and merge.
+
 ## Task.md Integration
 When creating your `task.md` or `implementation_plan.md`, explicitly label your phases:
 

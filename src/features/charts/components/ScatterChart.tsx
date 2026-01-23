@@ -1,6 +1,8 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { SmartLayoutEngine } from '@/services/smartLayout/SmartLayoutEngine';
+import { useMemo } from 'react';
 
 interface ScatterChartProps {
     width: number;
@@ -56,6 +58,44 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
         return lines.slice(0, 3);
     };
 
+    // SUB-PROJECT 1.23: SMART COLLISION AVOIDANCE
+    // Pre-calculate all label positions to resolve collisions
+    const pointLabels = useMemo(() => {
+        const candidates: Array<{ x: number, y: number, width: number, height: number, value: any, color: string, isHero: boolean, dsIdx: number, idx: number }> = [];
+
+        datasets.forEach((ds, dsIdx) => {
+            ds.data.forEach((v, i) => {
+                const x = (i / Math.max(labels.length - 1, 1)) * chartWidth;
+                const y = chartHeight - ((v / Math.max(maxValue, 1)) * chartHeight);
+                const isManualHero = heroValueIndex === i && dsIdx === 0;
+                const ratio = v / Math.max(maxValue, 1);
+
+                // Should we show this label?
+                // Logic: Show if (ShowAll OR (IsHero) OR (IsSignificant & FirstSeries))
+                if (finalShowAllLabels || !isInfographic || (dsIdx === 0 && (isManualHero || !!ds.metadata?.[i] || ratio >= 0.8))) {
+                    candidates.push({
+                        x: x - (isManualHero ? 18 : 12), // Initial centered position (approx text width/2)
+                        y: y - (isManualHero ? 30 : 20),
+                        width: 24, // Estimate
+                        height: 14,
+                        value: v,
+                        color: CHART_THEME.colors.neutral.dark,
+                        isHero: isManualHero || false,
+                        dsIdx,
+                        idx: i
+                    });
+                }
+            });
+        });
+
+        // Resolve!
+        if (candidates.length > 0) {
+            const resolved = SmartLayoutEngine.resolveLabelCollisions(candidates, { width: chartWidth, height: chartHeight });
+            return candidates.map((c, i) => ({ ...c, x: resolved[i].x, y: resolved[i].y }));
+        }
+        return [];
+    }, [datasets, labels, chartWidth, chartHeight, maxValue, finalShowAllLabels, isInfographic, heroValueIndex]);
+
     // Legend Component
     const Legend = finalLegendPosition !== 'none' && datasets.length > 0 ? (
         <div style={{
@@ -102,7 +142,7 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
                     </g>
                 )}
 
-                {/* Data points - Multi-Series */}
+                {/* Data Points */}
                 {datasets.map((ds, dsIdx) => (
                     <g key={`ds-${dsIdx}`}>
                         {ds.data.map((v, i) => {
@@ -110,9 +150,6 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
                             const y = chartHeight - ((v / Math.max(maxValue, 1)) * chartHeight);
                             const isManualHero = heroValueIndex === i && dsIdx === 0;
                             const pointColor = palette[dsIdx % palette.length];
-                            const ratio = v / Math.max(maxValue, 1);
-
-                            const shouldShowLabel = finalShowAllLabels || !isInfographic || (dsIdx === 0 && (isManualHero || !!ds.metadata?.[i] || ratio >= 0.8));
 
                             return (
                                 <g key={i}>
@@ -126,35 +163,21 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
                                         fill={useGradient ? `url(#scatterGradient-${dsIdx % palette.length})` : pointColor}
                                         opacity={isInfographic ? (dsIdx === 0 ? 1 : 0.6) : 0.9}
                                         stroke="#fff" strokeWidth={isManualHero ? 2.5 : 2} />
-
-                                    {shouldShowLabel && (
-                                        <g>
-                                            <text x={x} y={y - (isManualHero ? 18 : 12)} textAnchor="middle"
-                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'small' : 'tiny', isInfographic) * (isManualHero ? 1.1 : 1)}
-                                                fontFamily={valueFont} fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
-                                                fill={CHART_THEME.colors.neutral.dark} opacity={isManualHero ? 1 : 0.8}>
-                                                {v}
-                                            </text>
-
-                                            {dsIdx === 0 && labels[i] && (
-                                                <g transform={`translate(${x}, ${y + 16})`}>
-                                                    {wrapLabel(labels[i]).map((line, idx) => (
-                                                        <text key={idx} x={0} y={idx * 10} textAnchor="middle"
-                                                            dominantBaseline="middle"
-                                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                                            fontFamily={fontFamily} fontWeight={isManualHero ? CHART_THEME.fontWeights.bold : CHART_THEME.fontWeights.medium}
-                                                            fill={CHART_THEME.colors.neutral.medium}
-                                                            style={{ textTransform: isInfographic ? 'uppercase' : 'none' }}>
-                                                            {line}
-                                                        </text>
-                                                    ))}
-                                                </g>
-                                            )}
-                                        </g>
-                                    )}
                                 </g>
                             );
                         })}
+                    </g>
+                ))}
+
+                {/* Resolved Labels Rendered Separately using Engine Output */}
+                {pointLabels.map((lbl, i) => (
+                    <g key={`lbl-${i}`}>
+                        <text x={lbl.x + lbl.width / 2} y={lbl.y + lbl.height / 2} textAnchor="middle" dominantBaseline="middle"
+                            fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'small' : 'tiny', isInfographic) * (lbl.isHero ? 1.1 : 1)}
+                            fontFamily={valueFont} fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
+                            fill={CHART_THEME.colors.neutral.dark} opacity={lbl.isHero ? 1 : 0.8}>
+                            {lbl.value}
+                        </text>
                     </g>
                 ))}
 

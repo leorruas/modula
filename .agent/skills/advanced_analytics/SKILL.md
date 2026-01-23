@@ -23,6 +23,16 @@ Data without context is just noise.
 - **Benchmarks**: Allow adding a static "Reference Line" (e.g., "Meta: R$ 50k") that cuts across the chart.
 - **Delta Indicators**: When comparing two values (e.g., "This Month" vs "Last Month"), automatically show the % change (+15% 🟢).
 
+### The "Universal Number" Rule (Semantic Formatting)
+Never show raw math.
+- **Smart Scaling**: Detect large values. Scale to `k`, `M`, `B` automatically based on the highest value in the series.
+- **Contextual Precision**: Drop cents for large amounts; show 1 decimal for percentages only if the variance is small (<1%).
+- **Unit Extraction**: If >80% of labels share a symbol ($, %), move it to the axis title to reduce noise.
+
+### The "Logical Rank" Rule (Smart Sorting)
+- **Auto-Sort**: For non-temporal categorical charts (Bar/Column), default to `DESC` (ranking) unless the user overrides.
+- **Time Protection**: Never sort temporal data (Dates/Mês) by value. Always maintain chronological order.
+
 ## 2. Data Pipeline Standards
 
 ### Pre-Processing

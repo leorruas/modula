@@ -79,9 +79,11 @@ If not, increase contrast and scale.
 ### Direct Labeling
 Never make the user **look back and forth** between a color key and the data.
 
-- **Label the Bar**: Place category names *inside* or *directly adjacent to* the bar
-- **Label the Value**: Place numbers *inside* or *next to* the data point
-- **Embed Context**: Add micro-annotations directly on the visualization
+- **Label the Bar**: Place category names *inside* or *directly adjacent to* the bar.
+- **Value Positioning (Top)**: In Infographic Column/Bar modes, prefer placing values **above** or **outside** the bar to avoid overlap with high-impact color fills.
+- **Spider Collision (Radial)**: Use the "Spider Leg" algorithm for Pie/Donut charts to push labels into clean vertical columns with bent connector lines.
+- **Label the Value**: Place numbers *inside* or *next to* the data point.
+- **Embed Context**: Add micro-annotations directly on the visualization.
 
 ### The "Hero Number"
 Infographics are poster-like. They need a **focal point**.
@@ -238,6 +240,9 @@ Infographics must be **for everyone**.
 ---
 
 ## 11. Implementation Checklist
+
+> **Architecture Note**: Use the **Componentization Skill** to structure the "Hero Value", "Annotation Layer", and "Decorators" as separate, reusable sub-components rather than monolithic render functions.
+
 
 ### Phase 1: Foundation (Chart → Infographic)
 When building an Infographic Mode component:

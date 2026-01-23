@@ -29,6 +29,15 @@
 *   **Hierarchy Priority**: Respect the precedence: Manual Overrides > Automated Indicators > Default Styles.
 *   **Transparency**: Supporting data (context) should hover at ~60% opacity to let the "Hero" data shine.
 
+### Smart Layout Standards (Predictive Intelligence)
+*   **No-Guesswork Policy**: Never use hardcoded pixel offsets or "magic numbers" for positioning elements. All spacing must be derived from the `SmartLayoutEngine`.
+*   **Measurement-First Architecture**: Layout follows a strict 3-step lifecycle:
+    1.  **Measurement**: `TextMeasurementService` uses an offscreen canvas to calculate exact pixel widths/heights of strings before rendering.
+    2.  **Analysis**: `SmartLayoutEngine.analyzeChart` determines complexity (label density, series count).
+    3.  **Orchestration**: `SmartLayoutEngine.computeLayout` solves constraints and returns absolute zones and margins.
+*   **Environment Handshake**: Measurements must wait for `document.fonts.ready` to eliminate drift between browser and PDF.
+*   **Self-Healing**: Components should consume `computedLayout`. If a layout is invalid (collisions detected), the Engine will automatically retry with a more compact LOD (Level of Detail).
+
 ### Z-Index Hierarchy
 To maintain a predictable stacking order, follow these tiers:
 *   **Level 0 (Base)**: Canvas, Grids, Backgrounds.

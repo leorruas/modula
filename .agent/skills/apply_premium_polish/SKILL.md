@@ -9,6 +9,9 @@ This skill is the "Art Director" of the agent. It separates the "Tool" (The App)
 ## 1. The App UI: "Modern & Alive"
 *Guidance for Modals, Sidebars, Inputs, and Menus.*
 
+> **Pro Tip**: It is easier to polish atomic components (`<Card>`, `<Button>`) than monolithic files. Use **React Componentization Skill** first to isolate the element you want to beautify.
+
+
 - [ ] **Glassmorphism**: No flat backgrounds. Use `backdrop-blur-md`, subtle borders `border-white/10`, and deep shadows.
 - [ ] **Interaction**:
     - **Hover**: Scale (1.02) or Brightness.

@@ -379,6 +379,35 @@ interface ChartData {
 
 ---
 
+## 4. Regras de Layout Inteligente (Smart Layout Rules)
+
+O **Smart Layout Engine** é o árbitro final de todas as dimensões do gráfico, substituindo cálculos locais por uma orquestração centralizada.
+
+### 4.1. Cálculo de Margens Dinâmicas
+As margens não são fixas; elas "respiram" conforme o conteúdo:
+- **Margem Esquerda (Gutter)**: Calculada medindo o pixel-width do label mais longo do eixo Y ou das categorias. No modo Infográfico, adiciona-se um "Optical Gutter" de 18-24px.
+- **Margem Direita (Value Reserve)**: Reserva espaço para o `maxValue` (medido em pixels) + badges de anotação (Max/Min) + buffer de segurança de 15px.
+- **Margem Inferior/Superior**: Ajustada pelo número de linhas resultantes do cross-wrapping de legendas e títulos.
+
+### 4.2. Universal Legend Solver
+A legenda dita o espaço útil do gráfico:
+- **Lateral (Left/Right)**: O sistema mede o item mais largo da legenda e reserva exatamente esse espaço. Se a legenda for curta, o `plotArea` se expande horizontalmente para ocupar o vácuo.
+- **Vertical (Top/Bottom)**: O sistema simula a quebra de linha (wrapping) da legenda e reserva a altura exata necessária (N linhas * line-height), eliminando espaços em branco "mortos".
+
+### 4.3. Hierarquia Anti-Conflito (Anti-Wrapping Policy)
+Para evitar que labels se sobreponham, o sistema segue esta ordem de tentativa:
+1.  **Wrap**: Quebrar em até 3 linhas (se houver altura).
+2.  **Stagger**: Alternar labels em duas alturas diferentes (odd/even).
+3.  **Abbreviate**: Usar dicionário semântico (ex: "Janeiro" -> "Jan").
+4.  **Rotate**: Inclinar 45 graus (último recurso).
+5.  **LOD (Level of Detail)**: Ocultar elementos secundários se o "Ratio de Ilegibilidade" for alto.
+
+### 4.4. Vacuum-Seal (Elasticidade Total)
+- **Vertical Fill**: Se a altura dos dados for menor que a altura do container, o sistema expande a espessura das barras (até um cap de 120px) e o espaçamento entre elas para preencher o módulo completamente.
+- **Gravity Well**: Elementos como títulos e legendas "puxam" o gráfico para perto (proximidade de 24px), forçando o Plot Area a expandir no espaço restante.
+
+---
+
 ### 2.13. Hierarquia de Carregamento de Estilos (Style Priority)
 Para garantir consistência e agilidade, o sistema carrega estilos seguindo esta ordem de precedência:
 

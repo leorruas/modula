@@ -68,6 +68,7 @@ export interface ChartStyle {
         useMetadata?: boolean;  // Phase 3: Use metadata from data for annotations
         showAllLabels?: boolean; // Toggle to disable smart hiding of labels in infographics
         sortSlices?: boolean; // Sort slices by value (Largest to Smallest)
+        debugLayoutMode?: boolean; // SUB-PROJECT 1.12: Visual transparency
     };
     datasetTypes?: ('bar' | 'line')[]; // Explicit type definition for mixed charts
 }
