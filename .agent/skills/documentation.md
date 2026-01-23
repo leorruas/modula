@@ -19,7 +19,9 @@ You must update the following documents, when the improvement has been approved,
 - **docs/coisas-a-alterar.md**: Update the status of the items you have resolved (mark as [RESOLVIDO]).
 
 ## 3. Update skills
-In case, any of those changes have created some new rule to update the skills, you should also update the skills with the new rule. And inform the user about it.
+When catching up with a problem resolution, you must extract that knowledge and update it within the relevant skills. 
+> [!IMPORTANT]
+> Any proposed updates to the skills must be presented to and confirmed by the USER before being finalized.
 
 ## 4. Update Routine
 - Before finishing a task, ensure `task.md` is updated.

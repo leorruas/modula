@@ -14,7 +14,6 @@ Este documento lista e descreve as principais dependências do projeto Modula, s
 
 ## 3. Exportação & Geração de Arquivos
 - **jsPDF (v4.0.0)**: Biblioteca principal para geração de PDFs.
-- **svg2pdf.js (v2.7.0)**: Conversão de elementos SVG para PDF mantendo a fidelidade vetorial.
 - **html2canvas** (Nota: Geralmente usado em conjunto com jsPDF para rasterização de alta fidelidade, conforme mencionado no Engineering Handbook).
 - **JSZip (v3.10.1)**: Utilizado para compactar múltiplos gráficos em um único arquivo ZIP na exportação em lote (Bulk Export).
 - **File-Saver (v2.0.5)**: Facilita o download de arquivos gerados no lado do cliente.

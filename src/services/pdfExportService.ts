@@ -58,28 +58,41 @@ export class PDFExportService {
                 // Ensure we get the container, not just the SVG, to capture full context
                 // child IS the container (div id=chart-container-...)
 
-                // Use offsetWidth/Height for accurate unscaled dimensions (pixels)
-                // getBoundingClientRect is affected by zoom, which breaks PDF sizing/positioning
-                // Use offsetWidth/Height for accurate unscaled dimensions (pixels)
-                // getBoundingClientRect is affected by zoom, which breaks PDF sizing/positioning
-                const x = child.offsetLeft;
-                const y = child.offsetTop;
-                const w = child.offsetWidth;
-                const h = child.offsetHeight;
+                // POSITION FIX: Calculate offset relative to the Canvas Root (canvasRef)
+                // offsetLeft/Top are relative to *offsetParent*, which might be a nested Grid container.
+                // We need the position relative to the Canvas (which maps to the PDF Page).
+                let currentEl = child as HTMLElement;
+                let x = 0;
+                let y = 0;
+
+                // Traverse up until we hit the canvasRef or null
+                while (currentEl && currentEl !== canvasRef && canvasRef.contains(currentEl)) {
+                    x += currentEl.offsetLeft;
+                    y += currentEl.offsetTop;
+                    currentEl = currentEl.offsetParent as HTMLElement;
+                }
+
+                // If not found in canvasRef hierarchy (weird), fall back to direct offset
+                if (currentEl !== canvasRef && child.offsetLeft) {
+                    x = child.offsetLeft;
+                    y = child.offsetTop;
+                }
+
+                // We will use the captured dimensions from result later to avoid squishing
 
                 try {
-                    console.log(`Processing chart ${chart.id} for PDF (Raster)...`);
+                    console.log(`Processing chart ${chart.id} for PDF (Raster). Absolute Pos: ${x}, ${y}`);
 
                     // Wait a tiny bit for any layout/rendering to stabilize
                     await new Promise(resolve => setTimeout(resolve, 50));
 
                     // RASTER STRATEGY: Use html-to-image to get high-res PNG
-                    // This is more robust for gradients, web fonts, and glass effects.
                     // pixelRatio reduced from 6 to 3.5 to stay within canvas memory limits while maintaining high quality.
+                    const PADDING = 40; // Capture buffer for visual overflow (labels, shadows)
                     const result = await generateChartImage(child as HTMLElement, {
                         backgroundColor: '#ffffff', // Ensure white background for PDF rasterization
                         pixelRatio: 3.5,
-                        padding: 0 // NO PADDING for PDF to ensure exact sizing/positioning
+                        padding: PADDING
                     });
 
                     if (!result || !result.dataUrl) {
@@ -87,24 +100,30 @@ export class PDFExportService {
                         continue;
                     }
 
-                    const { dataUrl } = result;
+                    const { dataUrl, width: capturedW, height: capturedH } = result;
 
                     const safeX = isNaN(x) ? 0 : x;
                     const safeY = isNaN(y) ? 0 : y;
 
                     // Convert screen pixels to PDF units (mm) using dynamic scaleFactor
-                    const xMm = safeX * scaleFactor;
-                    const yMm = safeY * scaleFactor;
-                    const wMm = w * scaleFactor;
-                    const hMm = h * scaleFactor;
+                    // Convert screen pixels to PDF units (mm) using dynamic scaleFactor
+                    // POSITION CORRECTION: Subtract scaled padding to align visual content to original (x,y)
+                    const paddingScaledMm = PADDING * scaleFactor;
+                    const xMm = (safeX * scaleFactor) - paddingScaledMm;
+                    const yMm = (safeY * scaleFactor) - paddingScaledMm;
+
+                    const wMm = capturedW * scaleFactor; // Captured Dimensions (Fixed Squishing)
+                    const hMm = capturedH * scaleFactor;
 
                     if (isNaN(xMm) || isNaN(yMm) || isNaN(wMm) || isNaN(hMm)) {
                         console.error(`Calculated invalid PDF coordinates for chart ${chart.id}`, { xMm, yMm, wMm, hMm });
                         continue;
                     }
 
-                    // Add PNG to PDF with FAST compression (balances size/speed, good for PNGs)
+                    // Add High-Res PNG to PDF
+                    // We use FAST compression to balance speed/quality for these large PNGs.
                     doc.addImage(dataUrl, 'PNG', xMm, yMm, wMm, hMm, undefined, 'FAST');
+                    console.log(`Added raster chart ${chart.id} to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
 
                     console.log(`Added raster chart ${chart.id} to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
 

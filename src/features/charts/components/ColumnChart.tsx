@@ -35,29 +35,32 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
     const minValue = Math.min(...allValues, Infinity);
     const avgValue = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
 
-    const topMargin = isInfographic ? 20 : 20; // Room for value labels
-    const padding = isInfographic ? CHART_THEME.padding.large : 0;
-    const chartWidth = width - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2);
-    const chartHeight = height - (isInfographic ? padding * 2 : CHART_THEME.padding.small * 2) - topMargin;
-
-    // Grouping Logic
+    // Base Metrics
     const categoryCount = labels.length;
-    const groupWidth = chartWidth / Math.max(categoryCount, 1);
-    const groupGap = groupWidth * 0.3; // Increased gap for premium look
     const barsPerGroup = data.datasets.length;
-    const colWidth = (groupWidth - groupGap) / barsPerGroup;
-    const colInnerGap = colWidth * 0.1;
 
+    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.small;
+
+    // --- PHASE 1 & 2: Natural Height & Scaling logic ---
+    const baseFontSizeValue = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small', isInfographic);
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
+
+    // Natural Clearance
+    const naturalBadgeOffset = isInfographic ? 45 : 30;
+    const naturalTextHeight = isInfographic ? baseFontSizeValue * 2.6 : baseFontSizeValue * 1.2;
+    const naturalTopMargin = Math.max(naturalBadgeOffset + (isInfographic ? 15 : 5), naturalTextHeight + 5);
+
+    const naturalGraphHeight = 250; // Increased from 150 to give bars more prominence
+
+    // Bottom Metrics for Staggering
+    const groupWidthGuess = (width - padding * 2) / Math.max(categoryCount, 1);
     const charWidth = fontSize * 0.5;
-    const maxLines = 3;
-    const maxCharsPerLine = Math.floor((groupWidth - groupGap) / charWidth);
+    const maxCharsPerLine = Math.floor((groupWidthGuess * 0.7) / charWidth);
 
     const wrapLabel = (text: string) => {
         const words = text.split(' ');
         const lines: string[] = [];
         let currentLine = words[0];
-
         for (let i = 1; i < words.length; i++) {
             if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
                 currentLine += ' ' + words[i];
@@ -67,16 +70,37 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
             }
         }
         lines.push(currentLine);
-        return lines.slice(0, maxLines);
+        return lines.slice(0, 3);
     };
-
     const wrappedLabels = labels.map(wrapLabel);
     const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
-    // Dynamic Bottom Padding:
-    // If dense, we reserve double height for staggering + buffer
-    const isDenseLayout = groupWidth < 100;
+    const isDenseLayout = groupWidthGuess < 100;
     const staggerBuffer = isDenseLayout ? (maxLinesNeeded * fontSize * 1.4) + 15 : 0;
-    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.3) + 20 + staggerBuffer;
+    const naturalBottomPadding = (maxLinesNeeded * fontSize * 1.3) + 20 + staggerBuffer;
+
+    const totalNaturalHeight = naturalTopMargin + naturalGraphHeight + naturalBottomPadding;
+    const isVerticalLegend = finalLegendPosition === 'top' || finalLegendPosition === 'bottom';
+    const legendAllowance = isVerticalLegend ? 40 : 0;
+    const availableHeight = height - (padding * 2) - legendAllowance;
+
+    // The SCALE FACTOR: If we are taller than what's available, we shrink everything
+    // In Infographic mode, we aim for maximum "fill", so we always scale to available space
+    const scaleFactor = isInfographic
+        ? (availableHeight / totalNaturalHeight)
+        : (totalNaturalHeight > availableHeight ? availableHeight / totalNaturalHeight : 1);
+
+    // Final Scaled Dimensions
+    const topMargin = naturalTopMargin * scaleFactor;
+    const chartWidth = width - (padding * 2);
+    const chartHeight = availableHeight; // We use the full available height now, scaling content inside
+    const effectiveChartHeight = (naturalGraphHeight) * scaleFactor;
+    const labelBottomPadding = naturalBottomPadding * scaleFactor;
+
+    // Grouping Logic (Final)
+    const groupWidth = chartWidth / Math.max(categoryCount, 1);
+    const groupGap = groupWidth * 0.3;
+    const colWidth = (groupWidth - groupGap) / barsPerGroup;
+    const colInnerGap = colWidth * 0.1;
 
     // Color logic
     const baseColors = style?.colorPalette || [getChartColor(0)];
@@ -154,7 +178,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
 
             <g transform={`translate(${padding}, ${padding + topMargin})`}>
                 {!isInfographic && [0.25, 0.5, 0.75, 1].map((fraction, i) => {
-                    const y = (chartHeight - labelBottomPadding + 20) * fraction;
+                    const y = effectiveChartHeight * fraction;
                     return (
                         <line
                             key={i}
@@ -171,7 +195,6 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
 
                 {labels.map((label, i) => {
                     const groupX = i * groupWidth;
-                    const effectiveChartHeight = chartHeight - labelBottomPadding + 20;
 
                     return (
                         <g key={i} transform={`translate(${groupX}, 0)`}>
@@ -182,8 +205,8 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                 const isDense = groupWidth < 100;
                                 // 2. Calculate offset
                                 const isStaggered = isDense && i % 2 !== 0; // Stagger odd items
-                                const staggerOffset = isStaggered ? (maxLinesNeeded * fontSize * 1.4) + 15 : 0;
-                                const labelY = effectiveChartHeight + 20 + staggerOffset;
+                                const staggerOffset = isStaggered ? (maxLinesNeeded * fontSize * 1.4 * scaleFactor) + (15 * scaleFactor) : 0;
+                                const labelY = effectiveChartHeight + (20 * scaleFactor) + staggerOffset;
 
                                 // 3. Leader Lines (The "Why")
                                 // Connect staggered labels back to their column so the eye can follow (Common Fate)
@@ -195,9 +218,9 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                         {showLeaderLine && (
                                             <line
                                                 x1={(groupWidth - groupGap) / 2}
-                                                y1={effectiveChartHeight + 5}
+                                                y1={effectiveChartHeight + (5 * scaleFactor)}
                                                 x2={(groupWidth - groupGap) / 2}
-                                                y2={effectiveChartHeight + 15 + staggerOffset - (fontSize)}
+                                                y2={effectiveChartHeight + (15 * scaleFactor) + staggerOffset - (fontSize * scaleFactor)}
                                                 stroke={CHART_THEME.colors.neutral.medium}
                                                 strokeWidth={1}
                                                 strokeDasharray="2 2"
@@ -209,7 +232,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             x={(groupWidth - groupGap) / 2}
                                             y={labelY}
                                             textAnchor="middle"
-                                            fontSize={fontSize * (isInfographic ? 0.9 : 1)}
+                                            fontSize={fontSize * (isInfographic ? 0.9 : 1) * scaleFactor}
                                             fontFamily={narrativeFont}
                                             fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
                                             fill={CHART_THEME.colors.neutral.dark}
@@ -221,7 +244,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                                 <tspan
                                                     key={lineIdx}
                                                     x={(groupWidth - groupGap) / 2}
-                                                    dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                                    dy={lineIdx === 0 ? 0 : fontSize * 1.2 * scaleFactor}
                                                 >
                                                     {isInfographic ? line.toUpperCase() : line}
                                                 </tspan>
@@ -244,8 +267,8 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                 const getTypographyForValue = (ratio: number) => {
                                     if (!isInfographic) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 1, sizeMultiplier: 1, textTransform: 'none' as const, letterSpacing: 'normal' };
                                     if (ratio >= 0.8) return { fontWeight: CHART_THEME.fontWeights.black, opacity: 1, sizeMultiplier: 2.0, textTransform: 'uppercase' as const, letterSpacing: '-0.04em' };
-                                    if (ratio >= 0.5) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 0.85, sizeMultiplier: 1.5, textTransform: 'none' as const, letterSpacing: '-0.01em' };
-                                    return { fontWeight: CHART_THEME.fontWeights.normal, opacity: 0.6, sizeMultiplier: 1.0, textTransform: 'none' as const, letterSpacing: 'normal' };
+                                    if (ratio >= 0.5) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 1, sizeMultiplier: 1.5, textTransform: 'none' as const, letterSpacing: '-0.01em' };
+                                    return { fontWeight: CHART_THEME.fontWeights.normal, opacity: 0.9, sizeMultiplier: 1.0, textTransform: 'none' as const, letterSpacing: 'normal' };
                                 };
                                 const typo = getTypographyForValue(ratio);
 
@@ -254,7 +277,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                 const finalSizeMultiplier = isManualHero ? typo.sizeMultiplier * 1.3 : typo.sizeMultiplier;
                                 const heroOpacityBoost = isManualHero ? 1 : typo.opacity;
 
-                                const baseFontSizeValue = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small', isInfographic);
+                                // baseFontSizeValue is already calculated at the top
 
                                 return (
                                     <g key={dsIndex}>
@@ -268,7 +291,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                         <rect
                                             x={x} y={y} width={colWidth - colInnerGap} height={barH}
                                             fill={style?.finish === 'glass' ? `url(#glassGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})` : (useGradient ? `url(#colGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})` : (isSingleSeries ? computedColors[i % computedColors.length] : computedColors[dsIndex % computedColors.length]))}
-                                            opacity={style?.finish === 'glass' ? 1 : 0.9}
+                                            opacity={1}
                                             rx={(colWidth - colInnerGap) / 2}
                                             filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#colShadow)"}
                                         />
@@ -303,9 +326,9 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             return (
                                                 <text
                                                     x={x + (colWidth - colInnerGap) / 2}
-                                                    y={y - (isInfographic ? 45 : 30)}
+                                                    y={y - (isInfographic ? 45 * scaleFactor : 30 * scaleFactor)}
                                                     textAnchor="middle"
-                                                    fontSize={baseFontSizeValue * 0.6}
+                                                    fontSize={baseFontSizeValue * 0.6 * scaleFactor}
                                                     fontFamily={dataFont}
                                                     fontWeight={CHART_THEME.fontWeights.black}
                                                     letterSpacing="0.1em"
@@ -320,9 +343,9 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                         {/* Value Label */}
                                         <text
                                             x={x + (colWidth - colInnerGap) / 2}
-                                            y={y - (isInfographic ? 12 : 8)}
+                                            y={y - (isInfographic ? 12 * scaleFactor : 8 * scaleFactor)}
                                             textAnchor="middle"
-                                            fontSize={baseFontSizeValue * finalSizeMultiplier}
+                                            fontSize={baseFontSizeValue * finalSizeMultiplier * scaleFactor}
                                             fontFamily={dataFont}
                                             fontWeight={typo.fontWeight}
                                             letterSpacing={typo.letterSpacing}
@@ -333,7 +356,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             {value}
                                             {isInfographic && finalShowDeltaPercent && (
                                                 <tspan
-                                                    dx={8}
+                                                    dx={8 * scaleFactor}
                                                     fontSize="0.5em"
                                                     fontWeight={CHART_THEME.fontWeights.bold}
                                                     fill={value >= avgValue ? '#10b981' : '#ef4444'}
@@ -354,9 +377,9 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                 {/* X-axis line */}
                 <line
                     x1={0}
-                    y1={chartHeight - labelBottomPadding + 20}
+                    y1={effectiveChartHeight}
                     x2={chartWidth}
-                    y2={chartHeight - labelBottomPadding + 20}
+                    y2={effectiveChartHeight}
                     stroke={CHART_THEME.colors.neutral.medium}
                     strokeWidth={CHART_THEME.strokeWidths.axis}
                     opacity={isInfographic ? 0.1 : CHART_THEME.effects.axisOpacity}

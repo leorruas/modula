@@ -36,15 +36,23 @@ Always sanitize the font strings before capture by forcing standard fallbacks in
 ```typescript
 const dataUrl = await htmlToImage.toPng(element, {
     // ...
+    // FONT SANITIZATION: html-to-image can crash if it finds CSS variables it can't resolve.
+    // The library attempts to .trim() the font string; if it's undefined or malformed, it fails.
     fontEmbedCSS: `
-        * { font-family: -apple-system, system-ui, sans-serif !important; }
-        .data-number { font-family: monospace !important; }
+        /* FORCE Font Injection via CDN to prevent Serif fallback in sandboxing */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        * { font-family: "Inter", -apple-system, sans-serif !important; }
     `,
     style: {
-        fontFamily: '-apple-system, sans-serif' // Clamps broken inheritance
+        fontFamily: 'Inter, sans-serif' // Clamps broken inheritance or missing vars
     }
 });
 ```
+
+### Tips for "Faded" Colors
+Screens use light emitting pixels; paper (and PDF) uses subtractive color.
+-   **Opacity**: Avoid low opacity (`0.8`) on white backgrounds for exports. It looks washed out. Force `opacity: 1` or `0.95` for export modes.
+-   **Glass Effects**: Rasterization captures them perfectly, but ensure the background contrast is high enough.
 
 ---
 
@@ -56,12 +64,25 @@ PDF coordinates are in **millimeters (mm)**, while the DOM uses **pixels (px)**.
 1.  Get the PDF page width in mm: `doc.internal.pageSize.getWidth()`.
 2.  Get the DOM container width in px: `containerRef.offsetWidth`.
 3.  Calculate `scaleFactor = widthMm / widthPx`.
-4.  Apply `scaleFactor` to every `x, y, width, height` from the DOM.
+4.  Apply `scaleFactor` to every `x, y, width, height` from the DOM to get its PDF position.
 
 > [!IMPORTANT]
-> Use `offsetWidth` and `offsetLeft`, NOT `getBoundingClientRect()`. The latter is affected by CSS transforms (like canvas zoom), which will break your PDF layout.
+> **Use `offsetWidth` and `offsetLeft`, NOT `getBoundingClientRect()`.** The latter is affected by CSS transforms (like canvas zoom or scales), which will cause the exported graphics to be mismatched in size or position in the PDF. `offsetWidth` ensures we get the "nominal" layout size regardless of visual zoom.
 
 ---
+
+## 4. Clipping Prevention (The "Natural Height" Strategy)
+
+HTML elements inside a fixed-height container may overflow (e.g., large labels, hero numbers). In a browser, `overflow: visible` lets them show. In an export, they might get cut off by the capture bounds.
+
+### Strategy:
+1.  **Natural Height Calculation**: Charts should calculate their ideal height. If it exceeds the container, they should **Scale Down** the content (using SVG transform) rather than overflowing.
+2.  **Scroll Capture**: The capture utility (`html-to-image`) should measure `Math.max(scrollWidth, offsetWidth)`.
+3.  **Horizontal Safety**: For right-aligned labels (e.g., last point in Line Chart), ensure `padding-right` or `margin-right` is large enough (e.g., 60-80px) to contain the full label width, as SVG overflow is often cropped during export.
+
+---
+
+## 5. Visual Fidelity (Print vs Screen)
 
 ## 4. Robustness & Error Handling
 

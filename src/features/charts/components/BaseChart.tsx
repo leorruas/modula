@@ -27,7 +27,8 @@ export function BaseChart({ width, height, children, type, legend, legendPositio
             display: 'flex',
             flexDirection: isSide ? 'row' : (isBottom ? 'column-reverse' : 'column'),
             gap: 16,
-            alignItems: isSide ? 'center' : 'stretch'
+            alignItems: isSide ? 'center' : 'stretch',
+            overflow: 'visible'
         }}>
             {legend && (
                 <div style={{

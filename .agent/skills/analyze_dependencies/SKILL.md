@@ -6,6 +6,10 @@ description: Guidelines for adding, auditing, and managing project dependencies 
 
 This skill ensures that we treat dependencies as a liability, not just an asset. Every new package adds weight, security risk, and maintenance overhead.
 
+## See Also
+- [Task Breakdown Skill](../task_breakdown/SKILL.md): Use this to decompose dependency integration into safe phases.
+- [Debug Skill](../debug/SKILL.md): Use this if a dependency introduces regressions or fails to meet parity checks.
+
 ## Protocol for Adding a New Dependency
 
 Before running `npm install [package]`, you MUST answer:
@@ -17,6 +21,13 @@ Before running `npm install [package]`, you MUST answer:
 3.  **Duplication**: Do we already have a library that does this?
     - *Check*: Don't install `moment` if we have `date-fns`.
     - *Check*: Don't install a new UI library if we are using `shadcn/ui` + `radix`.
+    
+## Protocol for Avoiding Regressions
+
+When adding or replacing a dependency (like switching from raster to vector export), you MUST verifying:
+1.  **Visual Parity**: Does the output look *exactly* like the app? (Colors, Fonts, Shadows, Filters).
+2.  **Functional Parity**: Did any element disappear? (Legends, Tooltips, Axes).
+3.  **Interaction Parity**: Does it still respond to user input?
 
 ## Protocol for Auditing (Periodic)
 

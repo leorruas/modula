@@ -107,7 +107,7 @@ export function BarChart({
     const barsPerGroup = data.datasets.length;
     const interGroupGap = isStackedLayout ? 16 : 8; // Fixed gap between categories
     const labelBarGap = isStackedLayout ? 6 : 0;   // Gap between label and its bars
-    const baseBarHeight = 14;
+    const baseBarHeight = 22; // Increased from 14 for more prominence
     const barInnerGap = baseBarHeight * 0.1;
 
     // 1. Calculate the 'natural' height for each category

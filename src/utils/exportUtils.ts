@@ -11,10 +11,10 @@ export async function generateChartImage(
 ): Promise<{ dataUrl: string; width: number; height: number; x: number; y: number }> {
     try {
         // 1. Measure Dimensions
-        // Use offsetWidth/Height to get the UN-SCALED layout size.
-        // getBoundingClientRect is affected by the parent's CSS transform (zoom), causing low-res/shifted exports when zoomed out.
-        const originalWidth = element.offsetWidth;
-        const originalHeight = element.offsetHeight;
+        // Use scrollWidth/scrollHeight to capture the FULL content area, even if it overflows the allotted container size.
+        // This is the "Safety Net" for high-res editorial exports.
+        const originalWidth = Math.max(element.scrollWidth, element.offsetWidth);
+        const originalHeight = Math.max(element.scrollHeight, element.offsetHeight);
 
         // PADDING: Add padding for the background (Default 40px unless overridden)
         const padding = options?.padding !== undefined ? options.padding : 40;
@@ -38,8 +38,9 @@ export async function generateChartImage(
             // We ensure that common chart elements have their font-family clamped to standard fallbacks.
             // The library attempts to .trim() the font string; if it's undefined or malformed, it fails.
             fontEmbedCSS: `
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
                 * { 
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+                    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
                 }
                 .hero-number, .data-label { 
                     font-family: "Courier New", Courier, monospace !important; 

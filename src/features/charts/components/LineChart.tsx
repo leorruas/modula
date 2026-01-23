@@ -35,26 +35,30 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
     const minValue = Math.min(...allValues, Infinity);
     const avgValue = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
 
-    const padding = isInfographic ? 40 : 0;
+    // --- NATURAL HEIGHT & SCALING (Applied from ColumnChart Fix) ---
+    // Natural Clearance
+    const baseFontSizeValue = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small', isInfographic);
+    const naturalBadgeOffset = isInfographic ? 45 : 30;
+    const naturalTextHeight = isInfographic ? baseFontSizeValue * 2.6 : baseFontSizeValue * 1.2;
+    const naturalTopMargin = Math.max(naturalBadgeOffset + (isInfographic ? 25 : 10), naturalTextHeight + 15);
 
-    // Smart Margins
-    const marginTop = isInfographic ? 80 : 12; // Extra space for badges and hero numbers
-    const marginRight = isInfographic ? 50 : (isInfographic ? padding : CHART_THEME.padding.small);
-    let marginBottom = (isInfographic ? padding : CHART_THEME.padding.small) + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 0);
-    const marginLeft = isInfographic ? 60 : (isInfographic ? padding : CHART_THEME.padding.small) + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
+    const naturalGraphHeight = 250; // Use prominent height similar to ColumnChart
 
-    const chartWidth = width - marginLeft - marginRight;
-
+    // Bottom Metrics for Staggering
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
     const charWidth = fontSize * 0.5;
-    const maxLines = 3;
-    const maxCharsPerLine = Math.floor((chartWidth / Math.max(labels.length, 1)) / charWidth);
+    const padding = isInfographic ? 40 : 0;
 
+    // Robust defaults for Natural Calculation / Label Wrapping:
+    const tempSidePadding = isInfographic ? 60 : 25;
+    const groupWidthGuess = (width - tempSidePadding * 2) / Math.max(labels.length, 1);
+    const maxCharsPerLine = Math.floor((groupWidthGuess * 0.7) / charWidth);
+
+    // Label Wrapping Logic (moved up)
     const wrapLabel = (text: string) => {
         const words = text.split(' ');
         const lines: string[] = [];
         let currentLine = words[0];
-
         for (let i = 1; i < words.length; i++) {
             if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
                 currentLine += ' ' + words[i];
@@ -64,16 +68,39 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
             }
         }
         lines.push(currentLine);
-        return lines.slice(0, maxLines);
+        return lines.slice(0, 3);
     };
-
     const wrappedLabels = labels.map(wrapLabel);
     const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
-    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + 20;
+    const naturalBottomPadding = (maxLinesNeeded * fontSize * 1.3) + 30;
 
-    marginBottom = (isInfographic ? (padding / 2) : CHART_THEME.padding.small) + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 0) + labelBottomPadding;
-    const chartHeight = height - marginTop - marginBottom;
-    const effectiveBaselineY = chartHeight;
+    const totalNaturalHeight = naturalTopMargin + naturalGraphHeight + naturalBottomPadding;
+
+    const isVerticalLegend = finalLegendPosition === 'top' || finalLegendPosition === 'bottom';
+    const legendAllowance = isVerticalLegend ? 40 : 0;
+    const availableHeight = height - (padding * 2) - legendAllowance;
+
+    // SCALE FACTOR
+    const scaleFactor = isInfographic
+        ? (availableHeight / totalNaturalHeight)
+        : (totalNaturalHeight > availableHeight ? availableHeight / totalNaturalHeight : 1);
+
+    // Final Scaled Dimensions
+    const marginTop = naturalTopMargin * scaleFactor;
+    const marginBottom = naturalBottomPadding * scaleFactor;
+
+    // Margins - INCREASED to 80px for Safety in Export
+    const marginRight = isInfographic ? 80 : (isInfographic ? padding : CHART_THEME.padding.small);
+    const marginLeft = isInfographic ? 60 : (isInfographic ? padding : CHART_THEME.padding.small) + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 25);
+
+    // FINAL CHART WIDTH (Safe)
+    const chartWidth = width - marginLeft - marginRight;
+
+    // FINAL HEIGHTS (Correct Order)
+    const effectiveChartHeight = naturalGraphHeight * scaleFactor;
+    const chartHeight = effectiveChartHeight;
+
+    const effectiveBaselineY = effectiveChartHeight;
 
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif';
     const dataFont = isInfographic ? (CHART_THEME.fonts.data || CHART_THEME.fonts.number || 'sans-serif') : (CHART_THEME.fonts.number || 'sans-serif');
@@ -176,8 +203,8 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                                 const getTypographyForValue = (ratio: number) => {
                                     if (!isInfographic) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 1, sizeMultiplier: 1, letterSpacing: 'normal' };
                                     if (ratio >= 0.8) return { fontWeight: CHART_THEME.fontWeights.black, opacity: 1, sizeMultiplier: 2.0, letterSpacing: '-0.04em' };
-                                    if (ratio >= 0.5) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 0.85, sizeMultiplier: 1.5, letterSpacing: '-0.01em' };
-                                    return { fontWeight: CHART_THEME.fontWeights.normal, opacity: 0.6, sizeMultiplier: 1.0, letterSpacing: 'normal' };
+                                    if (ratio >= 0.5) return { fontWeight: CHART_THEME.fontWeights.semibold, opacity: 1, sizeMultiplier: 1.5, letterSpacing: '-0.01em' };
+                                    return { fontWeight: CHART_THEME.fontWeights.normal, opacity: 0.9, sizeMultiplier: 1.0, letterSpacing: 'normal' };
                                 };
                                 const typo = getTypographyForValue(ratio);
 
@@ -197,17 +224,17 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                                             stroke={style?.finish === 'glass' ? "none" : color}
                                             strokeWidth={isInfographic ? 3 : 2.5}
                                             filter={style?.finish === 'glass' ? "url(#glassPointFilter)" : undefined}
-                                            opacity={heroOpacityBoost}
+                                            opacity={1}
                                         />
 
                                         {/* X-axis Label */}
                                         {dsIndex === 0 && (
                                             <text
-                                                x={x} y={effectiveBaselineY + 20} textAnchor="middle"
+                                                x={x} y={effectiveBaselineY + 20 * scaleFactor} textAnchor="middle"
                                                 fontSize={fontSize} fontFamily={fontFamily}
                                                 fontWeight={isInfographic ? CHART_THEME.fontWeights.semibold : CHART_THEME.fontWeights.medium}
                                                 fill={CHART_THEME.colors.neutral.dark}
-                                                opacity={isInfographic ? 0.7 : 1}
+                                                opacity={1}
                                             >
                                                 <title>{labels[i]}</title>
                                                 {wrappedLabels[i].map((line, lineIdx) => (
