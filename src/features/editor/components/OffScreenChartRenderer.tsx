@@ -1,4 +1,4 @@
-import { Chart } from '@/types';
+import { Chart, GridConfig } from '@/types';
 import { BarChart } from '@/features/charts/components/BarChart';
 import { ColumnChart } from '@/features/charts/components/ColumnChart';
 import { LineChart } from '@/features/charts/components/LineChart';
@@ -19,11 +19,12 @@ interface OffScreenChartRendererProps {
     chart: Chart | null;
     width: number;
     height: number;
+    gridConfig: GridConfig;
     id: string; // for document.getElementById
     onReady?: () => void;
 }
 
-export function OffScreenChartRenderer({ chart, width, height, id, onReady }: OffScreenChartRendererProps) {
+export function OffScreenChartRenderer({ chart, width, height, gridConfig, id, onReady }: OffScreenChartRendererProps) {
 
     // Trigger onReady when chart is mounted
     useEffect(() => {
@@ -53,7 +54,7 @@ export function OffScreenChartRenderer({ chart, width, height, id, onReady }: Of
             }}
         >
             <div style={{ width: '100%', height: '100%' }}>
-                {chart.type === 'bar' && <BarChart width={width} height={height} data={chart.data} style={chart.style} />}
+                {chart.type === 'bar' && <BarChart width={width} height={height} data={chart.data} style={chart.style} gridConfig={gridConfig} baseFontSize={gridConfig.baseFontSize} baseFontUnit={gridConfig.baseFontUnit} />}
                 {chart.type === 'column' && <ColumnChart width={width} height={height} data={chart.data} style={chart.style} />}
                 {chart.type === 'line' && <LineChart width={width} height={height} data={chart.data} style={chart.style} />}
                 {chart.type === 'pie' && <PieChart width={width} height={height} data={chart.data} style={chart.style} />}

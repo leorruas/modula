@@ -38,6 +38,7 @@ export function ChartItem({ chart, gridConfig, module }: ChartItemProps) {
         style: chart.style,
         baseFontSize: gridConfig.baseFontSize,
         baseFontUnit: gridConfig.baseFontUnit,
+        gridConfig, // Pass gridConfig to chart components
         computedLayout // Pass the computed layout
     };
 

@@ -801,3 +801,654 @@ Targeting `MixedChart` and `PictogramChart`.
 - [ ] **BarChart (Tracer)**: Long labels are not cut off in PDF.
 - [ ] **Smart Engine**: `npm test` passes for Layout Logic.
 - [ ] **Rollout**: All 16 chart types render without regression.
+
+
+
+
+
+
+
+
+
+------
+
+
+
+Análise do Plano de Implementação: Smart Layout System
+📊 Status Atual da Implementação
+✅ O que JÁ está implementado
+Sub-Project 1: Foundation & Tracer Bullet (BarChart) - PARCIALMENTE IMPLEMENTADO
+Phase 1: Structure (The Skeleton) ✅
+
+
+types.ts
+ existe e define as interfaces básicas
+
+SmartLayoutEngine.ts
+ existe com estrutura básica
+
+barRules.ts
+ existe
+Phase 2: Logic (The Brain) ⚠️ PARCIAL
+
+
+analyzeChart
+ implementado com medição de texto real
+
+computeDynamicMargins
+ implementado de forma básica
+
+computeLayout
+ implementado com lógica de vertical fill
+FALTANDO: Muitas das lógicas avançadas dos sub-projetos 1.1-1.55
+Phase 3: Wiring (The Integration) ⚠️ PARCIAL
+
+
+useSmartLayout.ts
+ existe
+
+BarChart.tsx
+ aceita computedLayout prop
+MAS: Usa fallback para lógica legada (linhas 103-106)
+PROBLEMA: A integração não está sendo usada de fato na prática
+🔴 O que NÃO está implementado (mas está no plano)
+Sub-Projects Marcados como [checked] mas NÃO implementados:
+Sub-Project 1.1: Foundation Corrections
+
+
+TextMeasurementService.ts
+ existe, mas falta:
+Cache de resultados
+Lógica de exportBuffer
+assessOverflowRisk
+Sub-Project 1.2: Visual Polish ❌
+
+Falta lógica de Grouped Header mode
+Falta Annotation Reserves
+Falta Grid Safety com clipPath
+Sub-Project 1.3: Scale Safety ❌
+
+Existe lógica básica de caps, mas não completa
+Sub-Project 1.4: Responsive Density ❌
+
+Densidade está implementada de forma básica
+Falta lógica de "Margin Collapse" prevention
+Sub-Project 1.5: Label Alignment & Value Safety ❌
+
+Falta Badge Analysis
+Falta MarginRight Solver inteligente
+Falta categoryLabelX e categoryLabelAnchor no typeSpecific
+Sub-Project 1.6: Optical Balance & Legend Intelligence ❌
+
+Falta labelPadding calculation
+Falta Universal Legend Solver
+Falta categoryLabelSpacing
+Sub-Project 1.7: Optical Maturity & Export Fidelity ❌
+
+Falta valuePositioning: 'top'
+Falta lógica de PDF fidelity
+Falta font mapping para PDF
+Sub-Project 1.8: Smart Label Wrapping ❌
+
+Falta labelWidthThresholdPx calculation
+Falta labelWrapThreshold no typeSpecific
+
+BarChart.tsx
+ ainda usa lógica de "guessing" (linha 79)
+Sub-Projects 1.10-1.55: TODOS marcados como [checked] mas NÃO implementados ❌
+
+Sub-Project 2: Export Intelligence ❌
+
+Nada implementado
+Sub-Project 2.1: Above-Chart Label Strategy ❌
+
+Nada implementado
+Sub-Project 2.2: Premium Font Unification ❌
+
+Nada implementado
+Sub-Project 3: Full Expansion ❌
+
+Nada implementado (apenas BarChart tem integração parcial)
+🔄 O que está DUPLICADO ou REDUNDANTE
+1. Lógica de Margens Duplicada
+Engine (
+
+SmartLayoutEngine.ts
+): Calcula margens
+Component (
+
+BarChart.tsx
+): Ainda tem lógica legada de margens (linhas 64-106)
+PROBLEMA: O componente não confia 100% no Engine
+2. Cálculo de barThickness Duplicado
+Engine: Calcula barThickness (linhas 130-159)
+Component: Ainda calcula barHeight internamente (linha 116)
+PROBLEMA: Dois sistemas paralelos
+3. Medição de Texto Duplicada
+Engine: Usa TextMeasurementService
+Component: Usa charWidth approximation (linha 69)
+PROBLEMA: Inconsistência entre medições
+4. Lógica de Wrapping Duplicada
+Planejado no Engine: labelWrapThreshold
+Implementado no Component: 
+
+wrapLabel()
+ function (linhas 81-97)
+PROBLEMA: Component ainda "adivinha" ao invés de usar Engine
+5. Sub-Projects Repetidos no Documento
+Alguns conceitos aparecem múltiplas vezes:
+
+Legend Intelligence: Mencionado em 1.6, 1.27, 1.43, 1.44
+Label Wrapping: Mencionado em 1.8, 1.26, 1.46, 1.49, 1.51
+Export Fidelity: Mencionado em 1.7, todo Sub-Project 2
+Density/Thickness: Mencionado em 1.4, 1.13, 1.18, 1.42
+💡 Como MELHORAR o Plano
+Problema 1: Falsa Sensação de Progresso
+Situação: 90% dos sub-projects estão marcados como [checked]
+Realidade: Apenas ~5% está realmente implementado
+Solução:
+Remover todos os [checked] que não foram implementados
+Criar um status real: [ ] (não iniciado), [/] (em progresso), [x] (completo)
+Problema 2: Granularidade Excessiva
+Situação: 55+ sub-projects (1.1 até 1.55)
+Problema: Impossível de gerenciar, muita sobreposição
+Solução: Consolidar em fases temáticas:
+FASE 1: Core Engine (Fundação Real)
+Consolidar: 1.1, 1.5, 1.8, 1.11, 1.15, 1.44
+
+Medição precisa de texto
+Cálculo de margens dinâmicas
+Wrapping inteligente
+Legend sizing
+FASE 2: Visual Refinement (Polimento)
+Consolidar: 1.2, 1.3, 1.4, 1.6, 1.7, 1.10, 1.12, 1.14, 1.42
+
+Vertical fill strategy
+Scale safety
+Optical balance
+Density adaptation
+FASE 3: Advanced Features (Inteligência)
+Consolidar: 1.16-1.29 (Anchor, Contrast, Ink-to-Space, etc.)
+
+Smart positioning
+Accessibility
+Auto-highlighting
+Semantic features
+FASE 4: Export Fidelity (PDF/PNG)
+Consolidar: Sub-Project 2 completo + 1.7
+
+Environment invariants
+Font synchronization
+Resolution handling
+FASE 5: Component Expansion
+Consolidar: Sub-Project 3
+
+Rollout para outros charts
+Problema 3: Falta de Priorização Clara
+Situação: Tudo parece igualmente importante
+Solução: Adicionar níveis de prioridade:
+P0 (Blocker): Sem isso, o sistema não funciona
+P1 (Critical): Impacta qualidade visual drasticamente
+P2 (Important): Melhoria significativa
+P3 (Nice-to-have): Polimento fino
+Exemplo de Priorização:
+
+P0: Medição de texto, Margens dinâmicas, Vertical fill
+P1: Label wrapping, Legend sizing, Export fidelity
+P2: Optical balance, Density adaptation, Smart positioning
+P3: Golden ratio, Force-directed labels, Sparkline mode
+Problema 4: Falta de Critérios de Aceitação Claros
+Situação: "🔍 How to Verify" é vago
+Solução: Adicionar Acceptance Criteria específicos:
+Exemplo:
+
+## FASE 1: Core Engine
+### Acceptance Criteria:
+- [ ] `TextMeasurementService` mede com precisão ±2px
+- [ ] `BarChart` usa 100% das margens do Engine (zero fallback)
+- [ ] Labels nunca truncam (zero `...` no output)
+- [ ] Legend ocupa exatamente o espaço medido (zero whitespace extra)
+- [ ] `npm run build` passa sem erros
+- [ ] Teste visual: Dashboard com 5 charts diferentes renderiza corretamente
+Problema 5: Dependências Não Mapeadas
+Situação: Não está claro o que depende do quê
+Solução: Adicionar diagrama de dependências:
+TextMeasurementService
+SmartLayoutEngine
+useSmartLayout Hook
+BarChart Component
+Export Service
+PDF Generator
+Problema 6: Architectural Alignment Desconectado
+Situação: Seção "Architectural Alignment" (linhas 297-321) lista features mas não conecta com sub-projects
+Solução: Integrar diretamente nas fases, não como seção separada
+🎯 Plano Reorganizado Sugerido
+Estrutura Proposta:
+# Smart Layout Implementation Plan
+## FASE 1: Core Engine (P0 - Blocker)
+**Objetivo**: Engine funcional que substitui 100% da lógica legada
+### 1.1 Text Measurement & Caching
+- [ ] Implementar cache em `TextMeasurementService`
+- [ ] Adicionar font loading detection
+- [ ] Acceptance: Medição ±2px de precisão
+### 1.2 Dynamic Margins Solver
+- [ ] Implementar `computeDynamicMargins` completo
+- [ ] Adicionar `exportBuffer` logic
+- [ ] Acceptance: Margens adaptam a labels de 5-100 caracteres
+### 1.3 Label Wrapping Intelligence
+- [ ] Calcular `labelWidthThresholdPx`
+- [ ] Passar `labelWrapThreshold` para component
+- [ ] Acceptance: Labels wrappam no boundary exato
+### 1.4 Legend Sizing (Predictive)
+- [ ] Implementar `calculatePredictedLegendWidth/Height`
+- [ ] Suportar todas as posições (top/bottom/left/right)
+- [ ] Acceptance: Zero whitespace desperdiçado
+### Verification:
+- [ ] Unit tests: `SmartLayoutEngine.test.ts`
+- [ ] Integration: BarChart usa 100% Engine (zero fallback)
+- [ ] Visual: Dashboard com labels longos + legends variadas
+---
+## FASE 2: Visual Refinement (P1 - Critical)
+**Objetivo**: Charts sempre preenchem o container de forma elegante
+### 2.1 Vertical Fill Strategy
+### 2.2 Scale Safety (Caps)
+### 2.3 Optical Balance
+### 2.4 Density Adaptation
+---
+## FASE 3: Export Fidelity (P1 - Critical)
+**Objetivo**: PDF = Screen (1:1 fidelity)
+### 3.1 Environment Invariants
+### 3.2 Font Synchronization
+### 3.3 Resolution Handling
+---
+## FASE 4: Advanced Intelligence (P2 - Important)
+**Objetivo**: Charts auto-otimizam para storytelling
+### 4.1 Smart Positioning (Anchor Point)
+### 4.2 Contrast-Aware Labels
+### 4.3 Auto-Highlighting
+---
+## FASE 5: Component Expansion (P2 - Important)
+**Objetivo**: Todos os 16 charts usam Engine
+### 5.1 Column Family
+### 5.2 Line Family
+### 5.3 Circular Family
+### 5.4 Mixed Charts
+📋 Ações Imediatas Recomendadas
+1. Limpar o Documento Atual
+Remover todos os [checked] falsos
+Consolidar sub-projects 1.1-1.55 em 4-5 fases
+Adicionar prioridades (P0/P1/P2/P3)
+2. Criar Roadmap Visual
+Usar Mermaid diagram para mostrar dependências
+Adicionar timeline estimado (sprints/semanas)
+3. Definir "Definition of Done"
+Para cada fase, listar acceptance criteria específicos
+Incluir comandos exatos de teste
+4. Separar "Ideal State" de "MVP"
+Muitas features são "nice-to-have" (Golden Ratio, Force-Directed, etc.)
+Criar seção "Future Enhancements" para P3 items
+5. Adicionar Seção de Riscos
+Performance: Medição de texto pode ser lenta
+Complexity: Engine pode ficar muito complexo
+Migration: Componentes legados podem resistir
+⚠️ CONTRADIÇÕES no Plano
+1. Contradição: Margin Logic (Engine vs Component)
+Sub-Project 1.2 (linha 94):
+
+"Detect Grouped Header mode: Zero out left margin if labels are on top."
+
+Sub-Project 1.4 (linha 137):
+
+"Revert marginLeft = 0 for Infographic mode. Instead, use marginLeft = computed"
+
+CONTRADIÇÃO:
+
+1.2 diz para zerar a margem esquerda quando labels estão no topo
+1.4 diz para NUNCA zerar, sempre usar margem computada
+Problema: Qual regra seguir?
+Solução Sugerida:
+
+Engine sempre calcula margem mínima (20-30px para alinhamento de eixo)
+Component decide se renderiza labels no topo ou na lateral
+Se labels no topo → usa margem mínima
+Se labels na lateral → usa margem completa
+2. Contradição: Label Positioning Strategy
+Sub-Project 1.6 (linha 186):
+
+"Ensure categoryLabelX is 0 and anchor is \"start\" if the chart needs categorical labels inside the plot"
+
+Sub-Project 1.7 (linha 212):
+
+"Reduce categoryLabelX from -24 to -18 for Infographic mode"
+
+Sub-Project 2.1 (linha 713):
+
+"Move category-label to x=0 (Start)"
+
+CONTRADIÇÃO:
+
+1.6 diz x=0 para labels dentro do plot
+1.7 diz x=-18 para infographic
+2.1 diz x=0 para header mode
+Problema: Três estratégias diferentes para posicionamento X
+Solução Sugerida:
+
+// Engine deve retornar uma estratégia clara:
+typeSpecific: {
+  labelStrategy: 'side-gutter' | 'top-header' | 'inside-plot',
+  categoryLabelX: number,  // calculado baseado na estratégia
+  categoryLabelAnchor: 'start' | 'end'
+}
+3. Contradição: Vertical Fill vs Scale Safety
+Sub-Project 1.2 (linha 93):
+
+"Calculate barThickness dynamically to fill plotHeight"
+
+Sub-Project 1.3 (linha 117):
+
+"Enforce a hard maximum (e.g. 60-80px) regardless of available space"
+
+Sub-Project 1.3 (linha 118):
+
+"Even in 'Vertical Fill' mode, do not fill 100% if it means violating density norms"
+
+CONTRADIÇÃO:
+
+1.2 quer preencher 100% do espaço vertical
+1.3 quer limitar a 60-80px MESMO que haja espaço
+Problema: Qual tem prioridade?
+Código Atual (SmartLayoutEngine.ts linha 156-158):
+
+barThickness = (spacePerCategory * targetFillRatio) / divider;
+barThickness = Math.min(barThickness, maxThickness);  // ✅ Cap aplicado
+barThickness = Math.max(barThickness, 12);
+Status: ✅ Implementado corretamente (cap tem prioridade) Problema no Plano: Documentação contraditória
+
+4. Contradição: Legend Position Priority
+Sub-Project 1.1 (linha 68):
+
+"Prioritize user preferences (e.g., Legend Position) over rules"
+
+Sub-Project 1.6 (linha 190-192):
+
+"Refactor margin logic to estimate legend size for all positions"
+
+Código Atual (SmartLayoutEngine.ts linha 117):
+
+const legendPosition = analysis.layoutRequirements.userLegendPosition || rules.legendPosition;
+CONTRADIÇÃO:
+
+1.1 diz que user preference tem prioridade ✅
+Código implementa isso ✅
+MAS: 1.6 não menciona user override, parece assumir que Engine decide
+Solução: Clarificar que Engine SEMPRE respeita user preference, mas otimiza o espaço baseado na posição escolhida
+
+5. Contradição: Value Label Positioning
+Sub-Project 1.7 (linha 214):
+
+"Add valuePositioning: 'top' to typeSpecific for Infographic mode"
+
+Sub-Project 1.16 (linha 327):
+
+"Dynamically decide if value labels sit inside or outside the bar"
+
+CONTRADIÇÃO:
+
+1.7 quer valores no TOPO (acima da barra) para infographic
+1.16 quer valores DENTRO ou FORA (à direita) da barra
+Problema: São estratégias mutuamente exclusivas
+Código Atual (BarChart.tsx linha 449):
+
+// Valores sempre à DIREITA da barra
+x={barW + 8}
+Solução Sugerida:
+
+typeSpecific: {
+  valuePositioning: 'right' | 'top' | 'inside',
+  // Engine decide baseado em:
+  // - Modo (classic vs infographic)
+  // - Espaço disponível (barWidth vs labelWidth)
+  // - Densidade (se há espaço vertical para valores no topo)
+}
+6. Contradição: Wrapping vs Truncation Policy
+Sub-Project 1.8 (linha 235):
+
+"Transition label wrapping from 'guessing' to Engine-calculated boundaries"
+
+Sub-Project 1.26 (linha 390):
+
+"Solve label overlap WITHOUT ever cutting the text"
+
+Sub-Project 1.55 (linha 641):
+
+"Eliminate 'GRU...' truncation"
+
+Sub-Project 2.1 (linha 695):
+
+"Moving text from the side margin to above the bars"
+
+CONTRADIÇÃO:
+
+1.8 quer wrapping inteligente (quebrar em múltiplas linhas)
+1.26 diz "NUNCA truncar"
+1.55 diz "zero ellipses"
+2.1 propõe mover para o topo como solução
+Problema: São 4 estratégias diferentes para o mesmo problema
+
+Hierarquia Correta (não documentada):
+
+Tentar Wrapping (se cabe em 3 linhas na lateral)
+Mover para Topo (se não cabe lateral, mas cabe no topo)
+Stagger/Rotate (última opção, apenas para eixos X)
+NUNCA truncar com ...
+7. Contradição: Export Resolution
+Sub-Project 2 (linha 659):
+
+"Hardcode EXPORT_PIXEL_RATIO = 3.5"
+
+Conversation History (4331873d):
+
+User testou aumentar resolução do PDF
+
+CONTRADIÇÃO:
+
+Plano quer hardcoded 3.5
+Histórico mostra que user quer testar valores diferentes
+Problema: Hardcoded vs configurável
+Solução: Fazer configurável com default 3.5:
+
+const EXPORT_PIXEL_RATIO = config.exportPixelRatio ?? 3.5;
+8. Contradição: Font Strategy
+Sub-Project 1.7 (linha 224):
+
+"Ensure Infographic fonts (Narrative/Data) are correctly passed"
+
+Sub-Project 2.2 (linha 733):
+
+"Unifying the premium font stack (Outfit & Geist Mono)"
+
+Código Atual (BarChart.tsx linha 152-153):
+
+const narrativeFont = isInfographic ? (CHART_THEME.fonts.narrative || fontFamily) : fontFamily;
+const dataFont = isInfographic ? (CHART_THEME.fonts.data || ...) : ...;
+CONTRADIÇÃO:
+
+1.7 fala de "Narrative/Data" fonts (genérico)
+2.2 fala de "Outfit & Geist Mono" (específico)
+Código usa fallbacks (pode não usar Outfit/Geist)
+Problema: Não está claro se fonts são obrigatórias ou opcionais
+
+Solução: Definir font stack obrigatório:
+
+// globals.css DEVE carregar:
+--font-narrative: 'Outfit', sans-serif;
+--font-data: 'Geist Mono', monospace;
+9. Contradição: Density Calculation
+Sub-Project 1.4 (linha 138):
+
+"Calculate density = categoryCount / plotHeight"
+
+Código Atual (SmartLayoutEngine.ts linha 138):
+
+const density = categoryCount / (plotHeight / 100); // categories per 100px
+CONTRADIÇÃO:
+
+Plano: categoryCount / plotHeight (resultado entre 0-1)
+Código: categoryCount / (plotHeight / 100) (resultado em "per 100px")
+Problema: Fórmulas diferentes, thresholds incompatíveis
+Exemplo:
+
+10 categorias, 500px altura
+Plano: 10 / 500 = 0.02
+Código: 10 / (500/100) = 2.0
+Solução: Padronizar no "per 100px" (mais intuitivo)
+
+10. Contradição: Component Responsibility
+Filosofia Declarada (linha 3):
+
+"Replace ad-hoc variable calculations spread across components with a centralized 
+
+SmartLayoutEngine
+"
+
+Sub-Project 1.3 (linha 121-123):
+
+"Component Guardrails: Enforce maxBarHeight in the layout loop. Decouple fontSize from barHeight"
+
+Sub-Project 1.4 (linha 142):
+
+"Use computedLayout margins strictly (don't mix and match with legacy padding)"
+
+CONTRADIÇÃO:
+
+Filosofia: Engine faz TUDO, Component é "dumb"
+1.3: Component tem lógica de guardrails
+1.4: Component deve usar margins "strictly"
+Problema: Onde fica a fronteira de responsabilidade?
+Código Atual (BarChart.tsx linha 103-106):
+
+// Component ainda tem lógica complexa de fallback
+const marginTop = computedLayout?.margins.top ?? (isStackedLayout ? (isInfographic ? 40 : 10) : padding);
+Solução: Definir contrato claro:
+
+Engine: Calcula TODOS os valores (margins, thickness, positioning)
+Component: Renderiza EXATAMENTE o que Engine mandou
+Fallback: Apenas para backward compatibility, deve ser removido
+11. Contradição: PDF vs Screen Layout
+Sub-Project 2 (linha 660):
+
+"PDF export must ignore the user's current window size"
+
+Sub-Project 2 (linha 669):
+
+"Ensure 1:1 visual fidelity between modules on screen vs PDF"
+
+CONTRADIÇÃO:
+
+Linha 660: PDF ignora window size (layout diferente)
+Linha 669: PDF deve ser 1:1 com screen (layout idêntico)
+Problema: Impossível ter ambos
+Solução: Clarificar:
+
+Layout Structure: 1:1 (mesmas proporções relativas)
+Absolute Dimensions: Diferentes (PDF usa virtual canvas)
+Visual Appearance: Idêntica (mesmas fonts, cores, espaçamentos)
+12. Contradição: Legend Optimization
+Sub-Project 1.6 (linha 191):
+
+"If few datasets, shrink the margin"
+
+Sub-Project 1.7 (linha 213):
+
+"Aggressive Legend Reclaim: ensure marginTop/Bottom reserves are strictly bounded"
+
+Sub-Project 1.27 (linha 407):
+
+"Reduces legend height by ~50%"
+
+Sub-Project 1.44 (linha 542):
+
+"Set marginBottom exactly to lines * height. Zero 'guess' buffer"
+
+CONTRADIÇÃO:
+
+1.6 quer "shrink" (vago)
+1.7 quer "aggressive reclaim" (vago)
+1.27 promete "50% reduction" (específico mas arbitrário)
+1.44 quer "zero buffer" (pode causar clipping)
+Problema: Otimização excessiva pode causar overflow
+
+Solução: Definir safety margin mínimo:
+
+marginBottom = Math.max(
+  measuredLegendHeight + SAFETY_BUFFER, // 8-12px
+  MIN_LEGEND_MARGIN // 20px
+);
+📊 Resumo das Contradições
+#	Contradição	Severidade	Status no Código
+1	Margin Logic (zero vs computed)	🔴 Alta	Parcialmente resolvido
+2	Label Positioning (3 estratégias)	🔴 Alta	Não resolvido
+3	Vertical Fill vs Scale Safety	🟡 Média	✅ Resolvido
+4	Legend Position Priority	🟢 Baixa	✅ Resolvido
+5	Value Label Positioning	🔴 Alta	Não resolvido
+6	Wrapping vs Truncation	🔴 Alta	Não documentado
+7	Export Resolution	🟡 Média	Hardcoded (inflexível)
+8	Font Strategy	🟡 Média	Fallbacks permissivos
+9	Density Calculation	🟡 Média	Fórmula diferente
+10	Component Responsibility	🔴 Alta	Fronteira confusa
+11	PDF vs Screen Layout	🟡 Média	Não implementado
+12	Legend Optimization	🟡 Média	Não implementado
+Legenda:
+
+🔴 Alta: Bloqueia implementação ou causa bugs
+🟡 Média: Causa confusão ou inconsistência
+🟢 Baixa: Documentação imprecisa mas código OK
+🎨 Oportunidades de Melhor Aproveitamento
+1. Reutilizar Lógica Existente
+O 
+
+BarChart.tsx
+ já tem muita lógica boa que pode ser extraída para o Engine:
+
+Wrapping logic (linhas 81-97) → mover para Engine
+Typography hierarchy (linhas 334-373) → mover para Engine
+Density calculation (linhas 112-146) → já existe no Engine, remover do component
+2. Aproveitar TextMeasurementService
+Já existe, mas está subutilizado:
+
+Adicionar cache (Map<string, number>)
+Adicionar batch measurement (medir múltiplos textos de uma vez)
+Adicionar font preloading
+3. Aproveitar BaseChart
+O BaseChart wrapper pode ser expandido para:
+
+Automaticamente chamar useSmartLayout
+Passar computedLayout para todos os children
+Renderizar debug overlays (quando debugLayout=true)
+4. Aproveitar Conversation History
+Você tem histórico de conversas sobre:
+
+Chart export issues (conversation 4331873d)
+Componentization (conversation 5870325a)
+Gestalt principles (conversation d1ca4e63)
+Ação: Extrair learnings dessas conversas e adicionar como "Lessons Learned" no plano
+
+✅ Resumo Executivo
+Estado Atual:
+Implementado: ~5% (estrutura básica)
+Marcado como done: ~90% (FALSO)
+Realmente pronto: Apenas Phase 1 do Sub-Project 1
+Problemas Principais:
+Falsa sensação de progresso ([checked] everywhere)
+Granularidade excessiva (55 sub-projects)
+Duplicação de lógica (Engine vs Component)
+Falta de priorização clara
+Acceptance criteria vagos
+Recomendações:
+Consolidar 55 sub-projects em 5 fases temáticas
+Priorizar com P0/P1/P2/P3
+Limpar todos os [checked] falsos
+Definir acceptance criteria específicos
+Separar MVP de "Future Enhancements"
+Próximo Passo:
+Criar um novo documento smart-layout-roadmap.md com a estrutura reorganizada e pedir aprovação do usuário antes de continuar a implementação.

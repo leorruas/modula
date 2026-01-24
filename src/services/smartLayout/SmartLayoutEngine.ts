@@ -8,7 +8,23 @@ import {
 } from './types';
 import { getRulesForType } from './rules';
 import { textMeasurementService } from './TextMeasurementService';
-import { MODE_MULTIPLIERS, EXPORT_DRIFT_BUFFER } from './constants';
+import { SmartLabelWrapper } from './SmartLabelWrapper';
+import {
+    MODE_MULTIPLIERS,
+    EXPORT_DRIFT_BUFFER,
+    EXPORT_SAFETY_PADDING,
+    MIN_PLOT_WIDTH_RATIO,
+    LEGEND_ICON_SIZE,
+    LEGEND_ICON_GAP,
+    LEGEND_ITEM_PADDING,
+    LEGEND_VERTICAL_GAP,
+    LEGEND_FONT_SIZE_RATIO,
+    LABEL_PADDING,
+    LABEL_GUTTER,
+    LABEL_LINE_HEIGHT_RATIO,
+    MAX_LABEL_LINES,
+    MIN_LABEL_WRAP_CHARS
+} from './constants';
 
 export class SmartLayoutEngine {
     /**
@@ -89,7 +105,8 @@ export class SmartLayoutEngine {
     public static computeLayout(
         chart: { type: string; data: ChartData; style?: ChartStyle },
         gridConfig: GridConfig,
-        module: { w: number; h: number }
+        module: { w: number; h: number },
+        target: 'screen' | 'pdf' = 'screen'
     ): ComputedLayout {
         // Step 1: Analyze the chart
         const analysis = this.analyzeChart(chart, gridConfig, module);
@@ -100,10 +117,51 @@ export class SmartLayoutEngine {
         // Step 3: Get mode modifiers
         const modeConfig = this.getModeModifiers(analysis.mode);
 
-        // Step 4: Compute margins
-        const margins = this.computeDynamicMargins(analysis, rules, modeConfig);
+        // Step 4: Compute margins with new parameters (FASE 1.2 + 1.3)
+        const baseFontSize = gridConfig.baseFontSize || 11;
+        const fontFamily = chart.style?.fontFamily || 'Inter, sans-serif';
+        const datasets = chart.data.datasets || [];
+        const categoryLabels = chart.data.labels || [];
 
-        // Step 5: Calculate plot zone
+        let marginsResult = this.computeDynamicMargins(
+            analysis,
+            rules,
+            modeConfig,
+            datasets,
+            categoryLabels,
+            baseFontSize,
+            fontFamily,
+            target,
+            analysis.layoutRequirements,
+            analysis.dataComplexity
+        );
+
+        let margins = {
+            top: marginsResult.top,
+            right: marginsResult.right,
+            bottom: marginsResult.bottom,
+            left: marginsResult.left
+        };
+        const wrappedLabels = marginsResult.wrappedLabels;
+
+        // Step 5: Assess overflow risk and apply adjustments if needed (FASE 1.2)
+        const overflowAssessment = this.assessOverflowRisk(margins, {
+            width: analysis.availableSpace.width,
+            height: analysis.availableSpace.height
+        });
+
+        let overflowRisk: ComputedLayout['overflowRisk'];
+        if (overflowAssessment.hasRisk) {
+            // Apply adjustments
+            margins = { ...margins, ...overflowAssessment.adjustments };
+            overflowRisk = {
+                hasRisk: true,
+                warnings: overflowAssessment.warnings,
+                appliedAdjustments: true
+            };
+        }
+
+        // Step 6: Calculate plot zone
         const plotZone: Zone = {
             x: margins.left,
             y: margins.top,
@@ -111,23 +169,51 @@ export class SmartLayoutEngine {
             height: analysis.availableSpace.height - margins.top - margins.bottom
         };
 
-        // Step 6: Calculate legend zone (if needed)
+        // Step 7: Calculate legend zone (if needed) - FASE 1.4: All positions
         let legendZone: Zone | null = null;
         if (analysis.layoutRequirements.needsLegend) {
             const legendPosition = analysis.layoutRequirements.userLegendPosition || rules.legendPosition;
+
+            const legendDims = this.calculateLegendDimensions(
+                datasets,
+                legendPosition,
+                baseFontSize,
+                fontFamily,
+                analysis.mode
+            );
 
             if (legendPosition === 'bottom') {
                 legendZone = {
                     x: margins.left,
                     y: analysis.availableSpace.height - margins.bottom + 10,
                     width: plotZone.width,
-                    height: margins.bottom - 20
+                    height: legendDims.height
+                };
+            } else if (legendPosition === 'top') {
+                legendZone = {
+                    x: margins.left,
+                    y: 10,
+                    width: plotZone.width,
+                    height: legendDims.height
+                };
+            } else if (legendPosition === 'left') {
+                legendZone = {
+                    x: 10,
+                    y: margins.top,
+                    width: legendDims.width,
+                    height: plotZone.height
+                };
+            } else if (legendPosition === 'right') {
+                legendZone = {
+                    x: analysis.availableSpace.width - margins.right + 10,
+                    y: margins.top,
+                    width: legendDims.width,
+                    height: plotZone.height
                 };
             }
-            // TODO: Implement other legend positions
         }
 
-        // Step 7: Vertical Fill Strategy (Sub-Project 1.2)
+        // Step 8: Vertical Fill Strategy (Sub-Project 1.2)
         // Calculate optimal bar thickness to fill vertical space intelligently
         let barThickness: number | undefined;
         if (analysis.chartType === 'bar') {
@@ -158,6 +244,21 @@ export class SmartLayoutEngine {
             barThickness = Math.max(barThickness, 12); // Minimum readable size
         }
 
+        // Step 9: Label Wrapping Intelligence (FASE 1.3)
+        const chartLabels = chart.data.labels || [];
+        const fontWeight = '400'; // Default font weight for labels
+
+        const labelWrapInfo = this.calculateLabelWrapThreshold(
+            margins.left,
+            baseFontSize,
+            fontFamily,
+            fontWeight
+        );
+
+        const estimatedLabelLines = chartLabels.length > 0
+            ? Math.max(...chartLabels.map(l => this.estimateWrappedLines(l, labelWrapInfo.thresholdChars)))
+            : 1;
+
         return {
             container: {
                 width: analysis.availableSpace.width,
@@ -175,50 +276,341 @@ export class SmartLayoutEngine {
                 appliedTo: []
             },
             typeSpecific: {
-                barThickness
-            }
+                barThickness,
+                labelWrapThreshold: labelWrapInfo.thresholdChars,
+                labelWrapThresholdPx: labelWrapInfo.thresholdPx,
+                estimatedLabelLines,
+                wrappedLabels  // Smart wrapped labels with orphan prevention
+            },
+            overflowRisk
+        };
+    }
+
+    /**
+     * Helper: Calculate exact legend dimensions for all positions
+     * Universal Legend Solver (FASE 1.2)
+     */
+    private static calculateLegendDimensions(
+        datasets: Array<{ label?: string }>,
+        legendPosition: 'top' | 'bottom' | 'left' | 'right' | 'none',
+        baseFontSize: number,
+        fontFamily: string,
+        mode: 'classic' | 'infographic'
+    ): { width: number; height: number } {
+        if (legendPosition === 'none' || datasets.length === 0) {
+            return { width: 0, height: 0 };
+        }
+
+        const itemFontSize = baseFontSize * LEGEND_FONT_SIZE_RATIO;
+        const fontWeight = mode === 'infographic' ? '600' : '500';
+
+        // Measure all legend item widths
+        const itemWidths = datasets.map((ds, idx) => {
+            const text = ds.label || `Série ${idx + 1}`;
+            const textWidth = textMeasurementService.measureTextWidth({
+                text,
+                fontSize: itemFontSize,
+                fontFamily,
+                fontWeight
+            });
+            return LEGEND_ICON_SIZE + LEGEND_ICON_GAP + textWidth;
+        });
+
+        const maxItemWidth = Math.max(...itemWidths, 0);
+        const totalItemWidth = itemWidths.reduce((sum, w) => sum + w, 0);
+
+        if (legendPosition === 'top' || legendPosition === 'bottom') {
+            // Horizontal layout: items in a row (or wrapped)
+            const containerWidth = 600; // Assume typical chart width
+            const itemsPerRow = Math.max(1, Math.floor(containerWidth / (maxItemWidth + LEGEND_ITEM_PADDING)));
+            const rows = Math.ceil(datasets.length / itemsPerRow);
+
+            return {
+                width: Math.min(totalItemWidth + (datasets.length * LEGEND_ITEM_PADDING), containerWidth),
+                height: (rows * itemFontSize * 1.2) + ((rows - 1) * LEGEND_VERTICAL_GAP) + 12
+            };
+        } else {
+            // Vertical layout (left/right): items stacked
+            return {
+                width: maxItemWidth + 16,
+                height: (datasets.length * itemFontSize * 1.2) + ((datasets.length - 1) * LEGEND_VERTICAL_GAP) + 12
+            };
+        }
+    }
+
+    /**
+     * Helper: Detect overflow risk and suggest adjustments
+     * FASE 1.2: Overflow Risk Detection
+     */
+    private static assessOverflowRisk(
+        margins: { top: number; right: number; bottom: number; left: number },
+        containerSize: { width: number; height: number }
+    ): { hasRisk: boolean; warnings: string[]; adjustments: Partial<typeof margins> } {
+        const warnings: string[] = [];
+        const adjustments: Partial<typeof margins> = {};
+
+        // Check if plot area is too small
+        const plotWidth = containerSize.width - margins.left - margins.right;
+        const plotHeight = containerSize.height - margins.top - margins.bottom;
+
+        const minPlotWidth = containerSize.width * MIN_PLOT_WIDTH_RATIO; // 0.4
+        const minPlotHeight = containerSize.height * 0.3;
+
+        if (plotWidth < minPlotWidth) {
+            warnings.push('Left/right margins too large, plot area < 40% of width');
+            const reduction = (minPlotWidth - plotWidth) / 2;
+            adjustments.left = Math.max(20, margins.left - reduction);
+            adjustments.right = Math.max(20, margins.right - reduction);
+        }
+
+        if (plotHeight < minPlotHeight) {
+            warnings.push('Top/bottom margins too large, plot area < 30% of height');
+            const reduction = (minPlotHeight - plotHeight) / 2;
+            adjustments.top = Math.max(10, margins.top - reduction);
+            adjustments.bottom = Math.max(10, margins.bottom - reduction);
+        }
+
+        return {
+            hasRisk: warnings.length > 0,
+            warnings,
+            adjustments
         };
     }
 
     /**
      * Helper: Calculate dynamic margins based on content
+     * Enhanced for FASE 1.2: TOP margin, export buffer, Universal Legend Solver
+     * Enhanced for FASE 1.3: Wrapped label width calculation
+     * Enhanced for Smart Label Wrapping: Returns wrapped labels with orphan prevention
      */
     private static computeDynamicMargins(
         analysis: ChartAnalysis,
         rules: LayoutRules,
-        mode: ModeModifiers
-    ): { top: number; right: number; bottom: number; left: number } {
-        const { dataComplexity, layoutRequirements } = analysis;
-
+        mode: ModeModifiers,
+        datasets: Array<{ label?: string }>,
+        labels: string[],
+        baseFontSize: number,
+        fontFamily: string,
+        target: 'screen' | 'pdf',
+        layoutRequirements: ChartAnalysis['layoutRequirements'],
+        dataComplexity: ChartAnalysis['dataComplexity']
+    ): { top: number; right: number; bottom: number; left: number; wrappedLabels: string[][] } {
         // Base margins
         let marginLeft = 40;
         let marginRight = 40;
         let marginTop = 20;
         let marginBottom = 20;
+        let wrappedLabels: string[][] = [];
 
-        // LEFT: Based on label width (priority for bar charts)
-        if (rules.marginPriority.includes('left')) {
-            marginLeft = Math.max(60, dataComplexity.maxLabelWidthPx + 20);
-            marginLeft *= mode.marginMultiplier;
-        }
-
-        // RIGHT: Based on value width
+        // RIGHT: Based on value width (calculate first)
         if (rules.marginPriority.includes('right')) {
             marginRight = Math.max(40, dataComplexity.maxValueWidthPx + 30);
         }
 
-        // BOTTOM: Reserve space for legend if needed
+        // LEFT: Match right margin for symmetry
+        // Use SmartLabelWrapper for wrapping logic, but override margin value
+        if (rules.marginPriority.includes('left')) {
+            // Get wrapped labels from SmartLabelWrapper
+            const smartResult = SmartLabelWrapper.calculateSmartMargin(
+                labels,
+                analysis.availableSpace.width,
+                baseFontSize,
+                fontFamily,
+                '400',
+                target,
+                analysis.chartType
+            );
+
+            wrappedLabels = smartResult.wrappedLabels;  // Keep intelligent wrapping
+            marginLeft = marginRight;  // But use right margin value for symmetry
+        }
+
+        // TOP: Title/Caption support (FASE 1.2)
+        if (layoutRequirements.hasTitle && layoutRequirements.titleText) {
+            const titleMetrics = textMeasurementService.measureDetailedMetrics({
+                text: layoutRequirements.titleText,
+                fontSize: baseFontSize * 1.2,
+                fontFamily,
+                fontWeight: '700'
+            });
+            marginTop = titleMetrics.height + 30; // title + padding
+        } else {
+            marginTop = 20 * mode.marginMultiplier;
+        }
+
+        // BOTTOM: Legend-based with Universal Legend Solver (FASE 1.2)
         if (layoutRequirements.needsLegend &&
             (layoutRequirements.userLegendPosition === 'bottom' || rules.legendPosition === 'bottom')) {
-            marginBottom = 60 * mode.marginMultiplier;
+            const legendDims = this.calculateLegendDimensions(
+                datasets,
+                'bottom',
+                baseFontSize,
+                fontFamily,
+                analysis.mode
+            );
+            marginBottom = legendDims.height + 10; // legend + gap
         } else {
             marginBottom = 30;
         }
 
-        // TOP: Minimal for now
-        marginTop = 20 * mode.marginMultiplier;
+        // Apply export buffer for PDF (FASE 1.2)
+        if (target === 'pdf') {
+            marginTop += EXPORT_SAFETY_PADDING;
+            marginRight += EXPORT_SAFETY_PADDING;
+            marginBottom += EXPORT_SAFETY_PADDING;
+            marginLeft += EXPORT_SAFETY_PADDING;
+        }
 
-        return { top: marginTop, right: marginRight, bottom: marginBottom, left: marginLeft };
+        return {
+            top: marginTop,
+            right: marginRight,
+            bottom: marginBottom,
+            left: marginLeft,
+            wrappedLabels
+        };
+    }
+
+    /**
+     * Helper: Calculate label wrap threshold based on reserved margin
+     * FASE 1.3: Label Wrapping Intelligence
+     */
+    private static calculateLabelWrapThreshold(
+        marginLeft: number,
+        baseFontSize: number,
+        fontFamily: string,
+        fontWeight: string | number = '400'
+    ): { thresholdPx: number; thresholdChars: number } {
+        // Reserved space for labels = marginLeft - padding - gutter
+        const availableWidth = marginLeft - LABEL_PADDING - LABEL_GUTTER;
+
+        // Measure average character width using common characters
+        const sampleText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const sampleWidth = textMeasurementService.measureTextWidth({
+            text: sampleText,
+            fontSize: baseFontSize,
+            fontFamily,
+            fontWeight: String(fontWeight)
+        });
+
+        const avgCharWidth = sampleWidth / sampleText.length;
+
+        // Calculate character threshold
+        const thresholdChars = Math.floor(availableWidth / avgCharWidth);
+
+        return {
+            thresholdPx: availableWidth,
+            thresholdChars: Math.max(MIN_LABEL_WRAP_CHARS, thresholdChars)
+        };
+    }
+
+    /**
+     * Helper: Estimate how many lines a label will wrap to
+     * FASE 1.3: Label Wrapping Intelligence
+     */
+    private static estimateWrappedLines(
+        text: string,
+        thresholdChars: number
+    ): number {
+        if (text.length <= thresholdChars) {
+            return 1; // Fits in one line
+        }
+
+        // Split by words to account for word boundaries
+        const words = text.split(/\s+/);
+        let lines = 1;
+        let currentLineLength = 0;
+
+        for (const word of words) {
+            const wordLength = word.length;
+
+            if (currentLineLength + wordLength + 1 > thresholdChars) {
+                // Word doesn't fit, start new line
+                lines++;
+                currentLineLength = wordLength;
+            } else {
+                // Word fits, add to current line
+                currentLineLength += wordLength + 1; // +1 for space
+            }
+        }
+
+        return Math.min(lines, MAX_LABEL_LINES); // Cap at max lines
+    }
+
+    /**
+     * Helper: Calculate the maximum width of any wrapped line
+     * FASE 1.3: Label Wrapping Intelligence
+     */
+    private static calculateMaxWrappedLineWidth(
+        labels: string[],
+        thresholdChars: number,
+        baseFontSize: number,
+        fontFamily: string,
+        fontWeight: string = '400'
+    ): number {
+        if (labels.length === 0) return 0;
+
+        let maxLineWidth = 0;
+
+        for (const label of labels) {
+            // Split label into wrapped lines
+            const words = label.split(/\s+/);
+            let currentLine = '';
+
+            for (const word of words) {
+                const testLine = currentLine ? `${currentLine} ${word}` : word;
+
+                if (testLine.length <= thresholdChars) {
+                    currentLine = testLine;
+                } else {
+                    // Measure current line before wrapping
+                    if (currentLine) {
+                        const lineWidth = textMeasurementService.measureTextWidth({
+                            text: currentLine,
+                            fontSize: baseFontSize,
+                            fontFamily,
+                            fontWeight
+                        });
+                        maxLineWidth = Math.max(maxLineWidth, lineWidth);
+                    }
+                    currentLine = word;
+                }
+            }
+
+            // Measure last line
+            if (currentLine) {
+                const lineWidth = textMeasurementService.measureTextWidth({
+                    text: currentLine,
+                    fontSize: baseFontSize,
+                    fontFamily,
+                    fontWeight
+                });
+                maxLineWidth = Math.max(maxLineWidth, lineWidth);
+            }
+        }
+
+        return maxLineWidth;
+    }
+
+    /**
+     * Helper: Calculate vertical space needed for wrapped labels
+     * FASE 1.3: Label Wrapping Intelligence
+     */
+    private static calculateLabelVerticalSpace(
+        labels: string[],
+        thresholdChars: number,
+        baseFontSize: number
+    ): number {
+        if (labels.length === 0) return 0;
+
+        // Find max lines needed across all labels
+        const maxLines = Math.max(
+            ...labels.map(label => this.estimateWrappedLines(label, thresholdChars))
+        );
+
+        const lineHeight = baseFontSize * LABEL_LINE_HEIGHT_RATIO;
+        const verticalPadding = 4;
+
+        return (maxLines * lineHeight) + verticalPadding;
     }
 
     /**

@@ -244,6 +244,7 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                     progress={progress}
                     currentAction={currentAction}
                     exportQueue={exportQueue}
+                    gridConfig={project.gridConfig}
                     onChartReady={handleChartReady}
                 />
             </main>

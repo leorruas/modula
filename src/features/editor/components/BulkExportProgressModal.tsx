@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { Project, Chart } from '@/types';
+import { Project, Chart, GridConfig } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { OffScreenChartRenderer } from './OffScreenChartRenderer';
 
@@ -9,10 +9,11 @@ interface BulkExportProgressModalProps {
     progress: number;
     currentAction: string;
     exportQueue: { chart: Chart, width: number, height: number }[];
+    gridConfig: GridConfig;
     onChartReady?: (chartId: string) => void;
 }
 
-export function BulkExportProgressModal({ isOpen, progress, currentAction, exportQueue, onChartReady }: BulkExportProgressModalProps) {
+export function BulkExportProgressModal({ isOpen, progress, currentAction, exportQueue, gridConfig, onChartReady }: BulkExportProgressModalProps) {
     if (!isOpen) return null;
 
     if (typeof document === 'undefined') return null;
@@ -67,6 +68,7 @@ export function BulkExportProgressModal({ isOpen, progress, currentAction, expor
                                     chart={item.chart}
                                     width={item.width}
                                     height={item.height}
+                                    gridConfig={gridConfig}
                                     onReady={() => onChartReady?.(item.chart.id)}
                                 />
                             </div>

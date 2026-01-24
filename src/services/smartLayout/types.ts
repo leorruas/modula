@@ -24,6 +24,10 @@ export interface ChartAnalysis {
         needsLegend: boolean;
         needsAxisLabels: boolean;
         userLegendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+        hasTitle?: boolean;
+        titleText?: string;
+        hasCaption?: boolean;
+        captionText?: string;
     };
     availableSpace: {
         width: number;
@@ -55,7 +59,16 @@ export interface ComputedLayout {
     };
     typeSpecific?: {
         barThickness?: number;
+        labelWrapThreshold?: number;      // Character threshold for wrapping
+        labelWrapThresholdPx?: number;    // Pixel threshold for wrapping
+        estimatedLabelLines?: number;     // Max lines across all labels
+        wrappedLabels?: string[][];       // Array of wrapped lines per label
         [key: string]: any;
+    };
+    overflowRisk?: {
+        hasRisk: boolean;
+        warnings: string[];
+        appliedAdjustments: boolean;
     };
 }
 

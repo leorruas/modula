@@ -166,3 +166,176 @@ Once the **System Design (`architecture.md`)** is complete:
     - Phase 4: Migration (Refactoring legacy).
 
 > **Rule of Thumb**: Do not start coding the Engine until you have mapped >90% of the legacy variables. The "unknown unknowns" are what break layout engines.
+
+---
+
+## 7. Lessons Learned (Project History)
+
+### 7.1 Chart Export Fidelity (Conversation 4331873d)
+
+**Problem**: Charts were cropped in PDF exports, fonts were incorrect, legends were invisible.
+
+**Root Cause**:
+- PDF export used browser's window size instead of virtual canvas
+- Font stack wasn't explicitly mapped (fell back to system fonts)
+- No safety buffer for edge clipping
+
+**Solution Applied**:
+- Increased `pixelRatio` to 3.5 for high-resolution PDF
+- Normalized chart height to respect PDF multi-column layout
+- Explicitly mapped fonts (Outfit for narrative, Geist Mono for data)
+- Added 40px safety buffer in `generateChartImage`
+
+**Key Learnings**:
+1. **Export needs separate layout calculation**: Never use `window.innerWidth` for PDF
+2. **Fonts must be explicit**: Fallbacks cause measurement drift
+3. **Safety buffers are critical**: Edge clipping is invisible in dev but breaks production
+4. **Resolution matters**: `pixelRatio` affects collision detection, not just clarity
+
+**Applied to This Skill**:
+- Section 5.3 (Export Fidelity) now mandates virtual canvas
+- Section 5.1 (Measurement-First) requires font-specific measurements
+- Section 3.2 (Robustness) includes safety buffer requirement
+
+---
+
+### 7.2 Variable Sprawl & Documentation (Conversation 6e818cda)
+
+**Problem**: Chart variables were scattered across multiple files, making it impossible to track dependencies.
+
+**Root Cause**:
+- No single source of truth for layout variables
+- Each chart component had its own margin/padding logic
+- Dependencies hidden in imports (`pdfExportService`, `exportUtils`, `chartTheme`)
+
+**Solution Applied**:
+- Created comprehensive variable documentation
+- Mapped all dependencies explicitly
+- Identified need for centralized Engine
+
+**Key Learnings**:
+1. **Hidden dependencies break refactors**: Must map ALL imports before redesigning
+2. **Implicit knowledge is dangerous**: Hardcoded values (`40px`, `0.75`) must be documented
+3. **Consistency requires centralization**: Ad-hoc calculations guarantee inconsistency
+
+**Applied to This Skill**:
+- Phase 1.2 (Layer Abstraction Mapping) now includes dependency tracking
+- Phase 1.3 (Master Reference) mandates listing every variable
+- Section 2 (Gap Analysis) highlights inconsistency as a primary failure mode
+
+---
+
+### 7.3 Label Wrapping & Layout Prediction (Conversation 1cbd9303)
+
+**Problem**: Labels wrapped incorrectly, legends occupied too much space, vertical space was wasted.
+
+**Root Cause**:
+- Component used "guessing" for wrapping (`width / charWidth`)
+- Legend reserved fixed space instead of measured space
+- No simulation of wrapping before rendering
+
+**Solution Applied**:
+- Engine calculates `labelWrapThreshold` based on actual margin
+- Aggressive legend reclaim (measure exact space needed)
+- Simulate wrapping to reserve correct vertical space
+
+**Key Learnings**:
+1. **Never guess text width**: `charWidth * length` is always wrong (proportional fonts)
+2. **Simulate before rendering**: Layout must predict wrapped line count
+3. **Measure legends precisely**: Fixed margins waste space
+
+**Applied to This Skill**:
+- Section 5.1 (Measurement-First) now emphasizes text measurement
+- Section 5.2 (Anti-Wrapping) establishes wrapping as last resort
+- Section 3.2 (Robustness #2) mandates "Vacuum-Seal Strategy"
+
+---
+
+### 7.4 Componentization & Separation of Concerns (Conversation 5870325a)
+
+**Problem**: Components had mixed responsibilities (calculation + rendering), making them hard to test and maintain.
+
+**Root Cause**:
+- No clear boundary between "brain" (logic) and "body" (UI)
+- Components did their own margin calculations
+- Fallback logic mixed with rendering
+
+**Solution Applied**:
+- Design token system (CSS variables)
+- Variable-First Rendering (calculate before render)
+- Prop-to-Token Mapping (props map to tokens, not direct values)
+
+**Key Learnings**:
+1. **Smart Engine → Dumb Component**: Logic must be separate from rendering
+2. **Stateless is testable**: Pure functions are easier to verify
+3. **Fallbacks indicate incomplete migration**: Should be temporary only
+
+**Applied to This Skill**:
+- Section 6.1 (Smart Engine → Dumb Component Protocol) codifies this pattern
+- Section 3.1 (Smart Engine Pattern) emphasizes pure functions
+- Section 3.2 (Robustness #6) establishes override hierarchy
+
+---
+
+### 7.5 Density & Responsiveness (Multiple Conversations)
+
+**Problem**: Charts looked wrong in different container sizes (too thick in large containers, too thin in small ones).
+
+**Root Cause**:
+- Fixed bar thickness regardless of container size
+- No density-aware scaling
+- Vertical fill strategy missing
+
+**Solution Applied**:
+- Calculate density (`categoryCount / plotHeight`)
+- Adjust caps based on density (high density = thinner caps)
+- Implement vertical fill with safety caps
+
+**Key Learnings**:
+1. **One size doesn't fit all**: Layout must adapt to container
+2. **Caps prevent absurdity**: Even with fill strategy, need maximums
+3. **Density is a spectrum**: Low/medium/high need different strategies
+
+**Applied to This Skill**:
+- Section 3.2 (Robustness #3) mandates LOD (Level of Detail)
+- Section 5.4 (Grid-Aware Flex Sizing) requires dynamic scaling
+- Section 5.5 #12 (Grid Elasticity) codifies vertical fill strategy
+
+---
+
+### 7.6 Contradictions in Planning (This Conversation)
+
+**Problem**: Implementation plan had 55 sub-projects with contradictory requirements.
+
+**Root Cause**:
+- Plan evolved organically without consolidation
+- No priority system (everything seemed equally important)
+- Contradictions not identified until analysis
+
+**Solution Applied**:
+- Created analysis skill to detect contradictions
+- Consolidated into 5 thematic phases
+- Added P0/P1/P2/P3 prioritization
+
+**Key Learnings**:
+1. **Plans need analysis too**: Don't trust checkboxes blindly
+2. **Contradictions block implementation**: Must resolve before coding
+3. **Consolidation reveals patterns**: 55 items → 5 phases shows overlap
+
+**Applied to This Skill**:
+- Phase 2 (Gap Analysis) now includes contradiction detection
+- Section 3.2 (Robustness) emphasizes clear priorities
+- New recommendation: Use plan_analysis skill before implementing
+
+---
+
+## 8. Integration with Other Skills
+
+When applying this skill, also reference:
+
+- **plan_analysis**: Analyze existing plans for contradictions before implementing
+- **task_breakdown**: Convert architecture into phased execution
+- **componentization**: Structure components to consume Engine output
+- **advanced_analytics**: Add editorial intelligence features
+- **gestalt_grid**: Apply spacing and proximity principles
+

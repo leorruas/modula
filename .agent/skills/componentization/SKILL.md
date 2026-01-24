@@ -101,3 +101,34 @@ Before creating a new component, check if it fits the **Atomic Design Hierarchy*
 | **System Architecture** <br> (Defines technical boundaries) | **Componentization** <br> (Structures the UI logic & rendering) | **Task Breakdown** <br> (Implements the parts safely) |
 | | **Componentization** | **Apply Premium Polish** <br> (Polish atoms individually) |
 | **Infography** <br> (Defines visual requirements) | **Componentization** | |
+
+---
+
+## 5. Lessons Learned (Project History)
+
+### 5.1 Smart Engine → Dumb Component Pattern
+
+**Problem**: Components calculated their own margins, wrapping, and positioning.
+
+**Solution**: Created `SmartLayoutEngine` to handle ALL calculations.
+
+**Key Learnings**:
+1. **Separation is non-negotiable**: Logic and rendering must be separate
+2. **Props should be data, not instructions**: Pass `x={120}` not `calculateX={true}`
+3. **Fallbacks indicate incomplete migration**: Should be temporary only
+
+**Mandatory Rules**:
+- ALL calculation logic goes in Engine/Hooks
+- Components should be <200 lines of pure rendering
+- Zero `Math.*` calls in components (except rendering coordinates)
+
+---
+
+## 6. Integration with Other Skills
+
+When componentizing, also reference:
+
+- **system_architecture**: Defines what Engine should calculate
+- **task_breakdown**: Phases the componentization work
+- **plan_analysis**: Analyzes existing component structure
+

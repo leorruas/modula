@@ -89,9 +89,12 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
         });
 
         // Resolve!
+        // TODO: Implement in FASE 4 (Sub-Project 1.23: Smart Collision Avoidance)
+        // For now, return candidates as-is without collision resolution
         if (candidates.length > 0) {
-            const resolved = SmartLayoutEngine.resolveLabelCollisions(candidates, { width: chartWidth, height: chartHeight });
-            return candidates.map((c, i) => ({ ...c, x: resolved[i].x, y: resolved[i].y }));
+            // const resolved = SmartLayoutEngine.resolveLabelCollisions(candidates, { width: chartWidth, height: chartHeight });
+            // return candidates.map((c, i) => ({ ...c, x: resolved[i].x, y: resolved[i].y }));
+            return candidates; // Use original positions for now
         }
         return [];
     }, [datasets, labels, chartWidth, chartHeight, maxValue, finalShowAllLabels, isInfographic, heroValueIndex]);

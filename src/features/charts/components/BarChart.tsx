@@ -1,6 +1,7 @@
-import { ChartData, ChartStyle } from '@/types';
+import { ChartData, ChartStyle, GridConfig } from '@/types';
 import { BaseChart } from './BaseChart';
 import { ComputedLayout } from '@/services/smartLayout/types';
+import { SmartLayoutEngine } from '@/services/smartLayout/SmartLayoutEngine';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createGlassBorderGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 
 import { ensureDistinctColors } from '@/utils/colors';
@@ -12,6 +13,7 @@ interface BarChartProps {
     style?: ChartStyle;
     baseFontSize?: number;
     baseFontUnit?: 'pt' | 'px' | 'mm';
+    gridConfig: GridConfig; // Required for Smart Layout Engine
 
     // Phase 2: Optional Controls
     heroValueIndex?: number;           // Manual hero value highlighting (index)
@@ -20,8 +22,9 @@ interface BarChartProps {
     annotationLabels?: string[];       // Custom labels for annotations (by index)
     legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
 
-    // Smart Layout Integration
+    // Smart Layout Integration (optional override)
     computedLayout?: ComputedLayout;
+    target?: 'screen' | 'pdf'; // Export target
 }
 
 export function BarChart({
@@ -31,12 +34,14 @@ export function BarChart({
     style,
     baseFontSize = 11,
     baseFontUnit = 'pt',
+    gridConfig,
     heroValueIndex,
     showValueAnnotations = false,
     showDeltaPercent = false,
     annotationLabels,
     legendPosition,
-    computedLayout
+    computedLayout,
+    target = 'screen'
 }: BarChartProps) {
     if (!data.datasets || data.datasets.length === 0) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
@@ -60,53 +65,47 @@ export function BarChart({
     const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
     const avgValue = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
 
-    // Smart Margins & Dynamic Label Space
-    const maxLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
-    // Use baseFontSize for character width approximation (approx 0.45-0.5 height for proportional fonts)
-    // const charWidth = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small') * 0.48; // Removed old charWidth
-
-    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
-    const charWidth = fontSize * 0.48;
-    const isStackedLayout = isInfographic || maxLabelLength > 15 || (maxLabelLength * charWidth > width * 0.25);
-
-    // Cap label space to prevent squashing the chart (max 35% of width)
-    const maxLabelSpaceCap = width * 0.35;
-    const dynamicLabelSpace = Math.min(maxLabelSpaceCap, Math.max(isInfographic ? 120 : 60, maxLabelLength * charWidth));
-
-    const padding = isInfographic ? CHART_THEME.padding.large : 0;
-
-    const maxStackedLines = 3;
-    const maxCharsPerLine = isStackedLayout ? Math.floor(width / charWidth) : 100;
-
-    const wrapLabel = (text: string) => {
-        if (!isStackedLayout) return [text];
-        const words = text.split(' ');
-        const lines: string[] = [];
-        let currentLine = words[0];
-
-        for (let i = 1; i < words.length; i++) {
-            if ((currentLine + ' ' + words[i]).length <= maxCharsPerLine) {
-                currentLine += ' ' + words[i];
-            } else {
-                lines.push(currentLine);
-                currentLine = words[i];
+    // FASE 2: Smart Layout Engine Integration
+    const layout = computedLayout || SmartLayoutEngine.computeLayout(
+        {
+            type: 'bar',
+            data: { labels, datasets: data.datasets },
+            style: {
+                fontFamily: style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif',
+                legendPosition: finalLegendPosition,
+                mode: isInfographic ? 'infographic' : 'classic'
             }
-        }
-        lines.push(currentLine);
-        return lines.slice(0, maxStackedLines);
-    };
+        },
+        gridConfig,
+        { w: width, h: height },
+        target
+    );
 
-    const wrappedLabels = labels.map(wrapLabel);
-    const maxLinesUsed = isStackedLayout ? Math.max(...wrappedLabels.map(l => l.length), 1) : 1;
+    // Extract Engine calculations
+    const { margins, typeSpecific } = layout;
+    const { labelWrapThreshold, barThickness: engineBarThickness } = typeSpecific || {};
 
-    // Smart Layout Integration: Use computed margins if available, otherwise fall back to legacy
-    const marginTop = computedLayout?.margins.top ?? (isStackedLayout ? (isInfographic ? 40 : 10) : padding);
-    const marginRight = computedLayout?.margins.right ?? (isInfographic ? 80 : 40);
-    const marginBottom = computedLayout?.margins.bottom ?? (padding + (data.xAxisLabel ? CHART_THEME.spacing.axisTitle : 20));
-    const marginLeft = computedLayout?.margins.left ?? (isStackedLayout ? 25 : (dynamicLabelSpace + (data.yAxisLabel ? CHART_THEME.spacing.axisTitle : 20)));
+    // Use Engine's margins (100% Engine, zero fallback)
+    const marginTop = margins.top;
+    const marginRight = margins.right;
+    const marginBottom = margins.bottom;
+    const marginLeft = margins.left;
 
     const chartWidth = width - marginLeft - marginRight;
     const chartHeight = height - marginTop - marginBottom;
+
+    // Font and layout calculations
+    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
+    const charWidth = fontSize * 0.48;
+    const maxLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
+    const isStackedLayout = isInfographic || maxLabelLength > 15 || (maxLabelLength * charWidth > width * 0.25);
+
+    const padding = isInfographic ? CHART_THEME.padding.large : 0;
+
+    // Use Engine's smart wrapped labels (FASE 1.3 + Smart Label Wrapping)
+    // Includes: orphan prevention, max 12 words/line, adaptive strategies
+    const wrappedLabels = typeSpecific?.wrappedLabels || labels.map(label => [label]);
+    const maxLinesUsed = isStackedLayout ? Math.max(...wrappedLabels.map(l => l.length), 1) : 1;
 
     // Intelligent Weighted Grouping Logic
     const categoryCount = labels.length;
@@ -266,24 +265,16 @@ export function BarChart({
                                 opacity={isInfographic ? 0.6 : 1}
                             >
                                 <title>{label}</title>
-                                {isStackedLayout ? (
-                                    wrappedLabels[i].map((line, lineIdx) => (
-                                        <tspan
-                                            key={lineIdx}
-                                            x={0}
-                                            dy={lineIdx === 0 ? 0 : fontSize * 1.2}
-                                        >
-                                            {isInfographic ? line.toUpperCase() : line}
-                                        </tspan>
-                                    ))
-                                ) : (
-                                    (() => {
-                                        const displayText = label.length * charWidth > dynamicLabelSpace
-                                            ? label.substring(0, Math.floor(dynamicLabelSpace / charWidth) - 3) + '...'
-                                            : label;
-                                        return isInfographic ? displayText.toUpperCase() : displayText;
-                                    })()
-                                )}
+                                {/* Always use wrapped labels - SmartLayoutEngine calculated the margin to fit them */}
+                                {wrappedLabels[i].map((line, lineIdx) => (
+                                    <tspan
+                                        key={lineIdx}
+                                        x={0}
+                                        dy={lineIdx === 0 ? 0 : fontSize * 1.2}
+                                    >
+                                        {isInfographic ? line.toUpperCase() : line}
+                                    </tspan>
+                                ))}
                             </text>
 
                             {/* Grouped Bars */}

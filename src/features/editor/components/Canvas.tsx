@@ -525,7 +525,7 @@ export function Canvas({ project }: CanvasProps) {
                                 key={`${chart.id}-${chart.style?.mode || 'classic'}-${chart.style?.colorPalette?.join(',') || 'default'}`}
                                 style={{ width: '100%', height: '100%', pointerEvents: 'none' }}
                             >
-                                {chart.type === 'bar' && <BarChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'bar' && <BarChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} gridConfig={project.gridConfig} />}
                                 {chart.type === 'column' && <ColumnChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                                 {chart.type === 'line' && <LineChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                                 {chart.type === 'pie' && <PieChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
