@@ -14,6 +14,7 @@
 *   **Root Cause Analysis**: Always investigate *why* a bug happened before fixing it.
 *   **Systemic Solutions**: When fixing a bug, look for opportunities to refactor and improve the underlying system (e.g., centralizing constants in themes, creating reusable hooks).
 *   **Scalability**: write code that handles future edge cases, not just the current test case.
+*   **Centralized Color Logic**: All color contrast, palette cycling, and gradient generation MUST go through `ColorService.ts`. Do not hardcode hex values or contrast formulas in components.
 
 ### State Management & Data Fetching
 *   **Global State**: Use Zustand stores for state shared across features.

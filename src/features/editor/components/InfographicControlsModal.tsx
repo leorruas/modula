@@ -16,8 +16,11 @@ interface InfographicControlsModalProps {
         showExtremes?: boolean;
         useMetadata?: boolean;
         showAllLabels?: boolean;
+
         sortSlices?: boolean;
+        autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
+
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -28,8 +31,11 @@ interface InfographicControlsModalProps {
         showExtremes?: boolean;
         useMetadata?: boolean;
         showAllLabels?: boolean;
+
         sortSlices?: boolean;
+        autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
+
     }) => void;
 }
 
@@ -50,6 +56,8 @@ export function InfographicControlsModal({
     const [useMetadata, setUseMetadata] = useState(currentConfig.useMetadata || false);
     const [showAllLabels, setShowAllLabels] = useState(currentConfig.showAllLabels || false);
     const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
+    const [autoSort, setAutoSort] = useState(currentConfig.autoSort || false);
+
 
     // Initialize with existing config OR fallback logic
     const [datasetTypes, setDatasetTypes] = useState<('bar' | 'line')[]>(() => {
@@ -74,7 +82,10 @@ export function InfographicControlsModal({
             setUseMetadata(currentConfig.useMetadata || false);
             setShowAllLabels(currentConfig.showAllLabels || false);
             setSortSlices(currentConfig.sortSlices || false);
+
+            setAutoSort(currentConfig.autoSort || false);
             if (currentConfig.datasetTypes) {
+
                 setDatasetTypes(currentConfig.datasetTypes);
             } else if (chartType === 'mixed') {
                 const count = chartData.datasets.length;
@@ -96,7 +107,10 @@ export function InfographicControlsModal({
             useMetadata,
             showAllLabels,
             sortSlices,
+            autoSort, // Added
             datasetTypes: chartType === 'mixed' ? datasetTypes : undefined
+
+
         });
         onClose();
     };

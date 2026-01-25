@@ -1,7 +1,7 @@
 # Smart Layout System: Roadmap Reorganizado
 
-> **Baseado em**: [Análise completa do plano original](../brain/analysis.md)  
-> **Status**: 5% implementado (estrutura básica existe)  
+> **Baseado em**: [Análise Refinada da Fase 4](../brain/analysis_phase4.md) e Feedback do Usuário
+> **Status**: 5% implementado (estrutura básica existe)
 > **Objetivo**: Substituir cálculos ad-hoc por um Engine centralizado e inteligente
 
 ---
@@ -38,6 +38,7 @@ graph TD
     G[types.ts] --> B
     H[barRules.ts] --> B
     I[constants.ts] --> B
+    J[ColorService] --> B
     
     style A fill:#10b981
     style B fill:#3b82f6
@@ -45,6 +46,7 @@ graph TD
     style D fill:#ec4899
     style E fill:#f59e0b
     style F fill:#ef4444
+    style J fill:#f472b6
 ```
 
 **Legenda:**
@@ -53,6 +55,7 @@ graph TD
 - 🟣 Roxo: Hooks (ponte)
 - 🔴 Rosa: Components (UI)
 - 🟠 Laranja: Export (PDF/PNG)
+- 🌸 Rosa Claro: Color Intelligence
 
 ---
 
@@ -117,8 +120,6 @@ graph TD
 - [ ] Font loading não causa layout shift
 - [ ] PDF measurements são consistentes com screen
 
----
-
 ### 1.2 Dynamic Margins Solver
 
 **Problema Atual**: Engine calcula margens básicas, mas Component ainda tem fallbacks complexos
@@ -137,19 +138,6 @@ graph TD
 - [ ] User preference (legendPosition) sempre tem prioridade
 - [ ] Export buffer previne clipping em PDF
 - [ ] Legend ocupa exatamente o espaço medido (zero whitespace extra)
-
-**Code Example**:
-```typescript
-// Engine deve retornar:
-margins: {
-  top: 20,
-  right: 60,  // baseado em maxValueWidth + badges
-  bottom: 45, // baseado em legend height medida
-  left: 120   // baseado em maxLabelWidth + padding
-}
-```
-
----
 
 ### 1.3 Label Wrapping Intelligence
 
@@ -175,21 +163,6 @@ margins: {
 - [x] 12-word limit enforced
 - [x] Widow prevention active
 
-**Code Example**:
-```typescript
-// Engine calcula:
-typeSpecific: {
-  labelWrapThreshold: 18, // caracteres
-  labelWidthThresholdPx: 120, // pixels
-  estimatedMaxLines: 3
-}
-
-// Component usa:
-const lines = wrapLabel(label, computedLayout.typeSpecific.labelWrapThreshold);
-```
-
----
-
 ### 1.4 Legend Sizing (Predictive)
 
 **Problema Atual**: Legends usam margin fixo, desperdiçam espaço
@@ -208,15 +181,6 @@ const lines = wrapLabel(label, computedLayout.typeSpecific.labelWrapThreshold);
 - [ ] Legend lateral: largura = `maxItemWidth + 16px` (padding)
 - [ ] Chart expande para preencher espaço economizado
 - [ ] Legends curtas (1-2 items) usam espaço mínimo
-
-**Code Example**:
-```typescript
-// Para legend bottom com 3 items curtos:
-marginBottom = 30 // ao invés de 60
-
-// Para legend lateral com items longos:
-marginLeft = 140 // ao invés de fixed 60
-```
 
 ---
 
@@ -261,8 +225,6 @@ npm test -- TextMeasurementService.test.ts
 - [ ] Low density (2-3 categories): bars até 80px
 - [ ] High density (20+ categories): bars mínimo 12px
 
----
-
 ### 2.2 Scale Safety (Caps)
 
 **Problema**: Containers grandes + poucas categorias = bars gigantes
@@ -277,8 +239,6 @@ npm test -- TextMeasurementService.test.ts
 - [ ] Fonts permanecem legíveis (não gigantes)
 - [ ] Whitespace é distribuído elegantemente
 
----
-
 ### 2.3 Optical Balance & Gutter
 
 **Problema**: Distância entre labels e bars parece inconsistente
@@ -292,8 +252,6 @@ npm test -- TextMeasurementService.test.ts
 - [ ] Infographic: labels têm distância de ~18px das bars
 - [ ] Classic: labels alinhados corretamente no eixo
 - [ ] Distância é proporcional ao fontSize
-
----
 
 ### 2.4 Density Adaptation
 
@@ -339,8 +297,6 @@ npm test -- TextMeasurementService.test.ts
 - [ ] Layout é calculado baseado em dimensões virtuais
 - [ ] Screen e PDF têm mesmas proporções relativas
 
----
-
 ### 3.2 Font Synchronization
 
 **Problema**: PDF usa fonts diferentes, causando medições erradas
@@ -355,8 +311,6 @@ npm test -- TextMeasurementService.test.ts
 - [ ] PDF usa Outfit para labels
 - [ ] PDF usa Geist Mono para valores
 - [ ] Medições são idênticas entre screen e PDF
-
----
 
 ### 3.3 Resolution Handling & Safety Buffers
 
@@ -394,7 +348,7 @@ npm test -- TextMeasurementService.test.ts
 
 ## 🧠 FASE 4: Advanced Intelligence (P2 - Important)
 
-**Objetivo**: Charts auto-otimizam para storytelling
+**Objetivo**: Charts auto-otimizam para storytelling e consistência visual
 
 **Consolidates**: Sub-Projects 1.16-1.29
 
@@ -405,41 +359,38 @@ npm test -- TextMeasurementService.test.ts
 **Tasks**:
 - [ ] Implementar lógica: `barWidth > labelWidth + 20px` → inside
 - [ ] Passar `valuePositioning: 'inside' | 'outside' | 'top'` via `typeSpecific`
+- [ ] **Tie-breaker de Contraste**: Se contraste for insuficiente mesmo com texto branco, forçar `outside`
 
 ---
 
-### 4.2 Contrast-Aware Labels
+### 4.2 Color Intelligence & Contrast
 
-**Problema**: Texto branco em bar clara = ilegível
+**Problema**: Engine desconhece cores (resolvidas no Componente), impedindo cálculo de contraste.
 
 **Tasks**:
-- [ ] Calcular luminance da cor da bar
-- [ ] Retornar `textColor: 'black' | 'white'` baseado em contraste
+- [ ] **Criar `ColorService`**: Centralizar resolução de paletas e interpolations (migrar de `utils/colors.ts`)
+- [ ] Integração: Engine consome `ColorService` para saber exatamente qual cor cada barra terá
+- [ ] **Contrast-Awareness**: Engine calcula `textColor` ('black' | 'white') baseado na cor da barra (Luminance YIQ)
 
 ---
 
-### 4.3 Auto-Highlighting (Outliers)
+### 4.3 Smart Sorting
 
-**Problema**: User precisa configurar manualmente hero values
+**Problema**: Dados desordenados dificultam comparação rápida.
 
 **Tasks**:
-- [ ] Calcular Z-Score para cada valor
-- [ ] Se `score > 2.0`: aplicar hero styling automaticamente
-
----
-
-### 4.4 Semantic Features
-
-Consolidar: Smart Sorting, Semantic Units, Smart Currency, etc.
+- [ ] Implementar `autoSort` boolean (descending by value)
+- [ ] Garantir que cores seguem a identidade da categoria (não a posição visual)
+- [ ] Animar reordenação (se possível via framer-motion ou CSS)
 
 ---
 
 ### Verification (FASE 4)
 
 **Visual Tests**:
-- [ ] Valores aparecem dentro de bars largas
-- [ ] Texto sempre legível (contraste automático)
-- [ ] Outliers destacados automaticamente
+- [ ] Valores dentro/fora adaptam-se ao tamanho da barra
+- [ ] Texto sempre legível (preto em claro, branco em escuro)
+- [ ] Auto-sort organiza dados do maior para o menor
 
 ---
 
@@ -460,8 +411,6 @@ Consolidar: Smart Sorting, Semantic Units, Smart Currency, etc.
 - [ ] Implementar wrap-or-stagger strategy para X-axis
 - [ ] Conectar `ColumnChart.tsx` ao Engine
 
----
-
 ### 5.2 Line Family
 
 **Charts**: `LineChart`, `AreaChart`
@@ -473,8 +422,6 @@ Consolidar: Smart Sorting, Semantic Units, Smart Currency, etc.
 - [ ] Priorizar aspect ratio 16:9
 - [ ] Garantir `minPlotWidth` para evitar linhas squashed
 
----
-
 ### 5.3 Circular Family
 
 **Charts**: `PieChart`, `DonutChart`, `RadarChart`, `GaugeChart`
@@ -485,8 +432,6 @@ Consolidar: Smart Sorting, Semantic Units, Smart Currency, etc.
 - [ ] Criar `radialRules.ts`
 - [ ] Implementar square constraints
 - [ ] Implementar "Spider Legs" para labels
-
----
 
 ### 5.4 Mixed Charts
 
@@ -531,9 +476,10 @@ Consolidar: Smart Sorting, Semantic Units, Smart Currency, etc.
 - [ ] Fonts corretas
 
 **FASE 4 (Advanced Intelligence)**:
-- [ ] Smart positioning funciona
-- [ ] Contrast-aware funciona
-- [ ] Auto-highlighting funciona
+- [ ] ColorService centralizado e integrado
+- [ ] Contraste automático funcionando (black/white text)
+- [ ] Smart Positioning (inside/outside) funcionando
+- [ ] Smart Sorting funcionando
 
 **FASE 5 (Expansion)**:
 - [ ] Todos os 16 charts usam Engine
@@ -567,13 +513,14 @@ gantt
     
     section FASE 4
     Smart Positioning      :p2-1, after p1-7, 2d
-    Advanced Features      :p2-2, after p2-1, 3d
+    Color Intelligence     :p2-2, after p2-1, 3d
+    Smart Sorting          :p2-3, after p2-2, 2d
     
     section FASE 5
-    Column Family          :p2-3, after p2-2, 2d
-    Line Family            :p2-4, after p2-3, 2d
-    Circular Family        :p2-5, after p2-4, 3d
-    Mixed Charts           :p2-6, after p2-5, 2d
+    Column Family          :p2-4, after p2-3, 2d
+    Line Family            :p2-5, after p2-4, 2d
+    Circular Family        :p2-6, after p2-5, 3d
+    Mixed Charts           :p2-7, after p2-6, 2d
 ```
 
 **Estimativa Total**: ~6-8 semanas (assumindo trabalho focado)
@@ -583,38 +530,25 @@ gantt
 ## 🚨 Riscos & Mitigações
 
 ### Risco 1: Performance (Text Measurement)
-
 **Problema**: Medir texto para cada label pode ser lento
-
-**Mitigação**:
-- Implementar cache agressivo
-- Batch measurements
-- Usar Web Workers para medições pesadas
+**Mitigação**: Cache agressivo, batch measurements, Web Workers.
 
 ### Risco 2: Complexity Creep
-
 **Problema**: Engine pode ficar muito complexo
-
-**Mitigação**:
-- Manter Engine stateless
-- Separar concerns em modules (measurement, margins, wrapping)
-- Extensive unit tests
+**Mitigação**: Manter Engine stateless, separar concerns, tests unitários.
 
 ### Risco 3: Migration Resistance
-
 **Problema**: Componentes legados podem resistir à mudança
+**Mitigação**: Migrar um chart por vez, fallbacks temporários, regression tests.
 
-**Mitigação**:
-- Manter fallback durante transição
-- Migrar um chart por vez
-- Extensive regression testing
+### Risco 4: Architectural Conflict (Color Resolution)
+**Problema**: Engine precisa de cores para contraste, mas cores são resolvidas no Componente.
+**Mitigação**: Implementar `ColorService` na FASE 4 para centralizar essa lógica e injetar cores resolvidas no Engine.
 
 ---
 
 ## 📚 Referências
 
-- **Original Plan**: `docs/smart-layout-implementation-plan.md`
-- **Analysis**: `brain/analysis.md`
 - **Related Skills**: 
   - `componentization`: Separation of concerns
   - `system_architecture`: Measurement-first, LOD principles
@@ -628,4 +562,101 @@ gantt
 2. **Criar task.md** para FASE 1
 3. **Começar com 1.1** (Text Measurement & Caching)
 4. **Iterar rapidamente** com testes visuais
-5. **Documentar learnings** conforme avançamos
+
+
+----------------------------
+
+
+
+
+
+
+
+
+
+# Smart Layout: Phase 4 - Advanced Intelligence
+
+> **Foco**: Inteligência Visual e Automática
+> **Status**: Planejamento (P2 - Important)
+> **Dependências**: Core Engine (Fase 1) implantado
+
+---
+
+## 🎯 Objetivo
+Transformar os gráficos em componentes "inteligentes" que tomam decisões visuais sofisticadas automaticamente, sem necessidade de configuração manual do usuário.
+
+---
+
+## 🚀 Escopo da Fase
+
+### 4.1 Smart Positioning (Anchor Point)
+
+**Problema**: Atualmente, valores numéricos ficam sempre à direita (`outside`), mesmo quando a barra é larga o suficiente para acomodá-los internamente.
+
+**Solução**:
+Implementar lógica de posicionamento dinâmico baseado no tamanho relativo da barra vs. tamanho do texto.
+
+**Tasks**:
+- [ ] **Geometry Check**: Implementar lógica `if (barWidth > textWidth + padding) -> try_inside`.
+- [ ] **Tie-Breaker de Contraste**: Mesmo que caiba, verificar se o contraste é suficiente. Se `barColor` for muito clara e texto for branco -> forçar `outside` (ou usar texto preto, ver 4.2).
+- [ ] **API Update**: Passar `valuePositioning: 'inside' | 'outside' | 'top'` via `typeSpecific` do Engine.
+
+**Regra de Ouro**:
+> "Se cabe E é legível, coloque dentro. Se não, coloque fora."
+
+---
+
+### 4.2 Color Intelligence & Contrast Service
+
+**Problema**: O `SmartLayoutEngine` calcula apenas geometria, mas decisões visuais (como cor do texto) dependem da cor da barra. Atualmente, cores são resolvidas apenas no render do componente (late binding), impedindo o Engine de garantir acessibilidade.
+
+**Solução**:
+Centralizar a resolução de cores em um `ColorService` que seja consumido tanto pelo Engine quanto pelo Componente.
+
+**Tasks**:
+- [ ] **Criar `ColorService`**: Migrar lógica de `utils/colors.ts` (geração de paletas, hex manipulation).
+- [ ] **Integrar no Engine**: Engine deve receber a paleta ou resolver as cores durante `analyzeChart`.
+- [ ] **Contrast Calculation**: Implementar cálculo YIQ (Luminance) para determinar `textColor` ideal ('black' | 'white').
+- [ ] **Output**: Retornar `datasetColors` e `textColors` dentro do `computedLayout`.
+
+**Benefício**:
+Garante que textos "inside" sejam sempre legíveis (fundo escuro = texto branco, fundo claro = texto preto).
+
+---
+
+### 4.3 Smart Sorting
+
+**Problema**: Dados desordenados dificultam a comparação rápida e storytelling ("Qual é o maior?").
+
+**Solução**:
+Ordenar automaticamente os dados para facilitar a leitura, mantendo a consistência visual.
+
+**Tasks**:
+- [ ] **Auto-Sort Logic**: Adicionar `autoSort: boolean` (default: false). Se true, ordenar valores descending.
+- [ ] **Identity Preservation**: Garantir que as cores sigam a **categoria** e não a **posição visual**. (Ex: "Sul" deve ser sempre Azul, mesmo se mudar de 1º para 3º lugar).
+- [ ] **Animation Support**: Preparar estrutura para que a reordenação possa ser animada (Framer Motion / CSS transitions).
+
+---
+
+## ✅ Critérios de Aceite (Definition of Done)
+
+1. **Posicionamento**:
+   - Barras largas (>80px) mostram valor dentro.
+   - Barras curtas mostram valor fora.
+   - Sem sobreposição visual em nenhum caso.
+
+2. **Cores & Contraste**:
+   - `ColorService` existe e é a única fonte de verdade para cores.
+   - Textos sobre barras escuras são brancos.
+   - Textos sobre barras claras são pretos.
+
+3. **Ordenação**:
+   - Flag `autoSort` ordena visualmente as barras.
+   - Cores das categorias permanecem consistentes após ordenação.
+
+---
+
+## 🧩 Notas de Implementação
+
+- **Dependência Arquitetural**: A criação do `ColorService` é pré-requisito para o item 4.1 funcionar perfeitamente (devido ao tie-breaker de contraste).
+- **Performance**: O cálculo de contraste é rápido (matemática simples), não deve impactar performance.

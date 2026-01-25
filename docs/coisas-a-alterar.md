@@ -18,4 +18,4 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 43) [RESOLVIDO] implementar funcionalidade de reordenar capítulos e páginas (Drag & Drop) conforme solicitado.
 44) [RESOLVIDO] Melhorar gráfico misto: Suporte a múltiplas colunas/linhas e controle explícito de tipo no Editor Avançado.
 ------
-usa as skills de debug, construction e documentation pra criar um plano?
+usa as skills de debug, construction e documentation pra criar um plano?45) [RESOLVIDO] Smart Positioning: Corrigido problema onde valores ficavam fora da barra mesmo com espaço, e ajustado para respeitar a altura do número em barras finas.

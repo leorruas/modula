@@ -125,6 +125,12 @@ A core principle is the **No-Ellipsis Policy**:
 *   **Atomic Word Protection**: The system measures the widest *single word* in a label. The side margin (`marginLeft`) will never shrink below this word's width + buffer.
 *   **Lateral Elasticity**: If a label absolutely needs more space, the Engine will compress the Chart Plot instead of truncating the text.
 *   **Hierarchy-Aware Cap**: For complex grouped headers, the Engine can expand margins up to 50% of the total width to ensure readability.
+*   **Smart Positioning (Inside/Outside)**:
+    *   **Logic**: Values automatically place themselves **inside** the bar if they fit horizontally and vertically.
+    *   **Contrast**: When inside, text color flips (Black/White) based on bar brightness (YIQ standard).
+*   **Smart Sorting (Identity Preservation)**:
+    *   When enabled, bars sort descending by value.
+    *   **Immutability**: Colors remain attached to their Category (Data Identity), preventing "rainbow shuffling" confusion.
 
 ---
 

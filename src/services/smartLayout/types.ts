@@ -64,6 +64,10 @@ export interface ComputedLayout {
         estimatedLabelLines?: number;     // Max lines across all labels
         wrappedLabels?: string[][];       // Array of wrapped lines per label
         isStacked?: boolean;              // Whether labels are stacked on top (BarChart)
+        datasetColors?: string[];         // Colors for datasets
+        textColors?: string[];            // Contrast-aware text colors
+        valuePositioning?: 'inside' | 'outside' | 'top' | 'auto'; // Where to place the value
+
         [key: string]: any;
     };
     overflowRisk?: {

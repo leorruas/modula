@@ -9,7 +9,9 @@ import {
 import { getRulesForType } from './rules';
 import { textMeasurementService } from './TextMeasurementService';
 import { SmartLabelWrapper } from './SmartLabelWrapper';
-import { getScaledFont } from '@/utils/chartTheme'; // Import helper
+import { ColorService } from '@/services/color/ColorService';
+import { getChartColor, getScaledFont } from '@/utils/chartTheme'; // Import helper
+
 import {
     MODE_MULTIPLIERS,
     EXPORT_DRIFT_BUFFER,
@@ -124,7 +126,17 @@ export class SmartLayoutEngine {
         const datasets = chart.data.datasets || [];
         const categoryLabels = chart.data.labels || [];
 
+        // FASE 4.2: Resolve colors early using ColorService
+        const baseColors = chart.style?.colorPalette || [getChartColor(0)];
+        const isSingleSeries = datasets.length === 1;
+        // Logic replicated from BarChart: Single series -> color by category. Multi -> color by dataset.
+        const datasetColors = ColorService.ensureDistinctColors(
+            baseColors,
+            isSingleSeries ? (categoryLabels.length || 1) : (datasets.length || 1)
+        );
+
         let marginsResult = this.computeDynamicMargins(
+
             analysis,
             rules,
             modeConfig,
@@ -256,9 +268,71 @@ export class SmartLayoutEngine {
             fontWeight
         );
 
+        // FASE 4.3: Smart Sorting
+        const autoSort = chart.style?.infographicConfig?.autoSort;
+        let sortedIndices: number[] | undefined;
+
+        if (autoSort && analysis.chartType === 'bar') {
+            // Sort by value descending
+            // Handle multi-dataset? For now, sum of stack or first dataset?
+            // Usually sort by primary metric (dataset 0).
+            const sortData = datasets[0]?.data || [];
+
+            // Create array of [value, index]
+            const paired = sortData.map((val, idx) => ({ val, idx }));
+
+            // Sort
+            paired.sort((a, b) => b.val - a.val); // Descending
+
+            // Extract indices
+            sortedIndices = paired.map(p => p.idx);
+        }
+
         const estimatedLabelLines = chartLabels.length > 0
+
             ? Math.max(...chartLabels.map(l => this.estimateWrappedLines(l, labelWrapInfo.thresholdChars)))
             : 1;
+
+        // FASE 4.1: Smart Positioning (Anchor Point)
+        // We need to determine if values should be inside or outside based on bar thickness (height in this case) and length
+        // Wait, for BarChart (horizontal), 'barThickness' returned here is actually the HEIGHT of the bar.
+        // The WIDTH is variable per data point.
+        // Smart Positioning check needs to happen per-data point in the component, OR we provide a global policy?
+        // The roadmap says: "Implement logic: barWidth > labelWidth + 20px -> inside".
+        // Since barWidth varies per value, we can't fully decide here for ALL bars unless we check the MINIMUM bar width?
+        // Or we pass a policy: "If it fits, placing inside".
+
+        // Actually, the Component renders per data point.
+        // But the layout engine could analyze the "Worst case" (smallest bar)? No, smallest bar is 0.
+        // Typically "Smart Positioning" means per-bar decision.
+        // So we should expose the *Logic/Helper* or pre-calculate it?
+        // The current BarChart logic does this decision at render time.
+        // Engine should provide the *capability*.
+
+        // Let's provide a 'preferredPositioning' policy.
+        // But Phase 4 tasks say: "Update SmartLayoutEngine.ts to calculate positioning per bar".
+        // NOTE: Engine computes GLOBAL layout (margins, zones). It doesn't output an array of positions for every data point (yet).
+        // Doing so would make the output huge.
+        // Compromise: We compute the *Thresholds* or provide the Colors for the component to decide.
+        // BUT, task 4.2 says: "Engine calculates textColor".
+        // If positioning is per-bar, textColor is also per-bar.
+        // If we want "inside" for some and "outside" for others, the component needs to know *what color* to use for inside/outside.
+        // ColorService gives that.
+
+        // Let's pass the resolved `datasetColors` so component handles the rest for now?
+        // Or better: Pass the `colors` array.
+
+        // What about `valuePositioning`? 
+        // We can pass 'smart' as a directive? Or defaults.
+        // Let's stick to passing the resolved colors and letting component call ColorService for per-bar checks if needed,
+        // OR (better architecture): Component is DUMB.
+        // If Component is dumb, Engine should have simulated the layout.
+        // But Engine doesn't iterate over every data point value currently in `computeLayout`.
+        // `analyzeChart` iterates to find max/min.
+
+        // DECISION: For Phase 4.1, we will enable "Smart Positioning" by passing the resolved colors
+        // and a "smart" flag, but the actual per-bar geometry check must happen where the geometry is known (Component or a detailed Engine step).
+        // Since we want to keep Engine simplified for now, we pass the Colors.
 
         return {
             container: {
@@ -282,10 +356,16 @@ export class SmartLayoutEngine {
                 labelWrapThresholdPx: labelWrapInfo.thresholdPx,
                 estimatedLabelLines,
                 wrappedLabels,  // Smart wrapped labels with orphan prevention
-                isStacked: marginsResult.isStacked // Pass to component
+                isStacked: marginsResult.isStacked, // Pass to component
+                datasetColors,  // FASE 4.2: Pass resolved colors to component
+                valuePositioning: 'auto', // FASE 4.1: Enable smart positioning logic in component
+
+                sortedIndices  // FASE 4.3: Pass sorted order
             },
+
             overflowRisk
         };
+
     }
 
     /**

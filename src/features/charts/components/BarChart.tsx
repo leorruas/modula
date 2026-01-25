@@ -4,7 +4,8 @@ import { ComputedLayout } from '@/services/smartLayout/types';
 import { SmartLayoutEngine } from '@/services/smartLayout/SmartLayoutEngine';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createGlassBorderGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 
-import { ensureDistinctColors } from '@/utils/colors';
+import { ColorService } from '@/services/color/ColorService';
+
 
 interface BarChartProps {
     width: number;
@@ -73,7 +74,9 @@ export function BarChart({
             style: {
                 fontFamily: style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif',
                 legendPosition: finalLegendPosition,
-                mode: isInfographic ? 'infographic' : 'classic'
+                mode: isInfographic ? 'infographic' : 'classic',
+                colorPalette: style?.colorPalette // Critical fix: pass colors to Engine
+
             }
         },
         gridConfig,
@@ -84,6 +87,10 @@ export function BarChart({
     // Extract Engine calculations
     const { margins, typeSpecific } = layout;
     const { labelWrapThreshold, barThickness: engineBarThickness, isStacked } = typeSpecific || {};
+
+    // FASE 4.3: Smart Sorting order
+    const renderOrder = typeSpecific?.sortedIndices || labels.map((_, i) => i);
+
 
     // Use Engine's margins (100% Engine, zero fallback)
     const marginTop = margins.top;
@@ -152,10 +159,13 @@ export function BarChart({
     const useGradient = style?.useGradient;
 
     // Color logic
+    // FASE 4.2: Use Engine-provided colors if available
     const baseColors = style?.colorPalette || [getChartColor(0)];
     const isSingleSeries = data.datasets.length === 1;
-    // If single series, we need enough colors for all categories. If multi, just for the datasets.
-    const computedColors = ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
+
+    // Use datasetColors from Engine if available, otherwise fallback to local calculation (shouldn't happen if Engine is updated)
+    const computedColors = typeSpecific?.datasetColors || ColorService.ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
+
 
     // Legend Component
     const isSideLegend = finalLegendPosition === 'left' || finalLegendPosition === 'right';
@@ -242,13 +252,24 @@ export function BarChart({
                 })}
 
                 {/* Categories */}
-                {labels.map((label, i) => {
-                    const { y, height: groupHeight } = groupLayout[i];
-                    const labelLines = wrappedLabels[i].length;
-                    const catLabelHeight = isStackedLayout ? ((labelLines * fontSize * 1.2) + 6) * scaleFactor : 0;
+                {renderOrder.map((dataIndex: number, i: number) => {
+
+                    const { y, height: groupHeight } = groupLayout[i]; // Access layout for visual position 'i'
+                    const labelLines = wrappedLabels[i].length; // Layout logic corresponds to visual position 'i' because wrappers were calculated for the layout? 
+                    // WAIT. Engine calculates wrapping for specific labels.
+                    // If we sort, the labels move.
+                    // Does Engine return wrappedLabels in sorted order?
+                    // Engine computes 'wrappedLabels' in 'computeDynamicMargins'.
+                    // If we passed unsorted labels to Engine, it returns wrappedLabels matching input order.
+                    // If we sort VISUALLY here, we must access wrappedLabels[dataIndex].
+
+                    const lines = wrappedLabels[dataIndex] || [labels[dataIndex]];
+                    const label = labels[dataIndex];
+
+                    const catLabelHeight = isStackedLayout ? ((lines.length * fontSize * 1.2) + 6) * scaleFactor : 0;
 
                     return (
-                        <g key={i} transform={`translate(0, ${y})`}>
+                        <g key={dataIndex} transform={`translate(0, ${y})`}>
                             {/* Category Label */}
                             <text
                                 x={isStackedLayout ? 0 : -16}
@@ -263,8 +284,8 @@ export function BarChart({
                                 opacity={isInfographic ? 0.6 : 1}
                             >
                                 <title>{label}</title>
-                                {/* Always use wrapped labels - SmartLayoutEngine calculated the margin to fit them */}
-                                {wrappedLabels[i].map((line, lineIdx) => (
+                                {/* Use wrapped lines for specific label */}
+                                {lines.map((line, lineIdx) => (
                                     <tspan
                                         key={lineIdx}
                                         x={0}
@@ -275,13 +296,79 @@ export function BarChart({
                                 ))}
                             </text>
 
+
                             {/* Grouped Bars */}
                             {data.datasets.map((dataset, dsIndex) => {
-                                const value = dataset.data[i] || 0;
+                                const value = dataset.data[dataIndex] || 0; // Use sorted dataIndex
                                 const barW = (value / maxValue) * chartWidth;
                                 const barY = (isStackedLayout ? catLabelHeight : (groupHeight - (barsPerGroup * barHeight)) / 2) + dsIndex * barHeight;
-                                const color = computedColors[dsIndex % computedColors.length];
+                                // Identity preservation: Color depends on dataIndex (category) for single series
+                                const color = isSingleSeries
+                                    ? computedColors[dataIndex % computedColors.length]
+                                    : computedColors[dsIndex % computedColors.length];
+
                                 const radius = barHeight / 2;
+
+                                // --- Shared Calculations (Hoist to top of loop) ---
+                                const ratio = value / maxValue;
+                                const baseFontSizeValue = getScaledFont(
+                                    baseFontSize,
+                                    baseFontUnit,
+                                    isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small',
+                                    isInfographic
+                                );
+
+                                // Typography hierarchy logic
+                                const getTypographyForValue = (ratio: number) => {
+                                    if (!isInfographic) {
+                                        return {
+                                            fontWeight: CHART_THEME.fontWeights.semibold,
+                                            letterSpacing: 'normal',
+                                            textTransform: 'none' as const,
+                                            opacity: 1,
+                                            sizeMultiplier: 1
+                                        };
+                                    }
+                                    if (ratio >= 0.8) {
+                                        return {
+                                            fontWeight: CHART_THEME.fontWeights.black,
+                                            letterSpacing: '-0.04em',
+                                            textTransform: 'uppercase' as const,
+                                            opacity: 1,
+                                            sizeMultiplier: 2.0
+                                        };
+                                    } else if (ratio >= 0.5) {
+                                        return {
+                                            fontWeight: CHART_THEME.fontWeights.semibold,
+                                            letterSpacing: '-0.01em',
+                                            textTransform: 'none' as const,
+                                            opacity: 0.85,
+                                            sizeMultiplier: 1.5
+                                        };
+                                    } else {
+                                        return {
+                                            fontWeight: CHART_THEME.fontWeights.normal,
+                                            letterSpacing: 'normal',
+                                            textTransform: 'none' as const,
+                                            opacity: 0.6,
+                                            sizeMultiplier: 1.0
+                                        };
+                                    }
+                                };
+
+                                const typo = getTypographyForValue(ratio);
+
+                                // Hero / Highlight Logic
+                                const isManualHero = heroValueIndex !== undefined
+                                    && heroValueIndex >= 0
+                                    && heroValueIndex < labels.length
+                                    && heroValueIndex === dataIndex; // Use dataIndex for identity check
+
+                                const finalSizeMultiplier = isManualHero
+                                    ? typo.sizeMultiplier * 1.3
+                                    : typo.sizeMultiplier;
+
+                                const heroOpacityBoost = isManualHero ? 1 : typo.opacity;
 
                                 return (
                                     <g key={dsIndex}>
@@ -304,176 +391,147 @@ export function BarChart({
                                             height={barHeight - barInnerGap}
                                             fill={
                                                 style?.finish === 'glass'
-                                                    ? `url(#glassGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})`
+                                                    ? `url(#glassGradient-${isSingleSeries ? dataIndex % computedColors.length : dsIndex % computedColors.length})`
                                                     : useGradient
-                                                        ? `url(#barGradient-${isSingleSeries ? i % computedColors.length : dsIndex % computedColors.length})`
-                                                        : (isSingleSeries ? computedColors[i % computedColors.length] : computedColors[dsIndex % computedColors.length])
+                                                        ? `url(#barGradient-${isSingleSeries ? dataIndex % computedColors.length : dsIndex % computedColors.length})`
+                                                        : color
                                             }
                                             opacity={style?.finish === 'glass' ? 1 : 0.9}
                                             rx={radius}
                                             filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : "url(#barShadow)"}
                                         />
 
-                                        {/* Value label */}
+                                        {/* Annotation Badge (Phase 2 & 3) */}
                                         {(() => {
-                                            // Calculate proportion for hierarchy
-                                            const ratio = value / maxValue;
+                                            let badgeText = "";
+                                            let badgeColor = CHART_THEME.colors.neutral.medium;
+                                            let showBadge = false;
 
-                                            // Typography hierarchy based on value proportion (only in infographic mode)
-                                            const getTypographyForValue = (ratio: number) => {
-                                                if (!isInfographic) {
-                                                    return {
-                                                        fontWeight: CHART_THEME.fontWeights.semibold,
-                                                        letterSpacing: 'normal',
-                                                        textTransform: 'none' as const,
-                                                        opacity: 1,
-                                                        sizeMultiplier: 1
-                                                    };
+                                            // 1. Manual Annotation (Highest Priority)
+                                            if (finalShowValueAnnotations && isManualHero) {
+                                                badgeText = finalAnnotationLabels?.[i] || "DESTAQUE";
+                                                showBadge = true;
+                                            }
+                                            // 2. Metadata Annotation (Phase 3)
+                                            else if (finalUseMetadata && dataset.metadata?.[i]) {
+                                                badgeText = dataset.metadata[i];
+                                                badgeColor = CHART_THEME.colors.primary[0] || '#3b82f6';
+                                                showBadge = true;
+                                            }
+                                            // 3. Automatic Extremes (Phase 3)
+                                            else if (finalShowExtremes && !isManualHero) {
+                                                if (value === maxValue && value > avgValue) {
+                                                    badgeText = "🏆 MÁXIMO";
+                                                    badgeColor = '#d97706'; // Amber/Gold
+                                                    showBadge = true;
+                                                } else if (value === minValue && value < avgValue) {
+                                                    badgeText = "🔻 MÍNIMO";
+                                                    badgeColor = '#ef4444'; // Red
+                                                    showBadge = true;
                                                 }
+                                            }
 
-                                                if (ratio >= 0.8) {
-                                                    // High values (80%+ of max): UPPERCASE + BLACK + TIGHT + 2x
-                                                    return {
-                                                        fontWeight: CHART_THEME.fontWeights.black,
-                                                        letterSpacing: '-0.04em',
-                                                        textTransform: 'uppercase' as const,
-                                                        opacity: 1,
-                                                        sizeMultiplier: 2.0
-                                                    };
-                                                } else if (ratio >= 0.5) {
-                                                    // Medium values (50-80%): normal + SEMIBOLD + slight tight + 1.5x
-                                                    return {
-                                                        fontWeight: CHART_THEME.fontWeights.semibold,
-                                                        letterSpacing: '-0.01em',
-                                                        textTransform: 'none' as const,
-                                                        opacity: 0.85,
-                                                        sizeMultiplier: 1.5
-                                                    };
-                                                } else {
-                                                    // Low values (<50%): normal + NORMAL + normal spacing + 1x
-                                                    return {
-                                                        fontWeight: CHART_THEME.fontWeights.normal,
-                                                        letterSpacing: 'normal',
-                                                        textTransform: 'none' as const,
-                                                        opacity: 0.6,
-                                                        sizeMultiplier: 1.0
-                                                    };
-                                                }
-                                            };
-
-                                            const typo = getTypographyForValue(ratio);
-
-                                            // PHASE 2: Hero Override
-                                            const isManualHero = heroValueIndex !== undefined
-                                                && heroValueIndex >= 0
-                                                && heroValueIndex < labels.length
-                                                && heroValueIndex === i;
-
-                                            const finalSizeMultiplier = isManualHero
-                                                ? typo.sizeMultiplier * 1.3  // 30% boost extra
-                                                : typo.sizeMultiplier;
-
-                                            const heroOpacityBoost = isManualHero ? 1 : typo.opacity;
-
-                                            const baseFontSizeValue = getScaledFont(
-                                                baseFontSize,
-                                                baseFontUnit,
-                                                isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small',
-                                                isInfographic
-                                            );
+                                            if (!showBadge) return null;
 
                                             return (
-                                                <>
-                                                    {/* Annotation Badge (Phase 2 & 3) */}
-                                                    {(() => {
-                                                        let badgeText = "";
-                                                        let badgeColor = CHART_THEME.colors.neutral.medium;
-                                                        let showBadge = false;
+                                                <text
+                                                    x={barW + 8}
+                                                    y={barY - 8}
+                                                    fontSize={baseFontSizeValue * 0.65}
+                                                    fontFamily={dataFont}
+                                                    fontWeight={CHART_THEME.fontWeights.bold}
+                                                    letterSpacing="0.1em"
+                                                    textAnchor="start"
+                                                    fill={badgeColor}
+                                                    opacity={0.6}
+                                                >
+                                                    {badgeText.toUpperCase()}
+                                                </text>
+                                            );
+                                        })()}
 
-                                                        // 1. Manual Annotation (Highest Priority)
-                                                        if (finalShowValueAnnotations && isManualHero) {
-                                                            badgeText = finalAnnotationLabels?.[i] || "DESTAQUE";
-                                                            showBadge = true;
-                                                        }
-                                                        // 2. Metadata Annotation (Phase 3)
-                                                        else if (finalUseMetadata && dataset.metadata?.[i]) {
-                                                            badgeText = dataset.metadata[i];
-                                                            badgeColor = CHART_THEME.colors.primary[0] || '#3b82f6';
-                                                            showBadge = true;
-                                                        }
-                                                        // 3. Automatic Extremes (Phase 3)
-                                                        else if (finalShowExtremes && !isManualHero) {
-                                                            if (value === maxValue && value > avgValue) {
-                                                                badgeText = "🏆 MÁXIMO";
-                                                                badgeColor = '#d97706'; // Amber/Gold
-                                                                showBadge = true;
-                                                            } else if (value === minValue && value < avgValue) {
-                                                                badgeText = "🔻 MÍNIMO";
-                                                                badgeColor = '#ef4444'; // Red
-                                                                showBadge = true;
-                                                            }
-                                                        }
+                                        {/* Value Text */}
+                                        {(() => {
+                                            // FASE 4.1: Smart Positioning Logic
+                                            // Default to outside if not specified
+                                            let labelX = barW + 8;
+                                            let labelAnchor: "start" | "end" | "middle" = "start";
+                                            let labelColor = CHART_THEME.colors.neutral.dark; // Default dark for outside
 
-                                                        if (!showBadge) return null;
+                                            // Smart Positioning
+                                            const globalPositioning = typeSpecific?.valuePositioning || 'auto';
 
-                                                        return (
-                                                            <text
-                                                                x={barW + 8}
-                                                                y={barY - 8}
-                                                                fontSize={baseFontSizeValue * 0.65}
-                                                                fontFamily={dataFont}
-                                                                fontWeight={CHART_THEME.fontWeights.bold}
-                                                                letterSpacing="0.1em"
-                                                                textAnchor="start"
-                                                                fill={badgeColor}
-                                                                opacity={0.6}
-                                                            >
-                                                                {badgeText.toUpperCase()}
-                                                            </text>
-                                                        );
-                                                    })()}
+                                            // Logic: 'auto' means try inside, fallback to outside. 
+                                            // 'inside' means force inside (or try inside is safer).
+                                            // 'outside' means force outside.
 
-                                                    {/* Value Text */}
-                                                    <text
-                                                        x={barW + 8}
-                                                        y={barY + (barHeight - barInnerGap) / 2}
-                                                        dy=".35em"
-                                                        fontSize={baseFontSizeValue * finalSizeMultiplier}
-                                                        fontFamily={dataFont}
-                                                        fontWeight={typo.fontWeight}
-                                                        letterSpacing={typo.letterSpacing}
-                                                        fill={CHART_THEME.colors.neutral.dark}
-                                                        opacity={heroOpacityBoost}
-                                                    >
-                                                        {typo.textTransform === 'uppercase' ? String(value).toUpperCase() : value}
-                                                    </text>
+                                            const valueStr = typo.textTransform === 'uppercase' ? String(value).toUpperCase() : String(value);
+                                            const estimatedLabelWidth = valueStr.length * (baseFontSizeValue * finalSizeMultiplier) * 0.6;
 
-                                                    {/* Delta Percent (Phase 2) */}
-                                                    {finalShowDeltaPercent && (() => {
-                                                        const delta = ((value - avgValue) / avgValue) * 100;
-                                                        const sign = delta > 0 ? '+' : '';
-                                                        const deltaText = delta === 0 ? '±0%' : `${sign}${delta.toFixed(0)}%`;
+                                            // Vertical fit check: Ensure bar height is sufficient for the font size
+                                            const estimatedLabelHeight = baseFontSizeValue * finalSizeMultiplier * 0.8;
+                                            const actualBarHeight = barHeight - barInnerGap;
 
-                                                        // Calculate approximate width of main value
-                                                        const valueTextWidth = String(value).length * baseFontSizeValue * finalSizeMultiplier * 0.6;
+                                            if (globalPositioning === 'auto' || globalPositioning === 'inside') {
+                                                const horizontalFit = barW > estimatedLabelWidth + 24;
+                                                const verticalFit = actualBarHeight > estimatedLabelHeight;
 
-                                                        return (
-                                                            <text
-                                                                x={barW + 8 + valueTextWidth + 8}
-                                                                y={barY + (barHeight - barInnerGap) / 2}
-                                                                dy=".35em"
-                                                                fontSize={baseFontSizeValue * 0.55}
-                                                                fontFamily={dataFont}
-                                                                fontWeight={CHART_THEME.fontWeights.medium}
-                                                                letterSpacing="0.02em"
-                                                                fill={delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : CHART_THEME.colors.neutral.medium}
-                                                                opacity={0.65}
-                                                            >
-                                                                {deltaText}
-                                                            </text>
-                                                        );
-                                                    })()}
-                                                </>
+                                                if (horizontalFit && verticalFit) {
+                                                    labelX = barW - 12; // Padding from end
+                                                    labelAnchor = "end";
+                                                    labelColor = ColorService.getBestContrastColor(color);
+                                                } else {
+                                                    // Fallback to outside if it doesn't fit
+                                                    labelX = barW + 8;
+                                                    labelAnchor = "start";
+                                                    labelColor = CHART_THEME.colors.neutral.dark;
+                                                }
+                                            }
+
+
+
+                                            return (
+                                                <text
+                                                    x={labelX}
+                                                    y={barY + (barHeight - barInnerGap) / 2}
+                                                    dy=".35em"
+                                                    fontSize={baseFontSizeValue * finalSizeMultiplier}
+                                                    fontFamily={dataFont}
+                                                    fontWeight={typo.fontWeight}
+                                                    letterSpacing={typo.letterSpacing}
+                                                    fill={labelColor}
+                                                    textAnchor={labelAnchor}
+                                                    opacity={heroOpacityBoost}
+                                                >
+                                                    {valueStr}
+                                                </text>
+                                            );
+                                        })()}
+
+                                        {/* Delta Percent (Phase 2) */}
+                                        {finalShowDeltaPercent && (() => {
+                                            const delta = ((value - avgValue) / avgValue) * 100;
+                                            const sign = delta > 0 ? '+' : '';
+                                            const deltaText = delta === 0 ? '±0%' : `${sign}${delta.toFixed(0)}%`;
+
+                                            // Calculate approximate width of main value
+                                            const valueStr = typo.textTransform === 'uppercase' ? String(value).toUpperCase() : String(value);
+                                            const valueTextWidth = valueStr.length * baseFontSizeValue * finalSizeMultiplier * 0.6;
+
+                                            return (
+                                                <text
+                                                    x={barW + 8 + valueTextWidth + 8}
+                                                    y={barY + (barHeight - barInnerGap) / 2}
+                                                    dy=".35em"
+                                                    fontSize={baseFontSizeValue * 0.55}
+                                                    fontFamily={dataFont}
+                                                    fontWeight={CHART_THEME.fontWeights.medium}
+                                                    letterSpacing="0.02em"
+                                                    fill={delta > 0 ? '#10b981' : delta < 0 ? '#ef4444' : CHART_THEME.colors.neutral.medium}
+                                                    opacity={0.65}
+                                                >
+                                                    {deltaText}
+                                                </text>
                                             );
                                         })()}
                                     </g>
