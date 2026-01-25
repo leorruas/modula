@@ -261,6 +261,15 @@ const CHART_TYPE_RULES: Record<ChartType, LayoutRules> = {
         marginPriority: ['left', 'right', 'bottom', 'top'],
         minPlotWidth: 0.7,
         labelStrategy: 'fixed-positions'
+    },
+    mixed: {
+        idealAspectRatio: 4/3,
+        preferredOrientation: 'landscape',
+        legendPosition: 'bottom',
+        marginPriority: ['left', 'right', 'top', 'bottom'],
+        minPlotWidth: 0.5,
+        labelStrategy: 'wrap-at-edge',
+        notes: 'Legacy manual layout. Stacking supported via "stacked" style prop.'
     }
     // ... outros tipos
 };

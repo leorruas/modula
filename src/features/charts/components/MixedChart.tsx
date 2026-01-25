@@ -37,9 +37,26 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const lineDatasets = data.datasets.filter((_, i) => getMixedChartDatasetType(i, data.datasets.length, style) === 'line');
 
     // 2. Calculate Ranges
-    // We need to normalize values if we want them on the same axis (simple implementation assumes shared axis)
-    const allValues = data.datasets.flatMap(d => d.data);
-    const maxValue = Math.max(...allValues, 1);
+    const isStacked = style?.stacked;
+
+    // Calculate Max Value
+    let maxValue = 0;
+    if (isStacked) {
+        // For stacked, max value is the max SUM of positive bar values per category + max line value
+        const stackedSums = new Array(labels.length).fill(0);
+        barDatasets.forEach(ds => {
+            ds.data.forEach((val, i) => {
+                if (val > 0) stackedSums[i] += val;
+            });
+        });
+        const maxStack = Math.max(...stackedSums);
+        const maxLine = lineDatasets.length > 0 ? Math.max(...lineDatasets.flatMap(d => d.data)) : 0;
+        maxValue = Math.max(maxStack, maxLine, 1);
+    } else {
+        // Standard max calculation
+        const allValues = data.datasets.flatMap(d => d.data);
+        maxValue = Math.max(...allValues, 1);
+    }
 
     // 3. Layout Dimensions & Proximity (Gestalt)
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
@@ -61,7 +78,7 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const categoryCount = labels.length;
     const groupWidth = chartWidth / Math.max(categoryCount, 1);
     const groupGap = groupWidth * 0.2; // 20% gap between groups
-    const barsPerGroup = barDatasets.length || 1;
+    const barsPerGroup = isStacked ? 1 : (barDatasets.length || 1); // Stacked = 1 mock column
     // If no bars, we still need logic to place lines
     const effectiveBarGroupWidth = groupWidth - groupGap;
     const colWidth = (effectiveBarGroupWidth) / barsPerGroup;
@@ -222,42 +239,59 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                             )}
 
                             {/* Render Bars for this Group */}
-                            {barDatasets.map((ds, barDsIndex) => {
-                                // Find original index for color consistency
-                                const originalIndex = data.datasets.indexOf(ds);
-                                const value = ds.data[i] || 0;
-                                const barHeight = (value / maxValue) * chartHeight;
-                                // Layout:
-                                const x = groupX + (barDsIndex * colWidth);
-                                const y = chartHeight - barHeight;
+                            {(() => {
+                                // Stack Accumulator for this group (starts at 0)
+                                let currentStackHeight = 0;
 
-                                const isManualHero = heroValueIndex === i;
-                                const color = colorPalette[originalIndex % colorPalette.length];
+                                return barDatasets.map((ds, barDsIndex) => {
+                                    // Find original index for color consistency
+                                    const originalIndex = data.datasets.indexOf(ds);
+                                    const value = ds.data[i] || 0;
+                                    const barHeight = (value / maxValue) * chartHeight;
 
-                                return (
-                                    <g key={`bar-${originalIndex}-${i}`}>
-                                        <rect
-                                            x={x} y={y} width={colWidth - colInnerGap} height={barHeight}
-                                            fill={
-                                                style?.finish === 'glass'
-                                                    ? `url(#glassMixedGrad-${originalIndex % colorPalette.length})`
-                                                    : (useGradient ? `url(#mixedGrad-${originalIndex % colorPalette.length})` : color)
-                                            }
-                                            rx={isInfographic ? 4 : 0}
-                                            opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.5 : 1}
-                                            filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : (isInfographic ? undefined : undefined)}
-                                        />
-                                        {isInfographic && (isManualHero || finalShowAllLabels) && (
-                                            <text x={x + (colWidth - colInnerGap) / 2} y={y - (fontSize * 0.5)} textAnchor="middle"
-                                                fontSize={fontSize * 0.8}
-                                                fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.bold}
-                                                fill={CHART_THEME.colors.neutral.dark} opacity={0.8}>
-                                                {value}
-                                            </text>
-                                        )}
-                                    </g>
-                                )
-                            })}
+                                    // Layout Calculation:
+                                    let x, y;
+                                    if (isStacked) {
+                                        // Stacked: X is centered, Y is stacked
+                                        x = groupX;
+                                        // Y is ChartHeight - (PreviousHeight + CurrentHeight)
+                                        y = chartHeight - currentStackHeight - barHeight;
+                                        // Update accumulator for next bar
+                                        currentStackHeight += barHeight;
+                                    } else {
+                                        // Side-by-Side: X is offset, Y is bottom-aligned
+                                        x = groupX + (barDsIndex * colWidth);
+                                        y = chartHeight - barHeight;
+                                    }
+
+                                    const isManualHero = heroValueIndex === i;
+                                    const color = colorPalette[originalIndex % colorPalette.length];
+
+                                    return (
+                                        <g key={`bar-${originalIndex}-${i}`}>
+                                            <rect
+                                                x={x} y={y} width={colWidth - colInnerGap} height={barHeight}
+                                                fill={
+                                                    style?.finish === 'glass'
+                                                        ? `url(#glassMixedGrad-${originalIndex % colorPalette.length})`
+                                                        : (useGradient ? `url(#mixedGrad-${originalIndex % colorPalette.length})` : color)
+                                                }
+                                                rx={isInfographic ? 4 : 0}
+                                                opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.5 : 1}
+                                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : (isInfographic ? undefined : undefined)}
+                                            />
+                                            {isInfographic && (isManualHero || finalShowAllLabels) && (
+                                                <text x={x + (colWidth - colInnerGap) / 2} y={y - (fontSize * 0.5)} textAnchor="middle"
+                                                    fontSize={fontSize * 0.8}
+                                                    fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.bold}
+                                                    fill={CHART_THEME.colors.neutral.dark} opacity={0.8}>
+                                                    {value}
+                                                </text>
+                                            )}
+                                        </g>
+                                    )
+                                });
+                            })()}
                         </g>
                     )
                 })}

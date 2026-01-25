@@ -73,6 +73,7 @@ export interface ChartStyle {
 
     };
     datasetTypes?: ('bar' | 'line')[]; // Explicit type definition for mixed charts
+    stacked?: boolean; // Stacked charts for bar/mixed types
 }
 
 export interface Chart {

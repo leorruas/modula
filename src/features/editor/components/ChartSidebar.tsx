@@ -57,6 +57,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         showAllLabels?: boolean;
         sortSlices?: boolean;
         datasetTypes?: ('bar' | 'line')[];
+        stacked?: boolean;
     }>({});
 
     // Data Modal
@@ -266,10 +267,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     if (chart.style?.infographicConfig) {
                         setInfographicConfig({
                             ...chart.style.infographicConfig,
-                            datasetTypes: chart.style.datasetTypes
+                            datasetTypes: chart.style.datasetTypes,
+                            stacked: chart.style.stacked
                         });
                     } else if (chart.style?.datasetTypes) {
-                        setInfographicConfig(prev => ({ ...prev, datasetTypes: chart.style?.datasetTypes }));
+                        setInfographicConfig(prev => ({ ...prev, datasetTypes: chart.style?.datasetTypes, stacked: chart.style?.stacked }));
                     }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
@@ -410,10 +412,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     useGradient,
                     finish,
                     infographicConfig: chartMode === 'infographic' ? (() => {
-                        const { datasetTypes, ...rest } = infographicConfig;
+                        const { datasetTypes, stacked, ...rest } = infographicConfig;
                         return rest;
                     })() : undefined,
-                    datasetTypes: infographicConfig.datasetTypes
+                    datasetTypes: infographicConfig.datasetTypes,
+                    stacked: infographicConfig.stacked
                 }
             });
             triggerRefresh();
@@ -455,10 +458,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     useGradient,
                     finish,
                     infographicConfig: chartMode === 'infographic' ? (() => {
-                        const { datasetTypes, ...rest } = infographicConfig;
+                        const { datasetTypes, stacked, ...rest } = infographicConfig;
                         return rest;
                     })() : undefined,
-                    datasetTypes: infographicConfig.datasetTypes
+                    datasetTypes: infographicConfig.datasetTypes,
+                    stacked: infographicConfig.stacked
                 }
             });
             triggerRefresh();

@@ -1,0 +1,62 @@
+{
+    "labels": [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun"
+    ],
+    "datasets": [
+        {
+            "label": "Produto A",
+            "data": [
+                12,
+                19,
+                3,
+                5,
+                2,
+                3
+            ],
+            "type": "bar"
+        },
+        {
+            "label": "Produto B",
+            "data": [
+                8,
+                11,
+                15,
+                8,
+                9,
+                12
+            ],
+            "type": "bar"
+        },
+        {
+            "label": "Produto C",
+            "data": [
+                5,
+                4,
+                8,
+                12,
+                15,
+                9
+            ],
+            "type": "bar"
+        },
+        {
+            "label": "Meta",
+            "data": [
+                30,
+                40,
+                35,
+                30,
+                35,
+                30
+            ],
+            "type": "line"
+        }
+    ],
+    "yAxisLabel": "Vendas (k)",
+    "xAxisLabel": "Mês"
+}

@@ -46,7 +46,14 @@ async function main() {
     console.log('▲ Deploying to Vercel (Production)...');
     // Using --yes to skip confirmation and --prod for production deployment
     // We strictly use modula-app project as defined in SKILL.md
-    run('npx vercel --prod --yes --token $VERCEL_TOKEN || npx vercel --prod --yes');
+    // Check for token in environment
+    if (process.env.VERCEL_TOKEN) {
+        run('npx vercel --prod --yes --token $VERCEL_TOKEN');
+    } else {
+        console.log('⚠️ No VERCEL_TOKEN found. Running interactive deployment...');
+        // Remove --yes to allow linking/setup if needed
+        run('npx vercel --prod');
+    }
 
     console.log('✅ Deployment successful!');
     console.log(`Version Tag: ${tagName}`);

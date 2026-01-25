@@ -20,7 +20,7 @@ interface InfographicControlsModalProps {
         sortSlices?: boolean;
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
-
+        stacked?: boolean;
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -35,6 +35,7 @@ interface InfographicControlsModalProps {
         sortSlices?: boolean;
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
+        stacked?: boolean;
 
     }) => void;
 }
@@ -57,6 +58,7 @@ export function InfographicControlsModal({
     const [showAllLabels, setShowAllLabels] = useState(currentConfig.showAllLabels || false);
     const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
     const [autoSort, setAutoSort] = useState(currentConfig.autoSort || false);
+    const [stacked, setStacked] = useState(currentConfig.stacked || false);
 
 
     // Initialize with existing config OR fallback logic
@@ -84,6 +86,7 @@ export function InfographicControlsModal({
             setSortSlices(currentConfig.sortSlices || false);
 
             setAutoSort(currentConfig.autoSort || false);
+            setStacked(currentConfig.stacked || false);
             if (currentConfig.datasetTypes) {
 
                 setDatasetTypes(currentConfig.datasetTypes);
@@ -108,7 +111,8 @@ export function InfographicControlsModal({
             showAllLabels,
             sortSlices,
             autoSort, // Added
-            datasetTypes: chartType === 'mixed' ? datasetTypes : undefined
+            datasetTypes: chartType === 'mixed' ? datasetTypes : undefined,
+            stacked: chartType === 'mixed' ? stacked : undefined
 
 
         });
@@ -221,6 +225,68 @@ export function InfographicControlsModal({
                             </h3>
 
                             {/* Mixed Chart: Dataset Type Configuration */}
+                            {chartType === 'mixed' && (
+                                <div style={{ marginBottom: 24, padding: '12px 14px', background: '#f8f9fa', borderRadius: 10, border: '1px solid #e9ecef' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>📶 Empilhar Barras</span>
+                                            <span style={{ fontSize: 11, color: '#666' }}>Juntar valores em uma única coluna</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setStacked(!stacked)}
+                                            style={{
+                                                position: 'relative',
+                                                width: 44,
+                                                height: 24,
+                                                background: stacked ? '#3b82f6' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: stacked ? 22 : 2,
+                                                width: 20,
+                                                height: 20,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
+                                    <h4 style={{ fontSize: 13, fontWeight: 700, color: '#444', marginBottom: 8 }}>Tipos de Série</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                        {chartData.datasets.map((ds, i) => (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12 }}>
+                                                <span style={{ color: '#555' }}>
+                                                    <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: '#888', marginRight: 6 }}></span>
+                                                    {ds.label || `Dataset ${i + 1}`}
+                                                </span>
+                                                <button
+                                                    onClick={() => toggleDatasetType(i)}
+                                                    style={{
+                                                        padding: '4px 8px',
+                                                        fontSize: 11,
+                                                        fontWeight: 500,
+                                                        background: datasetTypes[i] === 'bar' ? '#e0f2fe' : '#fef3c7',
+                                                        color: datasetTypes[i] === 'bar' ? '#0369a1' : '#b45309',
+                                                        border: '1px solid',
+                                                        borderColor: datasetTypes[i] === 'bar' ? '#bae6fd' : '#fde68a',
+                                                        borderRadius: 4,
+                                                        cursor: 'pointer',
+                                                        width: 60
+                                                    }}
+                                                >
+                                                    {datasetTypes[i] === 'bar' ? 'Barra' : 'Linha'}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
 
                             {/* Hero Value Selection */}

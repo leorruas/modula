@@ -16,6 +16,6 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 41) [RESOLVIDO] quando eu crio uma nova página a sidebar não reseta pra criar um novo gráfico... (Bug Fix)
 42) [RESOLVIDO] o gráfico de coluna tá precisando de rever com a skill de gestalt_grid pra quando tem muito texto (Preventive Staggering, Editorial Labels, Leader Lines)
 43) [RESOLVIDO] implementar funcionalidade de reordenar capítulos e páginas (Drag & Drop) conforme solicitado.
-44) [RESOLVIDO] Melhorar gráfico misto: Suporte a múltiplas colunas/linhas e controle explícito de tipo no Editor Avançado.
+44) [RESOLVIDO] Melhorar gráfico misto: Adicionado suporte a "Barras Empilhadas" (Stacked) via Editor Avançado. Implementação híbrida permitindo combinar barras empilhadas com linhas. (Obs: Layout manual, não integrado ao Smart Engine ainda).
 ------
 usa as skills de debug, construction e documentation pra criar um plano?45) [RESOLVIDO] Smart Positioning: Corrigido problema onde valores ficavam fora da barra mesmo com espaço, e ajustado para respeitar a altura do número em barras finas.
