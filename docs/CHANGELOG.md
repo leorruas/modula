@@ -3,9 +3,15 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
-### 🏆 Unreleased (2026-01-25)
+### 📤 sync-2026-01-25T10-38-32 (2026-01-25)
 
-### 📝 Documentation
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **smart-layout:** implement intelligent label wrapping and fix stacked layout detection ([388b659](https://github.com/leorruas/modula/commit/388b6599789047b48f40874d27092dd832f534fc)) - *2026-01-25 07:38*
+
+#### 📝 Documentation
 
 - **changelog:** sync update sync-2026-01-24T12-52-49 ([6375d8b](https://github.com/leorruas/modula/commit/6375d8ba227dff4a1343063f3e1e28f76762fd9a)) - *2026-01-24 09:52*
 
