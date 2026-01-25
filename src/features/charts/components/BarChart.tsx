@@ -66,6 +66,29 @@ export function BarChart({
     const minValue = allValues.length > 0 ? Math.min(...allValues) : 0;
     const avgValue = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
 
+    // Legend Component
+    const isSideLegend = finalLegendPosition === 'left' || finalLegendPosition === 'right';
+
+    // FASE 1.4: Universal Legend Solver - PRE-CALCULATION
+    // If legend is side-aligned, we deduct its width from the SVG plot area BEFORE computing layout.
+    // This prevents the "squashed" viewbox issue.
+    const legendDims = (data.datasets.length > 1 && finalLegendPosition !== 'none')
+        ? SmartLayoutEngine.calculateLegendDimensions(
+            data.datasets,
+            finalLegendPosition,
+            gridConfig.baseFontSize || 11,
+            style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif',
+            isInfographic ? 'infographic' : 'classic'
+        )
+        : { width: 0, height: 0 };
+
+    const legendGap = 32; // Gap + padding from BaseChart flex
+    const sideLegendDeducedWidth = isSideLegend ? legendDims.width + legendGap : 0;
+    const topBottomLegendDeducedHeight = !isSideLegend && finalLegendPosition !== 'none' ? legendDims.height + 16 : 0;
+
+    const smartWidth = Math.max(width * 0.4, width - sideLegendDeducedWidth);
+    const smartHeight = Math.max(height * 0.4, height - topBottomLegendDeducedHeight);
+
     // FASE 2: Smart Layout Engine Integration
     const layout = computedLayout || SmartLayoutEngine.computeLayout(
         {
@@ -80,7 +103,7 @@ export function BarChart({
             }
         },
         gridConfig,
-        { w: width, h: height },
+        { w: smartWidth, h: smartHeight },
         target
     );
 
@@ -98,8 +121,8 @@ export function BarChart({
     const marginBottom = margins.bottom;
     const marginLeft = margins.left;
 
-    const chartWidth = width - marginLeft - marginRight;
-    const chartHeight = height - marginTop - marginBottom;
+    const chartWidth = smartWidth - marginLeft - marginRight;
+    const chartHeight = smartHeight - marginTop - marginBottom;
 
     // Font and layout calculations
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
@@ -166,9 +189,7 @@ export function BarChart({
     // Use datasetColors from Engine if available, otherwise fallback to local calculation (shouldn't happen if Engine is updated)
     const computedColors = typeSpecific?.datasetColors || ColorService.ensureDistinctColors(baseColors, isSingleSeries ? categoryCount : barsPerGroup);
 
-
     // Legend Component
-    const isSideLegend = finalLegendPosition === 'left' || finalLegendPosition === 'right';
     const Legend = (data.datasets.length > 1 && finalLegendPosition !== 'none') ? (
         <div style={{
             display: 'flex',
@@ -199,9 +220,8 @@ export function BarChart({
             )))}
         </div>
     ) : null;
-
     return (
-        <BaseChart width={width} height={height} data={data} type="bar" legend={Legend} legendPosition={finalLegendPosition}>
+        <BaseChart width={width} height={height} chartWidth={smartWidth} chartHeight={smartHeight} data={data} type="bar" legend={Legend} legendPosition={finalLegendPosition}>
             <defs>
                 <filter id="barShadow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur in="SourceAlpha" stdDeviation={CHART_THEME.effects.shadowBlur} />

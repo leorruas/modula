@@ -372,7 +372,7 @@ export class SmartLayoutEngine {
      * Helper: Calculate exact legend dimensions for all positions
      * Universal Legend Solver (FASE 1.2)
      */
-    private static calculateLegendDimensions(
+    public static calculateLegendDimensions(
         datasets: Array<{ label?: string }>,
         legendPosition: 'top' | 'bottom' | 'left' | 'right' | 'none',
         baseFontSize: number,

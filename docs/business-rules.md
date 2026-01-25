@@ -394,6 +394,13 @@ A legenda dita o espaço útil do gráfico:
 - **Lateral (Left/Right)**: O sistema mede o item mais largo da legenda e reserva exatamente esse espaço. Se a legenda for curta, o `plotArea` se expande horizontalmente para ocupar o vácuo.
 - **Vertical (Top/Bottom)**: O sistema simula a quebra de linha (wrapping) da legenda e reserva a altura exata necessária (N linhas * line-height), eliminando espaços em branco "mortos".
 
+#### 4.2.1. Negociação de Espaço de Legenda (Legend Space Negotiation)
+Para garantir fidelidade visual e evitar o "esmagamento" (squashing) do gráfico:
+- **Reserva Antecipada**: O componente do gráfico (ex: `BarChart`) deve calcular as dimensões da legenda *antes* de solicitar o layout ao Motor.
+- **Geometria de Plotagem**: A área de desenho (SVG `viewBox`) deve ser redimensionada exatamente para o espaço restante.
+- **Confinamento Estrito**: O uso de variáveis de largura total (`width`) dentro do desenho interno é proibido; todas as coordenadas devem derivar do `smartWidth` calculado.
+- **Prevenção de Vazamento**: Containers de gráfico devem usar `overflow: hidden` para garantir que o conteúdo do gráfico não invada a área reservada exclusivamente para a legenda HTML.
+
 ### 4.3. Hierarquia Anti-Conflito (Anti-Wrapping Policy)
 Para evitar que labels se sobreponham, o sistema segue esta ordem de tentativa:
 1.  **Wrap**: Quebrar em até 3 linhas (se houver altura).

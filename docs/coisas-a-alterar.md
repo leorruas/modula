@@ -19,3 +19,4 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 44) [RESOLVIDO] Melhorar gráfico misto: Adicionado suporte a "Barras Empilhadas" (Stacked) via Editor Avançado. Implementação híbrida permitindo combinar barras empilhadas com linhas. (Obs: Layout manual, não integrado ao Smart Engine ainda).
 ------
 usa as skills de debug, construction e documentation pra criar um plano?45) [RESOLVIDO] Smart Positioning: Corrigido problema onde valores ficavam fora da barra mesmo com espaço, e ajustado para respeitar a altura do número em barras finas.
+46) [RESOLVIDO] Posição da legenda à direita e esmagamento vertical do gráfico de barras (Width Negotiation & Smart Geometry).

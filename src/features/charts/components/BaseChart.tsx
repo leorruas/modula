@@ -4,6 +4,8 @@ import { ReactNode } from 'react';
 interface BaseChartProps {
     width: number;
     height: number;
+    chartWidth?: number;  // Optional: logical width for SVG content
+    chartHeight?: number; // Optional: logical height for SVG content
     data: Chart['data'];
     type: Chart['type'];
     children: ReactNode;
@@ -40,13 +42,18 @@ function ChartSkeleton({ width, height, type }: { width: number, height: number,
     );
 }
 
-export function BaseChart({ width, height, children, type, legend, legendPosition = 'bottom', isLoading }: BaseChartProps) {
+export function BaseChart({ width, height, chartWidth, chartHeight, children, type, legend, legendPosition = 'bottom', isLoading }: BaseChartProps) {
     if (legendPosition === 'none') {
         legend = null;
     }
 
     const isSide = legendPosition === 'left' || legendPosition === 'right';
     const isBottom = legendPosition === 'bottom';
+    const isRight = legendPosition === 'right';
+
+    // SVG viewBox uses provided chartWidth/chartHeight or falls back to container width/height
+    const viewWidth = chartWidth || width;
+    const viewHeight = chartHeight || height;
 
     return (
         <div style={{
@@ -54,7 +61,7 @@ export function BaseChart({ width, height, children, type, legend, legendPositio
             height,
             position: 'relative',
             display: 'flex',
-            flexDirection: isSide ? 'row' : (isBottom ? 'column-reverse' : 'column'),
+            flexDirection: isSide ? (isRight ? 'row-reverse' : 'row') : (isBottom ? 'column-reverse' : 'column'),
             gap: 16,
             alignItems: isSide ? 'center' : 'stretch',
             overflow: 'visible'
@@ -75,11 +82,11 @@ export function BaseChart({ width, height, children, type, legend, legendPositio
             {/* SUB-PROJECT 1.36: GRID ELASTICITY */}
             {/* We ensure minWidth: 0 to allow flexbox shrinking, and flex: 1 to fill available space. */}
             {/* The SVG viewBox handles the aspect ratio scaling internally. */}
-            <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <svg
                     width="100%"
                     height="100%"
-                    viewBox={`0 0 ${width} ${height}`}
+                    viewBox={`0 0 ${viewWidth} ${viewHeight}`}
                     preserveAspectRatio="xMidYMid meet"
                     style={{ overflow: 'visible' }}
                 >
@@ -96,7 +103,7 @@ export function BaseChart({ width, height, children, type, legend, legendPositio
                             </feMerge>
                         </filter>
                     </defs>
-                    {isLoading ? <ChartSkeleton width={width} height={height} type={type} /> : children}
+                    {isLoading ? <ChartSkeleton width={viewWidth} height={viewHeight} type={type} /> : children}
                 </svg>
             </div>
         </div>
