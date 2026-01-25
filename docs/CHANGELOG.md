@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-25T12-26-01 (2026-01-25)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **charts:** add stacked support to MixedChart and editor controls ([0b9b112](https://github.com/leorruas/modula/commit/0b9b1125a1766242722236de849378abbc0f32f2)) - *2026-01-25 09:25*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-25T12-09-21 ([c8040a1](https://github.com/leorruas/modula/commit/c8040a1e9d4145ea00b1ecd06b1c048d1df097c3)) - *2026-01-25 09:09*
+
 ### 🚀 deploy-2026-01-25T12-09-21 (2026-01-25)
 
 > **Deployment**: Version sent to production environments.
