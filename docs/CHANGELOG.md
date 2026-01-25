@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-25T12-35-16 (2026-01-25)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **charts:** implement legend space negotiation and fixed bar chart squashing ([591ac13](https://github.com/leorruas/modula/commit/591ac139af674d82e9def2be0ccb645472b444c2)) - *2026-01-25 09:35*
+
+#### 📝 Documentation
+
+- **changelog:** sync update sync-2026-01-25T12-26-01 ([a3210d7](https://github.com/leorruas/modula/commit/a3210d77b09309d642f774df1ab41105d9767549)) - *2026-01-25 09:26*
+
 ### 📤 sync-2026-01-25T12-26-01 (2026-01-25)
 
 > **GitHub Sync**: Changes pushed to the remote repository.
