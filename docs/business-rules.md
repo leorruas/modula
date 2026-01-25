@@ -402,6 +402,10 @@ Para evitar que labels se sobreponham, o sistema segue esta ordem de tentativa:
 4.  **Rotate**: Inclinar 45 graus (último recurso).
 5.  **LOD (Level of Detail)**: Ocultar elementos secundários se o "Ratio de Ilegibilidade" for alto.
 
+**Regras de Quebra de Linha (Line Break):**
+*   **Limite de Palavras**: Máximo de 12 palavras por linha para evitar leitura cansativa ("wall of text").
+*   **Viúvas (Widows)**: Nunca deixar uma única palavra isolada na última linha, a menos que seja inevitável. O sistema deve tentar acomodá-la na linha anterior se houver espaço.
+
 ### 4.4. Vacuum-Seal (Elasticidade Total)
 - **Vertical Fill**: Se a altura dos dados for menor que a altura do container, o sistema expande a espessura das barras (até um cap de 120px) e o espaçamento entre elas para preencher o módulo completamente.
 - **Gravity Well**: Elementos como títulos e legendas "puxam" o gráfico para perto (proximidade de 24px), forçando o Plot Area a expandir no espaço restante.

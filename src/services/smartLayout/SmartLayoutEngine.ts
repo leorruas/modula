@@ -9,6 +9,7 @@ import {
 import { getRulesForType } from './rules';
 import { textMeasurementService } from './TextMeasurementService';
 import { SmartLabelWrapper } from './SmartLabelWrapper';
+import { getScaledFont } from '@/utils/chartTheme'; // Import helper
 import {
     MODE_MULTIPLIERS,
     EXPORT_DRIFT_BUFFER,
@@ -280,7 +281,8 @@ export class SmartLayoutEngine {
                 labelWrapThreshold: labelWrapInfo.thresholdChars,
                 labelWrapThresholdPx: labelWrapInfo.thresholdPx,
                 estimatedLabelLines,
-                wrappedLabels  // Smart wrapped labels with orphan prevention
+                wrappedLabels,  // Smart wrapped labels with orphan prevention
+                isStacked: marginsResult.isStacked // Pass to component
             },
             overflowRisk
         };
@@ -394,35 +396,90 @@ export class SmartLayoutEngine {
         target: 'screen' | 'pdf',
         layoutRequirements: ChartAnalysis['layoutRequirements'],
         dataComplexity: ChartAnalysis['dataComplexity']
-    ): { top: number; right: number; bottom: number; left: number; wrappedLabels: string[][] } {
+    ): { top: number; right: number; bottom: number; left: number; wrappedLabels: string[][]; isStacked: boolean } {
         // Base margins
         let marginLeft = 40;
         let marginRight = 40;
         let marginTop = 20;
         let marginBottom = 20;
         let wrappedLabels: string[][] = [];
+        let isStacked = false;
+
+        // Check for Stacked Layout (BarChart only)
+        if (analysis.chartType === 'bar') {
+            const fontScale = getScaledFont(baseFontSize, 'pt', 'medium'); // Estimate
+            const charWidth = fontScale * 0.48;
+            const maxLabelLength = dataComplexity.maxLabelWidthPx / charWidth; // approximate chars? No, use pixel width logic
+
+            // Replicate BarChart logic: 
+            // isInfographic || maxLabelLength > 15 || (maxLabelWidth > width * 0.25)
+            const isInfographic = mode.marginMultiplier > 1; // heuristic for infographic mode if not explicit passed
+            // Better: check mode
+            const isInfographicMode = analysis.mode === 'infographic';
+
+            // We need max label CHAR length and pixel width
+            // We have maxLabelWidthPx. We need max char length? SmartLabelWrapper has analyzeLabels.
+            // Let's rely on pixel width for now or re-measure chars if needed.
+            // Actually, dataComplexity doesn't have maxLabelLengthChars.
+            // But we have `labels`.
+            const maxLabelChars = labels.reduce((max, l) => Math.max(max, l.length), 0);
+
+            const width = analysis.availableSpace.width;
+
+            if (isInfographicMode || maxLabelChars > 15 || (maxLabelChars * charWidth > width * 0.25)) {
+                isStacked = true;
+            }
+        }
 
         // RIGHT: Based on value width (calculate first)
         if (rules.marginPriority.includes('right')) {
             marginRight = Math.max(40, dataComplexity.maxValueWidthPx + 30);
         }
 
-        // LEFT: Match right margin for symmetry
-        // Use SmartLabelWrapper for wrapping logic, but override margin value
+        // LEFT: Match right margin for symmetry OR use minimal for Stacked
         if (rules.marginPriority.includes('left')) {
-            // Get wrapped labels from SmartLabelWrapper
-            const smartResult = SmartLabelWrapper.calculateSmartMargin(
-                labels,
-                analysis.availableSpace.width,
-                baseFontSize,
-                fontFamily,
-                '400',
-                target,
-                analysis.chartType
-            );
+            if (isStacked) {
+                // Stacked Layout: Labels are on top, so left margin is just padding
+                // But we still need to calculate wrapped labels for the FULL WIDTH
 
-            wrappedLabels = smartResult.wrappedLabels;  // Keep intelligent wrapping
-            marginLeft = marginRight;  // But use right margin value for symmetry
+                const smartResult = SmartLabelWrapper.calculateSmartMargin(
+                    labels,
+                    analysis.availableSpace.width,
+                    baseFontSize,
+                    fontFamily,
+                    '400',
+                    target,
+                    analysis.chartType,
+                    true // isStacked = true
+                );
+
+                wrappedLabels = smartResult.wrappedLabels;
+
+                // For stacked, margin left is minimal (just symmetry or padding)
+                // BarChart uses padding large/0. Engine uses base margins.
+                // Let's set it to match right margin for symmetry or a fixed small value?
+                // BarChart currently does: width - marginLeft - marginRight.
+                // If we set huge marginLeft, the bars shrink.
+                // In stacked mode, we want wide bars. So small margins.
+                marginLeft = Math.max(40, marginRight); // Keep symmetry?
+                // Actually, if we are stacked, we want more space for bars?
+                // No, symmetry is good.
+            } else {
+                // Horizontal Layout: Labels in left margin
+                const smartResult = SmartLabelWrapper.calculateSmartMargin(
+                    labels,
+                    analysis.availableSpace.width,
+                    baseFontSize,
+                    fontFamily,
+                    '400',
+                    target,
+                    analysis.chartType,
+                    false
+                );
+
+                wrappedLabels = smartResult.wrappedLabels;  // Keep intelligent wrapping
+                marginLeft = marginRight;  // But use right margin value for symmetry
+            }
         }
 
         // TOP: Title/Caption support (FASE 1.2)
@@ -466,7 +523,8 @@ export class SmartLayoutEngine {
             right: marginRight,
             bottom: marginBottom,
             left: marginLeft,
-            wrappedLabels
+            wrappedLabels,
+            isStacked  // Pass decision to component
         };
     }
 

@@ -83,7 +83,7 @@ export function BarChart({
 
     // Extract Engine calculations
     const { margins, typeSpecific } = layout;
-    const { labelWrapThreshold, barThickness: engineBarThickness } = typeSpecific || {};
+    const { labelWrapThreshold, barThickness: engineBarThickness, isStacked } = typeSpecific || {};
 
     // Use Engine's margins (100% Engine, zero fallback)
     const marginTop = margins.top;
@@ -96,9 +96,7 @@ export function BarChart({
 
     // Font and layout calculations
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
-    const charWidth = fontSize * 0.48;
-    const maxLabelLength = labels.reduce((max, label) => Math.max(max, label.length), 0);
-    const isStackedLayout = isInfographic || maxLabelLength > 15 || (maxLabelLength * charWidth > width * 0.25);
+    const isStackedLayout = isStacked ?? false;
 
     const padding = isInfographic ? CHART_THEME.padding.large : 0;
 

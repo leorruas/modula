@@ -63,6 +63,7 @@ export interface ComputedLayout {
         labelWrapThresholdPx?: number;    // Pixel threshold for wrapping
         estimatedLabelLines?: number;     // Max lines across all labels
         wrappedLabels?: string[][];       // Array of wrapped lines per label
+        isStacked?: boolean;              // Whether labels are stacked on top (BarChart)
         [key: string]: any;
     };
     overflowRisk?: {

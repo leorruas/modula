@@ -362,6 +362,8 @@ function computeLayout(analysis: ChartAnalysis, target: 'screen' | 'pdf'): Compu
 
 ### 5.2 Dynamic Margin Computation
 
+### 5.2 Dynamic Margin Computation
+
 ```typescript
 function computeDynamicMargins(
     dataComplexity: DataComplexity,
@@ -371,37 +373,45 @@ function computeDynamicMargins(
     height: number
 ): Margins {
     const baseFontSize = 11; // pt
-    const charWidth = baseFontSize * 0.6;
     
-    // Margem esquerda: espaço para labels do eixo Y
+    // Margem Esquerda Inteligente (Smart Wrapping)
     let marginLeft = 0;
     if (rules.marginPriority.includes('left')) {
-        const maxLabelWidth = dataComplexity.maxLabelLength * charWidth;
-        marginLeft = Math.min(
-            maxLabelWidth * mode.marginMultiplier,
-            width * 0.25 // Cap em 25% da largura
-        );
+        // Detectar se deve usar layout Stacked (Rótulos no topo)
+        // Gatilhos: Modo Infográfico OU Rótulos muito longos (>15 chars) OU Rótulos largos (>25% width)
+        const isStacked = mode.isInfographic || 
+                          dataComplexity.maxLabelLength > 15 || 
+                          dataComplexity.maxLabelWidth > width * 0.25;
+        
+        if (isStacked) {
+            // Stacked: Margem esquerda mínima, rótulos usam largura total (90%)
+            // Isso permite que labels longos se espalhem no topo sem comprimir o gráfico
+            marginLeft = Math.max(40, marginRight); // Mantém simetria ou padding mínimo
+        } else {
+            // Horizontal: Margem esquerda calculada com wrapping inteligente
+            // Regras: Max 30% width, Max 12 palavras/linha, Prevenção de viúvas
+            const smartMargin = SmartLabelWrapper.calculateSmartMargin(
+                labels, 
+                width * 0.3, // Max 30%
+                baseFontSize
+            );
+            marginLeft = smartMargin.requiredWidth;
+        }
     }
     
-    // Margem inferior: espaço para labels do eixo X
-    let marginBottom = 0;
-    if (rules.marginPriority.includes('bottom')) {
-        const estimatedLines = Math.ceil(dataComplexity.avgLabelLength / 15);
-        marginBottom = estimatedLines * baseFontSize * 1.4 * mode.marginMultiplier;
-    }
+    // ...
     
-    // Margem superior: espaço para badges/annotations
-    let marginTop = baseFontSize * 2;
-    if (dataComplexity.heroValueIndex !== undefined) {
-        marginTop = baseFontSize * 5 * mode.marginMultiplier; // Espaço para hero badge
-    }
-    
-    // Margem direita: buffer mínimo
-    let marginRight = baseFontSize * 3;
-    
-    return { top: marginTop, right: marginRight, bottom: marginBottom, left: marginLeft };
+    return { top: marginTop, right: marginRight, bottom: marginBottom, left: marginLeft, isStacked };
 }
 ```
+
+### 5.3 Smart Label Strategy
+
+O sistema utiliza o `SmartLabelWrapper` para decidir como quebrar o texto:
+
+1.  **Word Limit**: Labels com mais de 12 palavras forçam quebra de linha.
+2.  **Orphan Prevention**: Evita deixar uma única palavra na última linha.
+3.  **Stacked Detection**: Se o label precisa de muito espaço (>30%), o layout muda automaticamente para **Stacked** (label acima da barra), liberando espaço horizontal.
 
 ### 5.3 Export Safety Assessment
 
@@ -1046,6 +1056,16 @@ Implementação de um circuito de segurança:
 1.  **Validate**: Após calcular o layout, o Engine verifica o `riskScore`.
 2.  **Detect**: Se houver colisões iminentes ou espaço insuficiente (`plotRatio < 40%`).
 3.  **Retry**: O Engine dispara uma nova tentativa com parâmetros de contenção (ex: `compactMode: true`, `hideAxis: true`).
+
+### 4.4 Vacuum-Seal (Elasticidade Total)
+- **Vertical Fill**: Se a altura dos dados for menor que a altura do container, o sistema expande a espessura das barras (até um cap de 120px) e o espaçamento entre elas para preencher o módulo completamente.
+- **Gravity Well**: Elementos como títulos e legendas "puxam" o gráfico para perto (proximidade de 24px), forçando o Plot Area a expandir no espaço restante.
+
+### 4.5 Intelligent Label Wrapping
+Para garantir legibilidade em rótulos longos, o sistema aplica:
+1.  **Limite de Palavras**: Rótulos com mais de 12 palavras são forçados a quebrar linha.
+2.  **Prevenção de Viúvas**: Se a quebra forçada criar uma viúva (1 palavra na última linha), a quebra é cancelada (se couber na largura).
+3.  **Detecção de Stacked Layout**: Se os rótulos forem muito longos (>15 chars) ou o modo for Infográfico, o sistema muda para layout "Stacked", permitindo que os rótulos usem 90% da largura do container em vez de se espremerem na margem lateral.
 
 ### 22.3. Vacuum-Seal & Grid Elasticity (v1.36 / v1.54)
 Estratégia para eliminar "espaço morto":

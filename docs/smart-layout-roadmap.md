@@ -156,20 +156,24 @@ margins: {
 **Problema Atual**: Component usa `width / charWidth` (guessing), não respeita boundary exato
 
 **Tasks**:
-- [ ] Calcular `labelWidthThresholdPx` baseado em `marginLeft` reservado
-- [ ] Passar `labelWrapThreshold` via `typeSpecific` para component
-- [ ] Implementar wrapping simulation (prever quantas linhas ANTES de renderizar)
-- [ ] Adicionar `estimatedLines` logic científico
+- [x] Calcular `labelWidthThresholdPx` baseado em `marginLeft` reservado
+- [x] Passar `labelWrapThreshold` via `typeSpecific` para component
+- [x] Implementar wrapping simulation (prever quantas linhas ANTES de renderizar)
+- [x] Adicionar `estimatedLines` logic científico
+- [x] Implementar Stacked Layout Detection
+- [x] Implementar Widow Prevention & 12-word limit
 
 **Files**:
 - [MODIFY] `src/services/smartLayout/SmartLayoutEngine.ts`
 - [MODIFY] `src/features/charts/components/BarChart.tsx`
 
 **Acceptance Criteria**:
-- [ ] Labels wrappam EXATAMENTE no boundary do gutter
-- [ ] Wrapping simulation reserva espaço vertical correto
-- [ ] Mudar window size: wrapping adapta precisamente
-- [ ] Zero "surpresas" (texto nunca overflow)
+- [x] Labels wrappam EXATAMENTE no boundary do gutter
+- [x] Wrapping simulation reserva espaço vertical correto
+- [x] Mudar window size: wrapping adapta precisamente
+- [x] Zero "surpresas" (texto nunca overflow)
+- [x] 12-word limit enforced
+- [x] Widow prevention active
 
 **Code Example**:
 ```typescript

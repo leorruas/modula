@@ -155,7 +155,7 @@ export class SmartLabelWrapper {
         fontWeight: string = '400',
         maxWordsPerLine: number = 12
     ): WrapResult {
-        // Step 1: Check if we can fit without wrapping
+        // Step 1: Check if we can fit without wrapping AND without exceeding word limit
         const fullWidth = textMeasurementService.measureTextWidth({
             text: label,
             fontSize,
@@ -163,7 +163,9 @@ export class SmartLabelWrapper {
             fontWeight
         });
 
-        if (fullWidth <= availableWidth) {
+        const wordCount = label.split(' ').length;
+
+        if (fullWidth <= availableWidth && wordCount <= maxWordsPerLine) {
             return {
                 lines: [label],
                 requiredWidth: fullWidth,
@@ -269,7 +271,8 @@ export class SmartLabelWrapper {
         fontFamily: string,
         fontWeight: string = '400',
         target: 'screen' | 'pdf' = 'screen',
-        chartType: string = 'bar'
+        chartType: string = 'bar',
+        isStacked: boolean = false
     ): {
         marginLeft: number;
         wrappedLabels: string[][];
@@ -277,10 +280,14 @@ export class SmartLabelWrapper {
     } {
         // Constants
         const EXPORT_BUFFER = target === 'pdf' ? 15 : 8;  // Reduced buffers
+        const MAX_WORDS_PER_LINE = 12;
 
         // Chart-specific plot ratio (MAXIMUM allowed for labels)
         // Drastically reduced - margin should be based on actual measurements, not percentages
-        const MAX_LABEL_RATIO = chartType === 'bar' ? 0.30 : 0.25;  // Bar: 30%, Others: 25%
+        // If STACKED, we allow almost full width (minus margins)
+        const MAX_LABEL_RATIO = isStacked
+            ? 0.90
+            : (chartType === 'bar' ? 0.30 : 0.25);  // Bar: 30%, Others: 25%
 
         const LABEL_PADDING = 6;   // Reduced from 8
         const LABEL_GUTTER = 4;    // Reduced from 6
@@ -309,8 +316,11 @@ export class SmartLabelWrapper {
         let wrappedLabels: string[][];
         let maxWrappedWidth: number;
 
-        if (requiredMarginNoWrap <= maxAllowedMargin) {
-            // Best case: labels fit without wrapping
+        // Check if we exceed word limit (forces wrap unless widow)
+        const exceedsWordLimit = analysis.maxWordsInLabel > MAX_WORDS_PER_LINE;
+
+        if (requiredMarginNoWrap <= maxAllowedMargin && !exceedsWordLimit) {
+            // Best case: labels fit without wrapping AND without exceeding limits
             wrappedLabels = labels.map(label => [label]);
             maxWrappedWidth = longestLabelWidth;
         } else {
