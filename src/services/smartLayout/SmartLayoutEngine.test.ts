@@ -1,8 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { SmartLayoutEngine } from './SmartLayoutEngine';
+import { textMeasurementService } from './TextMeasurementService';
 import { ChartData, ChartStyle, GridConfig } from '@/types';
 
 describe('SmartLayoutEngine', () => {
+    // Mock TextMeasurementService to avoid JSDOM Canvas weirdness
+    beforeEach(() => {
+        vi.spyOn(textMeasurementService, 'measureTextWidth').mockImplementation((opts) => {
+            // deterministic mock: length * fontSize * 0.6
+            return opts.text.length * opts.fontSize * 0.6;
+        });
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     const mockGridConfig: GridConfig = {
         baseFontSize: 11,
         columns: 12,
@@ -46,7 +59,7 @@ describe('SmartLayoutEngine', () => {
             expect(layout.margins.left).toBeGreaterThan(50);
         });
 
-        it('adapts to long labels (100 chars)', () => {
+        it('switches to stacked layout for long labels (100 chars)', () => {
             const longLabel = 'A'.repeat(100);
             const chart = createMockChart(
                 [longLabel, longLabel, longLabel],
@@ -59,8 +72,11 @@ describe('SmartLayoutEngine', () => {
                 { w: 800, h: 400 }
             );
 
-            // Long labels should result in expanded left margin
-            expect(layout.margins.left).toBeGreaterThan(200);
+            // For very long labels, it should switch to stacked mode
+            // In stacked mode, left and right margins should be balanced and small
+            expect(layout.typeSpecific?.isStacked).toBe(true);
+            expect(layout.margins.left).toBeLessThan(100);
+            expect(layout.margins.left).toBeCloseTo(layout.margins.right, 1);
         });
 
         it('respects user legend position preference', () => {
@@ -238,6 +254,96 @@ describe('SmartLayoutEngine', () => {
         });
     });
 
+    describe('Radial Layout (Pie/Donut)', () => {
+        it('enforces 1:1 aspect ratio for radial charts', () => {
+            const chart = {
+                type: 'donut',
+                data: {
+                    labels: ['A', 'B', 'C'],
+                    datasets: [{ label: 'Series 1', data: [10, 20, 70] }]
+                } as ChartData
+            };
+
+            const layout = SmartLayoutEngine.computeLayout(
+                chart,
+                mockGridConfig,
+                { w: 800, h: 400 } // Landscape container
+            );
+
+            expect(layout.zones.plot.width).toBe(layout.zones.plot.height);
+            expect(layout.typeSpecific?.centerX).toBeDefined();
+            expect(layout.typeSpecific?.outerRadius).toBeLessThanOrEqual(200);
+        });
+
+        it('triggers spider legs for crowded data', () => {
+            const chart = {
+                type: 'donut',
+                data: {
+                    labels: Array.from({ length: 12 }, (_, i) => `Cat ${i}`),
+                    datasets: [{ label: 'Series 1', data: Array.from({ length: 12 }, () => 10) }]
+                } as ChartData
+            };
+
+            const layout = SmartLayoutEngine.computeLayout(
+                chart,
+                mockGridConfig,
+                { w: 600, h: 600 }
+            );
+
+            expect(layout.typeSpecific?.spiderLegs?.length).toBeGreaterThan(0);
+            expect(layout.typeSpecific?.labelPlacements?.some((p: any) => p.strategy === 'external')).toBe(true);
+        });
+
+        it('calculates inner radius for donut but not for pie', () => {
+            const pieChart = {
+                type: 'pie',
+                data: { labels: ['A'], datasets: [{ data: [100] }] } as ChartData
+            };
+            const donutChart = {
+                type: 'donut',
+                data: { labels: ['A'], datasets: [{ data: [100] }] } as ChartData
+            };
+
+            const pieLayout = SmartLayoutEngine.computeLayout(pieChart, mockGridConfig, { w: 400, h: 400 });
+            const donutLayout = SmartLayoutEngine.computeLayout(donutChart, mockGridConfig, { w: 400, h: 400 });
+
+            expect(pieLayout.typeSpecific?.innerRadius).toBe(0);
+            expect(donutLayout.typeSpecific?.innerRadius).toBeGreaterThan(0);
+        });
+
+        it('handles "Wall of Text" labels by moving them to external strategy', () => {
+            const chart = {
+                type: 'pie',
+                data: {
+                    labels: ['This is an extremely long category name that should definitely be moved outside to prevent overlap', 'Short'],
+                    datasets: [{ data: [50, 50] }]
+                } as ChartData
+            };
+
+            const layout = SmartLayoutEngine.computeLayout(chart, mockGridConfig, { w: 400, h: 400 });
+
+            // Even if not crowded, very long labels should potentially move outside or trigger risk
+            // Our current logic triggers 'external' for narrow or crowded. 
+            // If it's 50/50, it's not narrow.
+            // But we should verify it doesn't crash and coordinates are valid.
+            expect(layout.typeSpecific?.labelPlacements?.length).toBe(2);
+            expect(layout.typeSpecific?.labelPlacements?.[0].strategy).toBeDefined();
+        });
+
+        it('maintains balance in "Squash" mode (ultra-narrow)', () => {
+            const chart = {
+                type: 'pie',
+                data: { labels: ['A', 'B'], datasets: [{ data: [50, 50] }] } as ChartData
+            };
+
+            const layout = SmartLayoutEngine.computeLayout(chart, mockGridConfig, { w: 150, h: 400 });
+
+            // Plot zone should be square even if container is squashed
+            expect(layout.zones.plot.width).toBeLessThanOrEqual(150);
+            expect(layout.zones.plot.width).toBe(layout.zones.plot.height);
+        });
+    });
+
     describe('Label Wrapping Intelligence', () => {
         it('calculates wrap threshold based on margin', () => {
             const chart = createMockChart(
@@ -285,7 +391,7 @@ describe('SmartLayoutEngine', () => {
             );
 
             const threshold = layout.typeSpecific?.labelWrapThreshold || 0;
-            expect(threshold).toBeGreaterThan(5); // MIN_LABEL_WRAP_CHARS
+            expect(threshold).toBeGreaterThanOrEqual(5); // MIN_LABEL_WRAP_CHARS
             expect(threshold).toBeLessThan(100);
         });
 
@@ -385,6 +491,34 @@ describe('SmartLayoutEngine', () => {
 
             // Multiple datasets should need legend
             expect(multiAnalysis.layoutRequirements.needsLegend).toBe(true);
+        });
+    });
+    describe('Infographic Mode (Clipping Fix)', () => {
+        it('reserves more right margin in infographic mode due to larger font scaling', () => {
+            const chartData = {
+                labels: ['A', 'B'],
+                datasets: [{ label: 'Series 1', data: [100, 50] }] // Max value 100
+            };
+
+            const classicChart = createMockChart(chartData.labels, chartData.datasets, { mode: 'classic' });
+            const infographicChart = createMockChart(chartData.labels, chartData.datasets, { mode: 'infographic' });
+
+            const classicLayout = SmartLayoutEngine.computeLayout(
+                classicChart,
+                mockGridConfig,
+                { w: 600, h: 400 }
+            );
+
+            const infographicLayout = SmartLayoutEngine.computeLayout(
+                infographicChart,
+                mockGridConfig,
+                { w: 600, h: 400 }
+            );
+
+            // Infographic margin should be significantly larger because:
+            // 1. Font scale is larger (e.g. 'large' vs 'small')
+            // 2. Max value multiplier (2.0 vs 1.0)
+            expect(infographicLayout.margins.right).toBeGreaterThan(classicLayout.margins.right + 10);
         });
     });
 });

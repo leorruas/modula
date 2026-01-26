@@ -68,6 +68,28 @@ export interface ComputedLayout {
         textColors?: string[];            // Contrast-aware text colors
         valuePositioning?: 'inside' | 'outside' | 'top' | 'auto'; // Where to place the value
 
+        // Radial Parameters
+        centerX?: number;
+        centerY?: number;
+        outerRadius?: number;
+        innerRadius?: number;
+        spiderLegs?: Array<{
+            labelX: number;
+            labelY: number;
+            points: string[]; // Points for polyline "spider leg"
+            textAnchor: 'start' | 'end' | 'middle';
+            sliceIndex: number;
+        }>;
+        labelPlacements?: Array<{
+            x: number;
+            y: number;
+            textAnchor: 'start' | 'end' | 'middle';
+            color: string;
+            strategy: 'internal' | 'external' | 'hidden';
+            percentage: string;
+            wrappedLines: string[];
+        }>;
+
         [key: string]: any;
     };
     overflowRisk?: {

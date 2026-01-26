@@ -1,10 +1,14 @@
 import { LayoutRules } from './types';
 import { barRules } from './rules/barRules';
+import { radialRules } from './rules/radialRules';
 
 export function getRulesForType(chartType: string): LayoutRules {
     switch (chartType) {
         case 'bar':
             return barRules;
+        case 'pie':
+        case 'donut':
+            return radialRules;
         default:
             // Default rules for unknown types
             return {

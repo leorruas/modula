@@ -47,11 +47,18 @@ export class SmartLayoutEngine {
         const maxValue = Math.max(...allValues, 1);
         const minValue = Math.min(...allValues, 0);
 
-        // Measure label widths using TextMeasurementService (Rule 5.1: Measurement-First)
-        const baseFontSize = gridConfig.baseFontSize || 11;
-        const fontFamily = style?.fontFamily || 'Inter, sans-serif';
-        const fontWeight = style?.mode === 'infographic' ? '700' : '500';
+        // FASE 4.1: Smart measurement with Scaling
 
+        // Core Layout Configuration
+        const baseFontSize = gridConfig.baseFontSize || 11;
+        const baseFontUnit = gridConfig.baseFontUnit || 'pt';
+        const fontFamily = style?.fontFamily || 'Inter, sans-serif';
+        const isInfographic = style?.mode === 'infographic';
+        const fontWeight = isInfographic ? '700' : '500';
+
+
+
+        // Measure category label widths
         const maxLabelWidthPx = categories.length > 0
             ? Math.max(...categories.map(label =>
                 textMeasurementService.measureTextWidth({
@@ -63,16 +70,34 @@ export class SmartLayoutEngine {
             ))
             : 0;
 
-        // Measure value widths
+        // Measure value widths (Fix for Clipping)
+        // Replicate BarChart font sizing logic
+        const barsPerGroup = datasets.length;
+        const fontCategory = isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small';
+
+        const effectiveFontSizePx = getScaledFont(
+            baseFontSize,
+            baseFontUnit,
+            fontCategory,
+            isInfographic
+        );
+
+        // Max value (ratio 1.0) gets the largest multiplier in Infographic mode
+        const maxMult = isInfographic ? 2.0 : 1.0;
+        const finalValueFontSize = effectiveFontSizePx * maxMult;
+
+        const maxValStr = String(Math.round(maxValue));
         const maxValueWidthPx = textMeasurementService.measureTextWidth({
-            text: String(Math.round(maxValue)),
-            fontSize: baseFontSize,
+            text: maxValStr,
+            fontSize: finalValueFontSize,
             fontFamily,
-            fontWeight: '500'
+            fontWeight: isInfographic ? '900' : '600'
         });
 
         // Determine mode
         const mode = style?.mode || 'classic';
+
+
 
         // Check if legend is needed
         const userLegendPosition = style?.legendPosition;
@@ -136,7 +161,6 @@ export class SmartLayoutEngine {
         );
 
         let marginsResult = this.computeDynamicMargins(
-
             analysis,
             rules,
             modeConfig,
@@ -148,6 +172,20 @@ export class SmartLayoutEngine {
             analysis.layoutRequirements,
             analysis.dataComplexity
         );
+
+        // FASE 3: Radial Layout Expansion
+        if (analysis.chartType === 'pie' || analysis.chartType === 'donut') {
+            return this.computeRadialLayout(
+                chart,
+                analysis,
+                rules,
+                modeConfig,
+                baseFontSize,
+                fontFamily,
+                target,
+                datasetColors
+            );
+        }
 
         let margins = {
             top: marginsResult.top,
@@ -513,7 +551,9 @@ export class SmartLayoutEngine {
 
         // RIGHT: Based on value width (calculate first)
         if (rules.marginPriority.includes('right')) {
-            marginRight = Math.max(40, dataComplexity.maxValueWidthPx + 30);
+            // Add padding for "delta" or badges if needed, but start with the raw number width
+            // 40px base minimum + width + small gap
+            marginRight = Math.max(40, dataComplexity.maxValueWidthPx + 16);
         }
 
         // LEFT: Match right margin for symmetry OR use minimal for Stacked
@@ -558,7 +598,7 @@ export class SmartLayoutEngine {
                 );
 
                 wrappedLabels = smartResult.wrappedLabels;  // Keep intelligent wrapping
-                marginLeft = marginRight;  // But use right margin value for symmetry
+                marginLeft = smartResult.marginLeft; // Use measured margin, NOT marginRight
             }
         }
 
@@ -749,6 +789,303 @@ export class SmartLayoutEngine {
         const verticalPadding = 4;
 
         return (maxLines * lineHeight) + verticalPadding;
+    }
+
+    /**
+     * Specialized: Compute Radial Layout (Pie, Donut)
+     * Implementation of Sub-Project 3: Circular Family
+     */
+    private static computeRadialLayout(
+        chart: { type: string; data: ChartData; style?: ChartStyle },
+        analysis: ChartAnalysis,
+        rules: LayoutRules,
+        mode: ModeModifiers,
+        baseFontSize: number,
+        fontFamily: string,
+        target: 'screen' | 'pdf',
+        datasetColors: string[]
+    ): ComputedLayout {
+        const width = analysis.availableSpace.width;
+        const height = analysis.availableSpace.height;
+
+        const dataset = chart.data.datasets?.[0];
+        const values = dataset?.data || [];
+        const total = values.reduce((a, b) => a + b, 0);
+        const maxValue = Math.max(...values);
+        const labels = chart.data.labels || [];
+
+        // Constants for Radial Layout
+        const MAX_RADIAL_LABEL_WIDTH = 140;
+        const SPIDER_LEG_X_EXTENSION = 40;
+        const MIN_VERTICAL_GAP = 4;
+
+        // 1. Pre-analysis: Wrap text and determine space needs
+        let maxLabelWidthNeeded = 0;
+        let needsExternal = values.length > 8;
+
+        // Store pre-calculated metrics to avoid re-measuring
+        const measuredLabels = values.map((val, i) => {
+            const labelText = labels[i] || '';
+
+            // Fonts
+            const valueFontSize = getScaledFont(baseFontSize, 'pt', 'tiny', true);
+            const categoryFontSize = getScaledFont(baseFontSize, 'pt', 'tiny', false);
+
+            // Wrap Category Label
+            // We use a simplified wrapping logic here or fallback to splitting by words
+            // Since we don't have a robust helper exposed, we simulate it:
+            const words = labelText.toUpperCase().split(/\s+/);
+            let currentLine = words[0] || '';
+            const wrappedLines: string[] = [];
+
+            for (let w = 1; w < words.length; w++) {
+                const testLine = currentLine + ' ' + words[w];
+                const testWidth = textMeasurementService.measureTextWidth({
+                    text: testLine,
+                    fontSize: categoryFontSize,
+                    fontFamily,
+                    fontWeight: '400'
+                });
+                if (testWidth <= MAX_RADIAL_LABEL_WIDTH) {
+                    currentLine = testLine;
+                } else {
+                    wrappedLines.push(currentLine);
+                    currentLine = words[w];
+                }
+            }
+            wrappedLines.push(currentLine);
+
+            // Measure Dimensions
+            const categoryWidths = wrappedLines.map(line => textMeasurementService.measureTextWidth({
+                text: line, fontSize: categoryFontSize, fontFamily, fontWeight: '400'
+            }));
+            const maxCategoryWidth = Math.max(...categoryWidths, 0);
+
+            // Measure Value
+            const percentage = ((val / total) * 100).toFixed(1);
+            const valueMetrics = textMeasurementService.measureDetailedMetrics({
+                text: `${percentage}%`, fontSize: valueFontSize, fontFamily, fontWeight: '900'
+            });
+
+            // Total Block Dimensions
+            const totalWidth = Math.max(maxCategoryWidth, valueMetrics.width);
+            // Height: (Category Lines * LineHeight) + Value Height + Padding
+            // Assuming category line height ~1.2em
+            const categoryHeight = wrappedLines.length * (categoryFontSize * 1.2);
+            const totalHeight = categoryHeight + valueMetrics.height + 4; // 4px padding
+
+            return {
+                wrappedLines,
+                totalWidth,
+                totalHeight,
+                percentage,
+                valueMetrics,
+                maxCategoryWidth,
+                categoryHeight
+            };
+        });
+
+        // Determine margin needs based on wrapped widths
+        // Standard radius to test fit
+        const baseMargin = target === 'pdf' ? 60 : 40;
+        const testPlotSize = Math.min(width - (baseMargin * 2), height - (baseMargin * 2));
+        const testOuterRadius = testPlotSize / 2;
+        const testInnerRadius = chart.type === 'donut' ? testOuterRadius * 0.75 : 0;
+
+        values.forEach((val, i) => {
+            const sliceAngle = (val / total) * 2 * Math.PI;
+            const sliceWidthAtCentroid = (testOuterRadius + testInnerRadius) / 2 * sliceAngle;
+            const measure = measuredLabels[i];
+
+            // Decision: Internal or External?
+            const fitsInternal = sliceAngle >= (30 * Math.PI / 180) &&
+                sliceWidthAtCentroid > measure.totalWidth + 35 &&
+                (testOuterRadius - testInnerRadius) > measure.totalHeight + 20;
+
+            if (!fitsInternal || needsExternal) {
+                needsExternal = true;
+                // External need: Extension + Text Width + Safety
+                maxLabelWidthNeeded = Math.max(maxLabelWidthNeeded, measure.totalWidth + SPIDER_LEG_X_EXTENSION + 20);
+            }
+        });
+
+        // 2. Dynamic Margins (Safety Reservation)
+        const sideMargin = baseMargin + (needsExternal ? maxLabelWidthNeeded : 0);
+        const margins = {
+            top: baseMargin + 20,
+            right: sideMargin,
+            bottom: baseMargin + 20,
+            left: sideMargin
+        };
+
+        // 3. Define Plot Zone
+        const availableWidth = width - (margins.left + margins.right);
+        const availableHeight = height - (margins.top + margins.bottom);
+        const plotSize = Math.max(20, Math.min(availableWidth, availableHeight));
+
+        const plotZone: Zone = {
+            x: margins.left + (availableWidth - plotSize) / 2,
+            y: margins.top + (availableHeight - plotSize) / 2,
+            width: plotSize,
+            height: plotSize
+        };
+
+        const centerX = plotZone.x + plotSize / 2;
+        const centerY = plotZone.y + plotSize / 2;
+        const outerRadius = plotSize / 2;
+        const innerRadius = chart.type === 'donut' ? outerRadius * (analysis.mode === 'infographic' ? 0.75 : 0.6) : 0;
+
+        const labelPlacements: any[] = [];
+        const spiderLegs: any[] = [];
+        const innerRadii: number[] = [];
+        let startAngle = 0;
+
+        // Collect proposed external placements for relaxation
+        const rightSideLabels: any[] = [];
+        const leftSideLabels: any[] = [];
+
+        values.forEach((val, i) => {
+            const sliceAngle = (val / total) * 2 * Math.PI;
+            const labelAngle = startAngle + sliceAngle / 2;
+            const measure = measuredLabels[i];
+
+            // Variable Thickness
+            let currentInnerRadius = innerRadius;
+            if (analysis.mode === 'infographic' && chart.type === 'donut') {
+                const weight = val / maxValue;
+                const minHoleRadius = outerRadius * 0.7;
+                const maxHoleRadius = outerRadius * 0.99;
+                currentInnerRadius = maxHoleRadius - (weight * (maxHoleRadius - minHoleRadius));
+            }
+            innerRadii.push(currentInnerRadius);
+
+            // Re-check geometric fit with FINAL radius
+            const sliceWidthAtCentroid = (outerRadius + currentInnerRadius) / 2 * sliceAngle;
+            const fitsWidth = sliceWidthAtCentroid > measure.totalWidth + 35;
+            const fitsDepth = (outerRadius - currentInnerRadius) > measure.totalHeight + 20;
+            const isNarrow = sliceAngle < (30 * Math.PI / 180);
+            const isCrowded = values.length > 8;
+
+            let strategy: 'internal' | 'external' | 'hidden' = (isNarrow || isCrowded || !fitsWidth || !fitsDepth) ? 'external' : 'internal';
+
+            // Internal Placement
+            const internalR = (outerRadius + currentInnerRadius) / 2;
+            const ix = internalR * Math.cos(labelAngle - Math.PI / 2);
+            const iy = internalR * Math.sin(labelAngle - Math.PI / 2);
+
+            // External Placement (Preliminary)
+            const isRightSide = (labelAngle % (2 * Math.PI)) < Math.PI;
+            const textAnchor = isRightSide ? 'start' : 'end';
+            const spiderLabelX = isRightSide ? outerRadius + SPIDER_LEG_X_EXTENSION : -outerRadius - SPIDER_LEG_X_EXTENSION;
+            const spiderLabelY = (outerRadius + 20) * Math.sin(labelAngle - Math.PI / 2);
+
+            // Store placement object
+            const placement = {
+                index: i,
+                x: strategy === 'internal' ? ix : spiderLabelX,
+                y: strategy === 'internal' ? iy : spiderLabelY,
+                textAnchor: strategy === 'internal' ? 'middle' : textAnchor,
+                strategy,
+                percentage: measure.percentage,
+                color: ColorService.getBestContrastColor(datasetColors[i % datasetColors.length]),
+                wrappedLines: strategy === 'internal' ? [labels[i]] : measure.wrappedLines, // Use wrapped lines for external
+                height: measure.totalHeight, // for collision
+                labelAngle,
+                isRightSide,
+                sliceIndex: i,
+                originalY: spiderLabelY
+            };
+
+            labelPlacements.push(placement);
+
+            if (strategy === 'external') {
+                if (isRightSide) {
+                    rightSideLabels.push(placement);
+                } else {
+                    leftSideLabels.push(placement);
+                }
+            }
+
+            startAngle += sliceAngle;
+        });
+
+        // 4. Collision Resolution (Spider Leg Relaxation)
+        const relaxLabels = (items: any[]) => {
+            if (items.length <= 1) return;
+            // Sort by Y (top to bottom)
+            items.sort((a, b) => a.originalY - b.originalY);
+
+            // Forward pass (push down)
+            for (let i = 1; i < items.length; i++) {
+                const prev = items[i - 1];
+                const curr = items[i];
+                // Distance needed: half height of prev + half height of curr + gap
+                // Simplified: dist > 30px (approx height of 2 lines)
+                const requiredGap = (prev.height / 2) + (curr.height / 2) + MIN_VERTICAL_GAP;
+
+                if (curr.y - prev.y < requiredGap) {
+                    // Push current down
+                    curr.y = prev.y + requiredGap;
+                }
+            }
+
+            // Backward pass (push up if pushing down caused overflow or just to center)
+            // Check if bottom-most element is too far down?
+            // For now, simple aggressive push down is better than overlap.
+            // We could center the group vertically if needed, but keeping them near radial ideal is best.
+            // Let's do a simple center correction if the whole group shifted too much?
+            // Skip for now, "Stack Down" is standard.
+        };
+
+        relaxLabels(rightSideLabels);
+        // Left side: Sort by Y (top to bottom) as well
+        relaxLabels(leftSideLabels);
+
+        // Update Spider Legs based on relaxed positions
+        labelPlacements.forEach((p) => {
+            if (p.strategy === 'external') {
+                // Re-calculate leg points
+                // Start: Radial at OuterRadius
+                // Elbow: Radial at OuterRadius + 15
+                // End: (p.x, p.y)
+                // NOTE: p.x and p.y are relative to CenterX/CenterY in our math above?
+                // Wait, spiderLabelX defined above: `outerRadius + 40`. This is relative to center.
+                // DonutChart renders `g transform(centerX, centerY)`. So (0,0) is center.
+                // So our math is correct relative to center.
+
+                const lx = Math.cos(p.labelAngle - Math.PI / 2);
+                const ly = Math.sin(p.labelAngle - Math.PI / 2);
+
+                spiderLegs.push({
+                    labelX: p.x,
+                    labelY: p.y,
+                    sliceIndex: p.sliceIndex,
+                    textAnchor: p.textAnchor,
+                    points: [
+                        `${outerRadius * lx},${outerRadius * ly}`,
+                        `${(outerRadius + 15) * lx},${(outerRadius + 15) * ly}`,
+                        `${p.x},${p.y}`
+                    ]
+                });
+            }
+        });
+
+        return {
+            container: { width, height },
+            zones: { plot: plotZone, legend: null, xAxis: null, yAxis: null },
+            margins,
+            scaling: { factor: 1.0, appliedTo: [] },
+            typeSpecific: {
+                centerX,
+                centerY,
+                outerRadius,
+                innerRadius,
+                innerRadii,
+                datasetColors,
+                labelPlacements, // Contains the relaxed Y coordinates
+                spiderLegs
+            }
+        };
     }
 
     /**

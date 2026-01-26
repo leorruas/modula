@@ -20,3 +20,4 @@ porque na hora que diminui o gráfico, ele não quebra a linha
 ------
 usa as skills de debug, construction e documentation pra criar um plano?45) [RESOLVIDO] Smart Positioning: Corrigido problema onde valores ficavam fora da barra mesmo com espaço, e ajustado para respeitar a altura do número em barras finas.
 46) [RESOLVIDO] Posição da legenda à direita e esmagamento vertical do gráfico de barras (Width Negotiation & Smart Geometry).
+47) [RESOLVIDO] analisa essa imagem e me ajuda a resolver isso aqui no gráfico de barras. eu só quero que não corte o número ali na lateral... (Fix: Smart Layout Font Scaling for Infographic Mode)
