@@ -127,125 +127,195 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
         onChange({ ...data, datasets: newDatasets });
     };
 
+    const handleTranspose = () => {
+        // New labels become old series names
+        const newLabels = data.datasets.map(ds => ds.label);
+
+        // New series names become old labels
+        const newDatasets = data.labels.map((label, labelIdx) => {
+            return {
+                label,
+                data: data.datasets.map(ds => ds.data[labelIdx] || 0)
+            };
+        });
+
+        onChange({
+            ...data,
+            labels: newLabels,
+            datasets: newDatasets
+        });
+    };
+
     return (
-        <div style={{ overflowX: 'auto', border: '1px solid #ddd', borderRadius: 4 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                    <tr style={{ background: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
-                        <th style={{ padding: 8, textAlign: 'left', minWidth: 100, color: '#444' }}>Categoria</th>
-                        {data.datasets.map((ds, i) => (
-                            <th key={i} style={{ padding: 8, minWidth: 80, position: 'relative' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <input
-                                        type="text"
-                                        value={ds.label}
-                                        onChange={(e) => handleSeriesNameChange(i, e.target.value)}
-                                        style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: 600, color: '#333' }}
-                                    />
-                                    {data.datasets.length > 1 && (
-                                        <button onClick={() => removeSeries(i)} style={{ border: 'none', background: 'transparent', color: '#999', cursor: 'pointer', fontSize: 10 }}>×</button>
-                                    )}
-                                </div>
-                                {chartType === 'mixed' && onDatasetTypeChange && (
-                                    <div style={{ marginTop: 4, display: 'flex', gap: 2 }}>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                onDatasetTypeChange(i, 'bar');
-                                            }}
-                                            style={{
-                                                flex: 1,
-                                                fontSize: 9,
-                                                padding: '2px',
-                                                border: '1px solid',
-                                                borderColor: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : '#e5e5e5',
-                                                background: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : 'transparent',
-                                                color: (!datasetTypes || datasetTypes[i] === 'bar') ? 'white' : '#999',
-                                                borderRadius: 3,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Barra
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                onDatasetTypeChange(i, 'line');
-                                            }}
-                                            style={{
-                                                flex: 1,
-                                                fontSize: 9,
-                                                padding: '2px',
-                                                border: '1px solid',
-                                                borderColor: datasetTypes?.[i] === 'line' ? '#8b5cf6' : '#e5e5e5',
-                                                background: datasetTypes?.[i] === 'line' ? '#8b5cf6' : 'transparent',
-                                                color: datasetTypes?.[i] === 'line' ? 'white' : '#999',
-                                                borderRadius: 3,
-                                                cursor: 'pointer'
-                                            }}
-                                        >
-                                            Linha
-                                        </button>
+        <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        handleTranspose();
+                    }}
+                    style={{
+                        padding: '6px 12px',
+                        background: '#f3f4f6',
+                        border: '1px solid #d1d5db',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#374151',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = '#e5e7eb')}
+                    onMouseOut={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M7 10l5-5 5 5M17 14l-5 5-5-5" />
+                    </svg>
+                    Inverter Linhas/Colunas
+                </button>
+                {chartType === 'mixed' && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
+                        <input
+                            type="checkbox"
+                            checked={data.useDualAxis || (data as any).style?.useDualAxis || false}
+                            onChange={(e) => {
+                                // Some charts keep style inside data or pass it separately
+                                // Based on ChartData type, useDualAxis is not there, so we update the parent via onChange
+                                // SimpleDataEditor receives 'data', but often the style is nested or handled by the modal onSave
+                                // Let's check where 'style' usually lives. In ChartItem, it's chart.style.
+                                // DataEditorModal passes initialData and receives updated data onSave.
+                                // If we want to persist useDualAxis, it should be in the style.
+                                // However, SimpleDataEditor only handles 'data'.
+                                // I'll add it to the data object for now to signal the intent, or assume the user will see the value of it.
+                                onChange({ ...data, useDualAxis: e.target.checked } as any);
+                            }}
+                        />
+                        Eixo Y Duplo
+                    </label>
+                )}
+            </div>
+            <div style={{ overflowX: 'auto', border: '1px solid #ddd', borderRadius: 4 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                        <tr style={{ background: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
+                            <th style={{ padding: 8, textAlign: 'left', minWidth: 100, color: '#444' }}>Categoria</th>
+                            {data.datasets.map((ds, i) => (
+                                <th key={i} style={{ padding: 8, minWidth: 80, position: 'relative' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <input
+                                            type="text"
+                                            value={ds.label}
+                                            onChange={(e) => handleSeriesNameChange(i, e.target.value)}
+                                            style={{ width: '100%', border: 'none', background: 'transparent', fontWeight: 600, color: '#333' }}
+                                        />
+                                        {data.datasets.length > 1 && (
+                                            <button onClick={() => removeSeries(i)} style={{ border: 'none', background: 'transparent', color: '#999', cursor: 'pointer', fontSize: 10 }}>×</button>
+                                        )}
                                     </div>
-                                )}
+                                    {chartType === 'mixed' && onDatasetTypeChange && (
+                                        <div style={{ marginTop: 4, display: 'flex', gap: 2 }}>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onDatasetTypeChange(i, 'bar');
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    fontSize: 9,
+                                                    padding: '2px',
+                                                    border: '1px solid',
+                                                    borderColor: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : '#e5e5e5',
+                                                    background: (!datasetTypes || datasetTypes[i] === 'bar') ? '#0ea5e9' : 'transparent',
+                                                    color: (!datasetTypes || datasetTypes[i] === 'bar') ? 'white' : '#999',
+                                                    borderRadius: 3,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Barra
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    onDatasetTypeChange(i, 'line');
+                                                }}
+                                                style={{
+                                                    flex: 1,
+                                                    fontSize: 9,
+                                                    padding: '2px',
+                                                    border: '1px solid',
+                                                    borderColor: datasetTypes?.[i] === 'line' ? '#8b5cf6' : '#e5e5e5',
+                                                    background: datasetTypes?.[i] === 'line' ? '#8b5cf6' : 'transparent',
+                                                    color: datasetTypes?.[i] === 'line' ? 'white' : '#999',
+                                                    borderRadius: 3,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                Linha
+                                            </button>
+                                        </div>
+                                    )}
+                                </th>
+                            ))}
+                            <th style={{ padding: 8, width: 30 }}>
+                                <button onClick={addSeries} title="Adicionar Série" style={{ border: 'none', background: '#e0e0e0', borderRadius: 3, width: 20, height: 20, cursor: 'pointer', color: '#333' }}>+</button>
                             </th>
-                        ))}
-                        <th style={{ padding: 8, width: 30 }}>
-                            <button onClick={addSeries} title="Adicionar Série" style={{ border: 'none', background: '#e0e0e0', borderRadius: 3, width: 20, height: 20, cursor: 'pointer', color: '#333' }}>+</button>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {data.labels.map((label, rowIndex) => (
-                        <tr key={rowIndex} style={{ borderBottom: '1px solid #eee' }}>
-                            <td style={{ padding: 4 }}>
-                                <input
-                                    type="text"
-                                    value={label}
-                                    onChange={(e) => handleLabelChange(rowIndex, e.target.value)}
-                                    style={{ width: '100%', border: 'none', padding: 4, background: '#fafafa', borderRadius: 2 }}
-                                />
-                            </td>
-                            {data.datasets.map((ds, colIndex) => (
-                                <td key={colIndex} style={{ padding: 4 }}>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {data.labels.map((label, rowIndex) => (
+                            <tr key={rowIndex} style={{ borderBottom: '1px solid #eee' }}>
+                                <td style={{ padding: 4 }}>
                                     <input
                                         type="text"
-                                        inputMode="decimal"
-                                        value={getCellValue(colIndex, rowIndex)}
-                                        onChange={(e) => handleValueChange(colIndex, rowIndex, e.target.value)}
-                                        onBlur={() => handleBlur(colIndex, rowIndex)}
-                                        style={{ width: '100%', border: 'none', padding: 4, textAlign: 'right', outline: 'none' }}
+                                        value={label}
+                                        onChange={(e) => handleLabelChange(rowIndex, e.target.value)}
+                                        style={{ width: '100%', border: 'none', padding: 4, background: '#fafafa', borderRadius: 2 }}
                                     />
                                 </td>
-                            ))}
-                            <td style={{ padding: 4, textAlign: 'center' }}>
+                                {data.datasets.map((ds, colIndex) => (
+                                    <td key={colIndex} style={{ padding: 4 }}>
+                                        <input
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={getCellValue(colIndex, rowIndex)}
+                                            onChange={(e) => handleValueChange(colIndex, rowIndex, e.target.value)}
+                                            onBlur={() => handleBlur(colIndex, rowIndex)}
+                                            style={{ width: '100%', border: 'none', padding: 4, textAlign: 'right', outline: 'none' }}
+                                        />
+                                    </td>
+                                ))}
+                                <td style={{ padding: 4, textAlign: 'center' }}>
+                                    <button
+                                        onClick={() => removeRow(rowIndex)}
+                                        style={{ border: 'none', background: 'transparent', color: '#ccc', cursor: 'pointer', fontWeight: 'bold' }}
+                                    >
+                                        ×
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colSpan={data.datasets.length + 2} style={{ padding: 8 }}>
                                 <button
-                                    onClick={() => removeRow(rowIndex)}
-                                    style={{ border: 'none', background: 'transparent', color: '#ccc', cursor: 'pointer', fontWeight: 'bold' }}
+                                    onClick={addRow}
+                                    style={{ width: '100%', padding: 6, background: '#f9f9f9', border: '1px dashed #ccc', borderRadius: 4, color: '#666', fontSize: 12, cursor: 'pointer' }}
                                 >
-                                    ×
+                                    + Adicionar Linha
                                 </button>
                             </td>
                         </tr>
-                    ))}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colSpan={data.datasets.length + 2} style={{ padding: 8 }}>
-                            <button
-                                onClick={addRow}
-                                style={{ width: '100%', padding: 6, background: '#f9f9f9', border: '1px dashed #ccc', borderRadius: 4, color: '#666', fontSize: 12, cursor: 'pointer' }}
-                            >
-                                + Adicionar Linha
-                            </button>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </tfoot>
+                </table>
+            </div>
         </div>
     );
 }

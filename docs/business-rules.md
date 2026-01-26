@@ -122,6 +122,7 @@ O sistema deve oferecer um modo de visualização limpa para simular o resultado
 *   **Entrada de Dados**:
     *   **Tabela (Padrão)**: A inserção de dados deve ocorrer prioritariamente via interface visual de linhas e colunas (estilo planilha).
     *   **Importação**: O sistema deve aceitar dados colados ou importados de CSV/Excel.
+    *   **Transposição (Transpose)**: O usuário pode inverter as linhas e colunas (Pivotamento) com um clique no botão "Inverter Linhas/Colunas" no editor de dados. Isso redefine a leitura dos eixos (X vira Série e vice-versa).
     *   **Abstração Técnica**: O usuário não deve manipular JSON bruto diretamente.
     *   **Dados de Exemplo**: Botão "💡 Carregar Exemplo" ao lado do seletor de tipo preenche automaticamente dados de mockup apropriados para visualização do gráfico.
 
@@ -194,6 +195,7 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   **Mixed**: Detecta 2+ datasets com valores em escalas muito diferentes.
     *   **Bar/Column**: Fallback padrão para comparações categóricas.
     *   **Mixed**: Detecta 2+ datasets com escalas ou tipos de dados mistos (ex: valor absoluto vs percentual).
+    *   **Eixo Y Secundário (Dual Axis)**: Quando datasets têm escalas muito diferentes, o sistema sugere o uso de um Eixo Y Secundário à direita para as séries de linha, evitando o esmagamento visual dos dados.
 
 ### 2.10.1. Lógica do Gráfico Misto (Mixed Chart Logic)
 *   **Flexibilidade**: Suporta **N** Colunas agrupadas e **M** Linhas simultâneas.
@@ -201,8 +203,9 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
     *   **Explícita**: O usuário define via `datasetTypes: ('bar' | 'line')[]` no Editor Avançado.
     *   **Implícita (Fallback)**: Se não definido, os primeiros N-1 datasets são Barras, e o último é Linha.
 *   **Visualização**:
-    *   **Colunas Agrupadas**: Datasets do tipo 'bar' são renderizados lado a lado, com espaçamento calculado automaticamente (`groupWidth`, `colWidth`).
-    *   **Linhas em Camadas**: Datasets do tipo 'line' são renderizados **sobre** as barras, com sombra (`drop-shadow`) para separação visual (Figura-Fundo).
+    *   **Colunas Agrupadas**: Datasets do tipo 'bar' são renderizados lado a lado, com espaçamento calculado automaticamente (`groupWidth`, `colWidth`). São SEMPRE associados ao Eixo Y Primário (Esquerda).
+    *   **Linhas em Camadas**: Datasets do tipo 'line' são renderizados **sobre** as barras, com sombra (`drop-shadow`) para separação visual (Figura-Fundo). Podem ser associados ao Eixo Y Secundário (Direita) se `useDualAxis` estiver ativo.
+*   **Gestalt de Escalas**: Quando o Eixo Secundário é ativado, a escala da esquerda (Barras) e da direita (Linhas) tornam-se independentes, permitindo visualizar tendências percentuais sobre valores absolutos sem perda de detalhe.
 *   **Interface**: Exibir card de sugestão com botão "Aplicar Sugestão" logo abaixo da área de input CSV. A recomendação deve incluir uma breve justificativa (ex: "Série temporal detectada").
 
 ---
@@ -434,6 +437,7 @@ Para garantir consistência e agilidade, o sistema carrega estilos seguindo esta
     *   **Moeda**: Suporta BRL (R$), USD ($), EUR (€) e GBP (£).
     *   **Número**: Formatação padrão com separadores de milhar.
 *   **Precisão**: Respeita o número de casas decimais definido no `style.numberFormat`.
+*   **Dual Formatting**: Em gráficos mistos com eixo secundário, o sistema suporta `secondaryNumberFormat` para que as linhas tenham uma formatação distinta (ex: barras monetárias e linhas percentuais).
 
 ---
 

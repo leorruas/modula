@@ -24,3 +24,6 @@ usa as skills de debug, construction e documentation pra criar um plano?45) [RES
 48) [RESOLVIDO] Integrar formatação de valores (Moeda, Percentual, Casas Decimais) em todos os gráficos (Centralização via `smartFormatChartValue`).
 49) [RESOLVIDO] Correção definitiva do corte de números (Clipping) no PDF: Alinhamento de multiplicadores de fonte (2.6x) e aumento do drift buffer (25% safety gap).
 50) [RESOLVIDO] Simetria de margens no gráfico de barras para garantir equilíbrio visual e evitar esmagamento de um dos lados.
+51) [RESOLVIDO] Erro de pivotamento nos dados (Anos vs Categorias). Solução: Botão "Inverter Linhas/Colunas" (Transpose) no SimpleDataEditor.
+52) [RESOLVIDO] Gráficos com escalas mistas (ex: 2000 vs 10%) esmagam a linha. Solução: Implementação de Eixo Y Secundário e Toggle na UI.
+53) [RESOLVIDO] Legenda "voando" longe do gráfico. Solução: Redução de gaps (8px) e otimização de margens internas no MixedChart.

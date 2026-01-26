@@ -102,6 +102,7 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Equal Margins**: Para manter o equilíbrio editorial, as margens esquerda e direita devem ser **idênticas**. O sistema reserva o mesmo espaço para os labels (esquerda) e para os valores (direita), centralizando visualmente o gráfico.
 *   **Mixed Charts (Gestalt Optimized)**:
     *   **Container Intelligence (Box Rule)**: As margens são calculadas dinamicamente (`5%` ou `minPadding`) em vez de fixas, adaptando-se a qualquer tamanho de container.
+    *   **Legend Proximity (Gap Rule)**: A distância entre o gráfico e a legenda deve ser minimizada para garantir associação Gestalt. O `gap` é reduzido para **8px** (BaseChart) e margens internas do MixedChart são otimizadas para eliminar espaços em branco.
     *   **Proportional Spacing (Breath Rule)**: O espaçamento vertical é derivado do `fontSize` (ex: `1.5em`), garantindo que rótulos e gráficos mantenham distância segura ao escalar a fonte.
 *   **Pie/Donut Charts (Infographic)**:
     *   **Padding**: Reduced to `60px` (Pie) and `40px` (Donut) to maximize chart scale.

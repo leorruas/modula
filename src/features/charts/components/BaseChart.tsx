@@ -62,7 +62,7 @@ export function BaseChart({ width, height, chartWidth, chartHeight, children, ty
             position: 'relative',
             display: 'flex',
             flexDirection: isSide ? (isRight ? 'row-reverse' : 'row') : (isBottom ? 'column-reverse' : 'column'),
-            gap: 16,
+            gap: 8, // Reduced from 16
             alignItems: isSide ? 'center' : 'stretch',
             overflow: 'visible'
         }}>

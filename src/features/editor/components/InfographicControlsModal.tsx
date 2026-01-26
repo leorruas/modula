@@ -21,7 +21,10 @@ interface InfographicControlsModalProps {
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
+        useDualAxis?: boolean;
+        y2AxisLabel?: string;
         numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
+        secondaryNumberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -37,7 +40,10 @@ interface InfographicControlsModalProps {
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
+        useDualAxis?: boolean;
+        y2AxisLabel?: string;
         numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
+        secondaryNumberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
     }) => void;
 }
 
@@ -60,7 +66,10 @@ export function InfographicControlsModal({
     const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
     const [autoSort, setAutoSort] = useState(currentConfig.autoSort || false);
     const [stacked, setStacked] = useState(currentConfig.stacked || false);
+    const [useDualAxis, setUseDualAxis] = useState(currentConfig.useDualAxis || false);
+    const [y2AxisLabel, setY2AxisLabel] = useState(currentConfig.y2AxisLabel || '');
     const [numberFormat, setNumberFormat] = useState<NumberFormatConfig>(currentConfig.numberFormat || { type: 'number' });
+    const [secondaryNumberFormat, setSecondaryNumberFormat] = useState<NumberFormatConfig>(currentConfig.secondaryNumberFormat || { type: 'percent' });
 
 
     // Initialize with existing config OR fallback logic
@@ -89,7 +98,10 @@ export function InfographicControlsModal({
 
             setAutoSort(currentConfig.autoSort || false);
             setStacked(currentConfig.stacked || false);
+            setUseDualAxis(currentConfig.useDualAxis || false);
+            setY2AxisLabel(currentConfig.y2AxisLabel || '');
             setNumberFormat(currentConfig.numberFormat || { type: 'number' });
+            setSecondaryNumberFormat(currentConfig.secondaryNumberFormat || { type: 'percent' });
             if (currentConfig.datasetTypes) {
 
                 setDatasetTypes(currentConfig.datasetTypes);
@@ -117,7 +129,10 @@ export function InfographicControlsModal({
             autoSort, // Added
             datasetTypes: chartType === 'mixed' ? datasetTypes : undefined,
             stacked: chartType === 'mixed' ? stacked : undefined,
-            numberFormat: numberFormat as any // Pass format config
+            useDualAxis: chartType === 'mixed' ? useDualAxis : undefined,
+            y2AxisLabel: chartType === 'mixed' && useDualAxis ? y2AxisLabel : undefined,
+            numberFormat: numberFormat as any,
+            secondaryNumberFormat: (chartType === 'mixed' && useDualAxis) ? secondaryNumberFormat as any : undefined
         });
         onClose();
     };
@@ -260,6 +275,52 @@ export function InfographicControlsModal({
                                             }} />
                                         </button>
                                     </div>
+
+                                    {/* Dual Axis Toggle */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, paddingTop: 12, borderTop: '1px solid #eee' }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#222', display: 'block' }}>⚖️ Eixo Y Secundário</span>
+                                            <span style={{ fontSize: 11, color: '#666' }}>Escala independente para Linhas</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setUseDualAxis(!useDualAxis)}
+                                            style={{
+                                                position: 'relative',
+                                                width: 44,
+                                                height: 24,
+                                                background: useDualAxis ? '#0ea5e9' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 12,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: useDualAxis ? 22 : 2,
+                                                width: 20,
+                                                height: 20,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
+
+                                    {useDualAxis && (
+                                        <div style={{ marginBottom: 16 }}>
+                                            <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>Título do Eixo Direito</label>
+                                            <input
+                                                type="text"
+                                                value={y2AxisLabel}
+                                                onChange={e => setY2AxisLabel(e.target.value)}
+                                                placeholder="Ex: Meta (%)"
+                                                style={{ width: '100%', padding: '8px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                            />
+                                        </div>
+                                    )}
+
                                     <h4 style={{ fontSize: 13, fontWeight: 700, color: '#444', marginBottom: 8 }}>Tipos de Série</h4>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                                         {chartData.datasets.map((ds, i) => (
@@ -360,7 +421,76 @@ export function InfographicControlsModal({
                                 )}
                             </div>
 
+                            {/* SECONDARY FORMAT for Dual Axis */}
+                            {chartType === 'mixed' && useDualAxis && (
+                                <div style={{ marginBottom: 24, padding: '12px 14px', background: '#f5f3ff', borderRadius: 10, border: '1px solid #ddd6fe' }}>
+                                    <h4 style={{ fontSize: 13, fontWeight: 700, color: '#6d28d9', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        🔢 Formato das Linhas (Eixo Direito)
+                                    </h4>
 
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                                        <div>
+                                            <label style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', display: 'block', marginBottom: 4 }}>Tipo</label>
+                                            <select
+                                                value={secondaryNumberFormat?.type || 'percent'}
+                                                onChange={e => setSecondaryNumberFormat({ ...secondaryNumberFormat, type: e.target.value as any })}
+                                                style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                            >
+                                                <option value="number">Número (1.234)</option>
+                                                <option value="percent">Porcentagem (50%)</option>
+                                                <option value="currency">Moeda (R$ 10,00)</option>
+                                            </select>
+                                        </div>
+
+                                        {secondaryNumberFormat?.type === 'currency' && (
+                                            <div>
+                                                <label style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', display: 'block', marginBottom: 4 }}>Moeda</label>
+                                                <select
+                                                    value={secondaryNumberFormat?.currency || 'BRL'}
+                                                    onChange={e => setSecondaryNumberFormat({ ...secondaryNumberFormat, currency: e.target.value as any })}
+                                                    style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                                >
+                                                    <option value="BRL">Real (R$)</option>
+                                                    <option value="USD">Dólar ($)</option>
+                                                    <option value="EUR">Euro (€)</option>
+                                                    <option value="GBP">Libra (£)</option>
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {secondaryNumberFormat?.type !== 'currency' && (
+                                            <div>
+                                                <label style={{ fontSize: 11, fontWeight: 600, color: '#7c3aed', display: 'block', marginBottom: 4 }}>Decimais</label>
+                                                <input
+                                                    type="number"
+                                                    min="0" max="4"
+                                                    value={secondaryNumberFormat?.decimals ?? ''}
+                                                    onChange={e => {
+                                                        const val = parseInt(e.target.value);
+                                                        setSecondaryNumberFormat({ ...secondaryNumberFormat, decimals: isNaN(val) ? undefined : val });
+                                                    }}
+                                                    placeholder={secondaryNumberFormat?.type === 'percent' ? "0" : "auto"}
+                                                    style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {secondaryNumberFormat?.type === 'percent' && (
+                                        <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <input
+                                                type="checkbox"
+                                                id="useScaleSecondary"
+                                                checked={secondaryNumberFormat?.scale === 0.01}
+                                                onChange={e => setSecondaryNumberFormat({ ...secondaryNumberFormat, scale: e.target.checked ? 0.01 : undefined })}
+                                            />
+                                            <label htmlFor="useScaleSecondary" style={{ fontSize: 12, color: '#444', cursor: 'pointer' }}>
+                                                O valor já é porcentagem (ex: 50 = 50%)
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {/* Hero Value Selection */}
                             <div style={{ marginBottom: 24 }}>
                                 <label style={{ display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#222' }}>

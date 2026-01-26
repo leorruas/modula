@@ -39,11 +39,14 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
 
     // 2. Calculate Ranges
     const isStacked = style?.stacked;
+    const useDualAxis = (style?.useDualAxis || (data as any).useDualAxis) && lineDatasets.length > 0;
 
-    // Calculate Max Value
+    // Calculate Max Values
     let maxValue = 0;
+    let maxLineValue = 0;
+
+    // Primary Axis Max (Bars)
     if (isStacked) {
-        // For stacked, max value is the max SUM of positive bar values per category + max line value
         const stackedSums = new Array(labels.length).fill(0);
         barDatasets.forEach(ds => {
             ds.data.forEach((val, i) => {
@@ -51,27 +54,39 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
             });
         });
         const maxStack = Math.max(...stackedSums);
-        const maxLine = lineDatasets.length > 0 ? Math.max(...lineDatasets.flatMap(d => d.data)) : 0;
-        maxValue = Math.max(maxStack, maxLine, 1);
+        maxValue = Math.max(maxStack, 1);
     } else {
-        // Standard max calculation
-        const allValues = data.datasets.flatMap(d => d.data);
-        maxValue = Math.max(...allValues, 1);
+        const allBarValues = barDatasets.flatMap(d => d.data);
+        maxValue = Math.max(...allBarValues, 1);
     }
+
+    // Secondary Axis Max (Lines) OR common max if no dual axis
+    const allLineValues = lineDatasets.flatMap(d => d.data);
+    if (useDualAxis) {
+        maxLineValue = Math.max(...allLineValues, 1);
+        // Ensure some padding at top of max
+        maxLineValue *= 1.1;
+    } else {
+        // If no dual axis, both share maxValue
+        maxValue = Math.max(maxValue, ...allLineValues, 1);
+        maxLineValue = maxValue;
+    }
+    // Ensure primary also has padding
+    maxValue *= 1.1;
 
     // 3. Layout Dimensions & Proximity (Gestalt)
     const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'medium' : 'small');
 
     // "Breath Rule": Spacing relative to font size
-    const GAP_LABEL_GRAPH = fontSize * 0.5;
-    const GAP_TICK_LABEL = fontSize * 1.5;
+    const GAP_LABEL_GRAPH = fontSize * 0.4; // Reduced from 0.5
+    const GAP_TICK_LABEL = fontSize * 1.2;  // Reduced from 1.5
 
     // "Box Rule": Dynamic Padding
-    const minPadding = isInfographic ? fontSize * 4 : fontSize * 2;
+    const minPadding = isInfographic ? fontSize * 3 : fontSize * 1.5; // Reduced
     // Calculate max room needed for layout
-    const dynamicMarginLeft = Math.max(minPadding, width * 0.05); // Min 5% or padding
-    const dynamicMarginRight = Math.max(minPadding * 0.6, width * 0.05);
-    const dynamicMarginTop = isInfographic ? fontSize * 4 : fontSize * 2; // Room for hero values
+    const dynamicMarginLeft = Math.max(minPadding, width * 0.05);
+    const dynamicMarginRight = useDualAxis ? Math.max(minPadding * 1.5, width * 0.08) : Math.max(minPadding * 0.6, width * 0.05);
+    const dynamicMarginTop = isInfographic ? fontSize * 3 : fontSize * 1.5; // Reduced
 
     const chartWidth = width - dynamicMarginLeft - dynamicMarginRight;
 
@@ -79,8 +94,7 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const categoryCount = labels.length;
     const groupWidth = chartWidth / Math.max(categoryCount, 1);
     const groupGap = groupWidth * 0.2; // 20% gap between groups
-    const barsPerGroup = isStacked ? 1 : (barDatasets.length || 1); // Stacked = 1 mock column
-    // If no bars, we still need logic to place lines
+    const barsPerGroup = isStacked ? 1 : (barDatasets.length || 1);
     const effectiveBarGroupWidth = groupWidth - groupGap;
     const colWidth = (effectiveBarGroupWidth) / barsPerGroup;
     const colInnerGap = colWidth * 0.1;
@@ -107,11 +121,11 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const maxLinesNeeded = Math.max(...wrappedLabels.map(l => l.length), 1);
 
     // Preventive Staggering ("Air Gap")
-    const isDenseLayout = groupWidth < (fontSize * 8); // Dynamic threshold based on text size
-    const staggerBuffer = isDenseLayout ? (maxLinesNeeded * fontSize * 1.3) + GAP_TICK_LABEL : 0;
-    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.2) + GAP_LABEL_GRAPH + staggerBuffer;
+    const isDenseLayout = groupWidth < (fontSize * 8);
+    const staggerBuffer = isDenseLayout ? (maxLinesNeeded * fontSize * 1.1) + GAP_TICK_LABEL : 0;
+    const labelBottomPadding = (maxLinesNeeded * fontSize * 1.0) + GAP_LABEL_GRAPH + staggerBuffer;
 
-    const chartHeight = height - dynamicMarginTop - (isInfographic ? fontSize * 2 : fontSize) - labelBottomPadding;
+    const chartHeight = height - dynamicMarginTop - (isInfographic ? fontSize * 1.5 : fontSize * 0.8) - labelBottomPadding;
     const effectiveBaselineY = chartHeight;
 
     const colorPalette = ensureDistinctColors(style?.colorPalette || [], data.datasets.length);
@@ -122,9 +136,9 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
     const Legend = finalLegendPosition !== 'none' ? (
         <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', // Narrative Grid
-            gap: '8px 16px',
-            padding: '10px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+            gap: '4px 12px', // Reduced gap
+            padding: '8px', // Reduced padding
             background: isInfographic ? 'rgba(255,255,255,0.05)' : 'transparent',
             borderRadius: 8
         }}>
@@ -184,9 +198,27 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
 
             <g transform={`translate(${dynamicMarginLeft}, ${dynamicMarginTop})`}>
                 {/* Horizontal Grid */}
-                {!isInfographic && [0.25, 0.5, 0.75, 1].map((f, i) => (
-                    <line key={`grid-${i}`} x1={0} y1={chartHeight * f} x2={chartWidth} y2={chartHeight * f}
+                {!isInfographic && [0, 0.25, 0.5, 0.75, 1].map((f, i) => (
+                    <line key={`grid-${i}`} x1={0} y1={chartHeight * (1 - f)} x2={chartWidth} y2={chartHeight * (1 - f)}
                         stroke={CHART_THEME.colors.neutral.lighter} strokeWidth={1} opacity={0.1} strokeDasharray={"4 4"} />
+                ))}
+
+                {/* Primary Y-Axis Ticks (Left) */}
+                {!isInfographic && [0, 0.5, 1].map((f, i) => (
+                    <text key={`ytick-p-${i}`} x={-GAP_TICK_LABEL} y={chartHeight * (1 - f)}
+                        textAnchor="end" alignmentBaseline="middle"
+                        fontSize={fontSize * 0.8} fill={CHART_THEME.colors.neutral.medium} fontFamily={fontFamily}>
+                        {smartFormatChartValue(maxValue * f, style?.numberFormat)}
+                    </text>
+                ))}
+
+                {/* Secondary Y-Axis Ticks (Right) */}
+                {useDualAxis && !isInfographic && [0, 0.5, 1].map((f, i) => (
+                    <text key={`ytick-s-${i}`} x={chartWidth + GAP_TICK_LABEL} y={chartHeight * (1 - f)}
+                        textAnchor="start" alignmentBaseline="middle"
+                        fontSize={fontSize * 0.8} fill={CHART_THEME.colors.neutral.medium} fontFamily={fontFamily}>
+                        {smartFormatChartValue(maxLineValue * f, style?.secondaryNumberFormat)}
+                    </text>
                 ))}
 
                 {/* Vertical Milestones / Crosshairs */}
@@ -301,11 +333,13 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                 {lineDatasets.map((ds, lineDsIndex) => {
                     const originalIndex = data.datasets.indexOf(ds);
                     const color = colorPalette[originalIndex % colorPalette.length];
+                    const targetMax = useDualAxis ? maxLineValue : maxValue;
+                    const format = useDualAxis ? style?.secondaryNumberFormat : style?.numberFormat;
 
                     const linePoints = ds.data.map((value, i) => {
                         // Line points should be centered in the GROUP
                         const cx = i * groupWidth + groupWidth / 2;
-                        const cy = chartHeight - ((value / maxValue) * chartHeight);
+                        const cy = chartHeight - ((value / targetMax) * chartHeight);
                         return { x: cx, y: cy };
                     });
 
@@ -338,7 +372,7 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                                                 fontSize={fontSize * 0.9}
                                                 fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black}
                                                 fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">
-                                                {smartFormatChartValue(ds.data[i], style?.numberFormat)}
+                                                {smartFormatChartValue(ds.data[i], format)}
                                             </text>
                                         )}
                                         {/* Editorial Badge for Hero in Mixed Chart */}
@@ -354,6 +388,22 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                         </g>
                     )
                 })}
+
+                {/* Secondary Y-Axis Label */}
+                {useDualAxis && style?.y2AxisLabel && (
+                    <text
+                        x={chartWidth + dynamicMarginRight - 10}
+                        y={chartHeight / 2}
+                        textAnchor="middle"
+                        transform={`rotate(90, ${chartWidth + dynamicMarginRight - 10}, ${chartHeight / 2})`}
+                        fontSize={fontSize * 0.9}
+                        fontFamily={fontFamily}
+                        fill={CHART_THEME.colors.neutral.medium}
+                        fontWeight={CHART_THEME.fontWeights.bold}
+                    >
+                        {style.y2AxisLabel}
+                    </text>
+                )}
 
                 <line x1={0} y1={chartHeight} x2={chartWidth} y2={chartHeight}
                     stroke={CHART_THEME.colors.neutral.medium}

@@ -58,8 +58,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         sortSlices?: boolean;
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
+        useDualAxis?: boolean;
+        y2AxisLabel?: string;
     }>({});
     const [numberFormat, setNumberFormat] = useState<NumberFormatConfig>({ type: 'number' });
+    const [secondaryNumberFormat, setSecondaryNumberFormat] = useState<NumberFormatConfig>({ type: 'percent' });
 
     // Data Modal
     const [dataModalOpen, setDataModalOpen] = useState(false);
@@ -279,6 +282,14 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     } else {
                         setNumberFormat({ type: 'number' });
                     }
+                    if (chart.style?.secondaryNumberFormat) {
+                        setSecondaryNumberFormat(chart.style.secondaryNumberFormat);
+                    } else {
+                        setSecondaryNumberFormat({ type: 'percent' });
+                    }
+                    if (chart.style?.useDualAxis) {
+                        setInfographicConfig(prev => ({ ...prev, useDualAxis: chart.style?.useDualAxis, y2AxisLabel: chart.style?.y2AxisLabel }));
+                    }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
                 }
@@ -423,7 +434,10 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     })() : undefined,
                     datasetTypes: infographicConfig.datasetTypes,
                     stacked: infographicConfig.stacked,
-                    numberFormat
+                    useDualAxis: infographicConfig.useDualAxis,
+                    y2AxisLabel: infographicConfig.y2AxisLabel,
+                    numberFormat,
+                    secondaryNumberFormat
                 }
             });
             triggerRefresh();
@@ -470,7 +484,10 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     })() : undefined,
                     datasetTypes: infographicConfig.datasetTypes,
                     stacked: infographicConfig.stacked,
-                    numberFormat
+                    useDualAxis: infographicConfig.useDualAxis,
+                    y2AxisLabel: infographicConfig.y2AxisLabel,
+                    numberFormat,
+                    secondaryNumberFormat
                 }
             });
             triggerRefresh();
@@ -1227,13 +1244,20 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             <InfographicControlsModal
                 isOpen={infographicControlsOpen}
                 onClose={() => setInfographicControlsOpen(false)}
-                chartData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
+                chartData={(() => {
+                    try { return JSON.parse(dataInput); } catch { return { labels: [], datasets: [] }; }
+                })()}
                 chartType={chartType}
-                currentConfig={{ ...infographicConfig, numberFormat }}
-                onSave={(fullConfig) => {
-                    const { numberFormat: newFmt, ...rest } = fullConfig;
+                currentConfig={{
+                    ...infographicConfig,
+                    numberFormat: numberFormat as any,
+                    secondaryNumberFormat: secondaryNumberFormat as any
+                }}
+                onSave={(config) => {
+                    const { numberFormat: newFormat, secondaryNumberFormat: newSecFormat, ...rest } = config;
                     setInfographicConfig(rest);
-                    if (newFmt) setNumberFormat(newFmt);
+                    if (newFormat) setNumberFormat(newFormat as any);
+                    if (newSecFormat) setSecondaryNumberFormat(newSecFormat as any);
                 }}
             />
         </div >

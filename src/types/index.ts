@@ -67,6 +67,7 @@ export interface ChartStyle {
 
     // New: Number Formatting
     numberFormat?: NumberFormatConfig;
+    secondaryNumberFormat?: NumberFormatConfig; // Format for Y2 axis or specific datasets
 
     // Phase 2: Infographic Controls
     infographicConfig?: {
@@ -85,6 +86,8 @@ export interface ChartStyle {
     };
     datasetTypes?: ('bar' | 'line')[]; // Explicit type definition for mixed charts
     stacked?: boolean; // Stacked charts for bar/mixed types
+    useDualAxis?: boolean; // MixedChart: enables y2Axis for line datasets
+    y2AxisLabel?: string;  // Label for the secondary Y axis
 }
 
 export interface Chart {

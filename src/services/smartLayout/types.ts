@@ -87,6 +87,7 @@ export interface ComputedLayout {
             color: string;
             strategy: 'internal' | 'external' | 'hidden';
             percentage: string;
+            formattedValue: string;
             wrappedLines: string[];
         }>;
 
