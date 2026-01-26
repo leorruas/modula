@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassLineFilter, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 import { ensureDistinctColors } from '@/utils/colors';
 
 interface LineChartProps {
@@ -293,7 +294,7 @@ export function LineChart({ width, height, data, style, baseFontSize = 11, baseF
                                             opacity={heroOpacityBoost}
                                             style={{ textTransform: ratio >= 0.8 && isInfographic ? 'uppercase' : 'none' }}
                                         >
-                                            {value}
+                                            {smartFormatChartValue(value, style?.numberFormat)}
                                             {isInfographic && finalShowDeltaPercent && (
                                                 <tspan
                                                     dx={8} fontSize="0.5em" fontWeight={CHART_THEME.fontWeights.bold}

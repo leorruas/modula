@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChartData } from '@/types';
+import { ChartData, NumberFormatConfig } from '@/types';
 
 interface InfographicControlsModalProps {
     isOpen: boolean;
@@ -21,6 +21,7 @@ interface InfographicControlsModalProps {
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
+        numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -36,7 +37,7 @@ interface InfographicControlsModalProps {
         autoSort?: boolean;
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
-
+        numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
     }) => void;
 }
 
@@ -59,6 +60,7 @@ export function InfographicControlsModal({
     const [sortSlices, setSortSlices] = useState(currentConfig.sortSlices || false);
     const [autoSort, setAutoSort] = useState(currentConfig.autoSort || false);
     const [stacked, setStacked] = useState(currentConfig.stacked || false);
+    const [numberFormat, setNumberFormat] = useState<NumberFormatConfig>(currentConfig.numberFormat || { type: 'number' });
 
 
     // Initialize with existing config OR fallback logic
@@ -87,6 +89,7 @@ export function InfographicControlsModal({
 
             setAutoSort(currentConfig.autoSort || false);
             setStacked(currentConfig.stacked || false);
+            setNumberFormat(currentConfig.numberFormat || { type: 'number' });
             if (currentConfig.datasetTypes) {
 
                 setDatasetTypes(currentConfig.datasetTypes);
@@ -112,9 +115,8 @@ export function InfographicControlsModal({
             sortSlices,
             autoSort, // Added
             datasetTypes: chartType === 'mixed' ? datasetTypes : undefined,
-            stacked: chartType === 'mixed' ? stacked : undefined
-
-
+            stacked: chartType === 'mixed' ? stacked : undefined,
+            numberFormat: numberFormat as any // Pass format config
         });
         onClose();
     };
@@ -287,6 +289,57 @@ export function InfographicControlsModal({
                                     </div>
                                 </div>
                             )}
+
+                            {/* Number Format Configuration */}
+                            <div style={{ marginBottom: 24, padding: '12px 14px', background: '#f8f9fa', borderRadius: 10, border: '1px solid #e9ecef' }}>
+                                <h4 style={{ fontSize: 13, fontWeight: 700, color: '#444', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    🔢 Formato dos Valores
+                                </h4>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                                    <div>
+                                        <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>Tipo</label>
+                                        <select
+                                            value={numberFormat?.type || 'number'}
+                                            onChange={e => setNumberFormat({ ...numberFormat, type: e.target.value as any })}
+                                            style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                        >
+                                            <option value="number">Número (1.234)</option>
+                                            <option value="percent">Porcentagem (50%)</option>
+                                            <option value="currency">Moeda (R$ 10,00)</option>
+                                        </select>
+                                    </div>
+
+                                    {numberFormat?.type === 'currency' && (
+                                        <div>
+                                            <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>Moeda</label>
+                                            <select
+                                                value={numberFormat?.currency || 'BRL'}
+                                                onChange={e => setNumberFormat({ ...numberFormat, currency: e.target.value as any })}
+                                                style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                            >
+                                                <option value="BRL">Real (R$)</option>
+                                                <option value="USD">Dólar ($)</option>
+                                                <option value="EUR">Euro (€)</option>
+                                                <option value="GBP">Libra (£)</option>
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {numberFormat?.type !== 'currency' && (
+                                        <div>
+                                            <label style={{ fontSize: 11, fontWeight: 600, color: '#666', display: 'block', marginBottom: 4 }}>Decimais</label>
+                                            <input
+                                                type="number"
+                                                min="0" max="4"
+                                                value={numberFormat?.decimals ?? (numberFormat?.type === 'percent' ? 0 : 0)}
+                                                onChange={e => setNumberFormat({ ...numberFormat, decimals: parseInt(e.target.value) })}
+                                                style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
 
                             {/* Hero Value Selection */}

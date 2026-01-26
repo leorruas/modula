@@ -2,6 +2,7 @@ import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface PieChartProps {
     width: number;
@@ -284,14 +285,19 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
 
                                             {/* Percentage */}
                                             {/* Top Value Nudge: -10 */}
+                                            {/* Percentage or Formatted Value */}
+                                            {/* Top Value Nudge: -10 */}
                                             <text
                                                 x={vx} y={vy - 15 + (isTop ? -10 : 0)}
                                                 textAnchor="middle" dominantBaseline="middle"
-                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * finalSizeMultiplier * 0.7}
+                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * finalSizeMultiplier * (style?.numberFormat?.type === 'currency' ? 0.5 : 0.7)}
                                                 fontFamily={CHART_THEME.fonts.number} fontWeight={typo.fontWeight}
                                                 fill={CHART_THEME.colors.neutral.dark}
                                             >
-                                                {percentage}%
+                                                {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                                                    ? smartFormatChartValue(value, style.numberFormat)
+                                                    : `${percentage}%`
+                                                }
                                             </text>
 
                                             {/* Label with Wrapping */}
@@ -325,7 +331,7 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                             fontFamily={fontFamily} fill="#fff" fontWeight={CHART_THEME.fontWeights.semibold}
                                         >
-                                            {`${labels[i]}\n${percentage}%`}
+                                            {`${labels[i]}\n${style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number' ? smartFormatChartValue(value, style.numberFormat) : `${percentage}%`}`}
                                         </text>
                                     )}
                                 </>

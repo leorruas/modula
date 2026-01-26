@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface AreaChartProps {
     width: number;
@@ -217,7 +218,7 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
 
                                     <text x={p.x} y={p.y - (10 * fsm)} textAnchor="middle" fill={CHART_THEME.colors.neutral.dark} opacity={isManualHero ? 1 : typo.op}
                                         fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * fsm * 0.55} fontFamily={valueFont} fontWeight={typo.fw}>
-                                        {values[i]}
+                                        {smartFormatChartValue(values[i], style?.numberFormat)}
                                         {finalShowDeltaPercent && (
                                             <tspan dx={4} fontSize="0.5em" fill={values[i] >= values[0] ? '#10b981' : '#ef4444'}>
                                                 {values[i] >= values[0] ? '↑' : '↓'}{Math.abs(((values[i] - values[0]) / (values[0] || 1)) * 100).toFixed(0)}%
@@ -230,7 +231,7 @@ export function AreaChart({ width, height, data, style, baseFontSize = 11, baseF
                             {!isInfographic && (
                                 <text x={p.x} y={p.y - 10} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                     fontFamily={CHART_THEME.fonts.number} fontWeight={CHART_THEME.fontWeights.semibold} fill={CHART_THEME.colors.neutral.dark}>
-                                    {values[i]}
+                                    {smartFormatChartValue(values[i], style?.numberFormat)}
                                 </text>
                             )}
 

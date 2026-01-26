@@ -3,6 +3,7 @@ import { BaseChart } from './BaseChart';
 import { ComputedLayout } from '@/services/smartLayout/types';
 import { SmartLayoutEngine } from '@/services/smartLayout/SmartLayoutEngine';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createGlassBorderGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 import { ColorService } from '@/services/color/ColorService';
 
@@ -486,7 +487,8 @@ export function BarChart({
                                             // 'inside' means force inside (or try inside is safer).
                                             // 'outside' means force outside.
 
-                                            const valueStr = typo.textTransform === 'uppercase' ? String(value).toUpperCase() : String(value);
+                                            const rawValueStr = smartFormatChartValue(value, style?.numberFormat);
+                                            const valueStr = typo.textTransform === 'uppercase' ? rawValueStr.toUpperCase() : rawValueStr;
                                             const estimatedLabelWidth = valueStr.length * (baseFontSizeValue * finalSizeMultiplier) * 0.6;
 
                                             // Vertical fit check: Ensure bar height is sufficient for the font size
@@ -536,7 +538,8 @@ export function BarChart({
                                             const deltaText = delta === 0 ? '±0%' : `${sign}${delta.toFixed(0)}%`;
 
                                             // Calculate approximate width of main value
-                                            const valueStr = typo.textTransform === 'uppercase' ? String(value).toUpperCase() : String(value);
+                                            const rawValueStr = smartFormatChartValue(value, style?.numberFormat);
+                                            const valueStr = typo.textTransform === 'uppercase' ? rawValueStr.toUpperCase() : rawValueStr;
                                             const valueTextWidth = valueStr.length * baseFontSizeValue * finalSizeMultiplier * 0.6;
 
                                             return (

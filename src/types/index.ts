@@ -46,6 +46,14 @@ export interface ChartData {
     };
 }
 
+
+export interface NumberFormatConfig {
+    type: 'number' | 'percent' | 'currency';
+    currency?: 'BRL' | 'USD' | 'EUR' | 'GBP';
+    decimals?: number; // default based on type
+    scale?: number; // e.g. 100 for percentage if data is 0-1
+}
+
 export interface ChartStyle {
     colorPalette?: string[];
     fontFamily: string;
@@ -56,6 +64,9 @@ export interface ChartStyle {
     glassIntensity?: 'light' | 'medium' | 'heavy';
     glassColor?: string; // Custom tint for glass
     legendPosition?: 'top' | 'bottom' | 'left' | 'right' | 'none';
+
+    // New: Number Formatting
+    numberFormat?: NumberFormatConfig;
 
     // Phase 2: Infographic Controls
     infographicConfig?: {
