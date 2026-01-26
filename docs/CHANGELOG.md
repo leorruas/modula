@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-26T15-34-29 (2026-01-26)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- resolve pdf chart flattening and improve export naming ([c865a94](https://github.com/leorruas/modula/commit/c865a942a2d6483050f46d63b21b0ddddba346ab)) - *2026-01-26 12:34*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-26T14-59-27 ([f9eaac2](https://github.com/leorruas/modula/commit/f9eaac2bd8b21239ed4b05eb43b4c19e34997506)) - *2026-01-26 11:59*
+
 ### 🚀 deploy-2026-01-26T14-59-27 (2026-01-26)
 
 > **Deployment**: Version sent to production environments.
