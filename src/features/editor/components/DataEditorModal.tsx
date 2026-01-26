@@ -25,7 +25,8 @@ export function DataEditorModal({ isOpen, onClose, initialData, onSave, chartTyp
             setData(initialData);
             setDatasetTypes(initialDatasetTypes);
         }
-    }, [isOpen, initialData, initialDatasetTypes]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
