@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-26T12-54-02 (2026-01-26)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **charts:** fix clipping in bar chart infographic mode by syncing font measurement ([476c350](https://github.com/leorruas/modula/commit/476c35033a911af010525301e64e7c026d7d358d)) - *2026-01-26 09:53*
+
+### 🚀 deploy-2026-01-25T12-35-59 (2026-01-25)
+
+> **Deployment**: Version sent to production environments.
+
+#### 📝 Documentation
+
+- **changelog:** sync update sync-2026-01-25T12-35-16 ([7fe920c](https://github.com/leorruas/modula/commit/7fe920c9511b3331dd0e820ec3a8de4fcb5d66b3)) - *2026-01-25 09:35*
+
 ### 📤 sync-2026-01-25T12-35-16 (2026-01-25)
 
 > **GitHub Sync**: Changes pushed to the remote repository.
