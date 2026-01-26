@@ -45,7 +45,8 @@ export class SmartLabelWrapper {
         labels: string[],
         fontSize: number,
         fontFamily: string,
-        fontWeight: string = '400'
+        fontWeight: string = '400',
+        letterSpacing: number = 0
     ): LabelAnalysis {
         if (labels.length === 0) {
             return {
@@ -72,7 +73,8 @@ export class SmartLabelWrapper {
                 text: label,
                 fontSize,
                 fontFamily,
-                fontWeight
+                fontWeight,
+                letterSpacing // Pass letterSpacing
             });
 
             if (width > longestLabelWidth) {
@@ -153,14 +155,16 @@ export class SmartLabelWrapper {
         fontSize: number,
         fontFamily: string,
         fontWeight: string = '400',
-        maxWordsPerLine: number = 12
+        maxWordsPerLine: number = 12,
+        letterSpacing: number = 0
     ): WrapResult {
         // Step 1: Check if we can fit without wrapping AND without exceeding word limit
         const fullWidth = textMeasurementService.measureTextWidth({
             text: label,
             fontSize,
             fontFamily,
-            fontWeight
+            fontWeight,
+            letterSpacing
         });
 
         const wordCount = label.split(' ').length;
@@ -197,7 +201,8 @@ export class SmartLabelWrapper {
                 text: testLine,
                 fontSize,
                 fontFamily,
-                fontWeight
+                fontWeight,
+                letterSpacing
             });
 
             if (testWidth <= availableWidth && currentLine.length < maxWordsPerLine) {
@@ -229,7 +234,8 @@ export class SmartLabelWrapper {
                 text: combined,
                 fontSize,
                 fontFamily,
-                fontWeight
+                fontWeight,
+                letterSpacing
             });
 
             if (combinedWidth <= availableWidth) {
@@ -237,7 +243,7 @@ export class SmartLabelWrapper {
             } else {
                 // Split more evenly
                 const allWords = combined.split(' ');
-                const mid = Math.ceil(allWords.length / 2);
+                const mid = Math.floor(allWords.length / 2); // FASE 4.4: Fix Widow - Use floor to push more words to 2nd line (e.g. 3 words -> 1, 2)
                 lines.push(allWords.slice(0, mid).join(' '));
                 lines.push(allWords.slice(mid).join(' '));
             }
@@ -249,7 +255,8 @@ export class SmartLabelWrapper {
                 text: line,
                 fontSize,
                 fontFamily,
-                fontWeight
+                fontWeight,
+                letterSpacing
             })
         ));
 
@@ -272,7 +279,8 @@ export class SmartLabelWrapper {
         fontWeight: string = '400',
         target: 'screen' | 'pdf' = 'screen',
         chartType: string = 'bar',
-        isStacked: boolean = false
+        isStacked: boolean = false,
+        letterSpacing: number = 0 // FASE 4.5: Letter Spacing Support
     ): {
         marginLeft: number;
         wrappedLabels: string[][];
@@ -286,14 +294,14 @@ export class SmartLabelWrapper {
         // Drastically reduced - margin should be based on actual measurements, not percentages
         // If STACKED, we allow almost full width (minus margins)
         const MAX_LABEL_RATIO = isStacked
-            ? 0.90
+            ? Math.max(0.7, (containerWidth - 80) / containerWidth) // Ensure we reserve at least 80px for margins
             : (chartType === 'bar' ? 0.30 : 0.25);  // Bar: 30%, Others: 25%
 
         const LABEL_PADDING = 6;   // Reduced from 8
         const LABEL_GUTTER = 4;    // Reduced from 6
 
         // Step 1: Analyze labels
-        const analysis = this.analyzeLabels(labels, baseFontSize, fontFamily, fontWeight);
+        const analysis = this.analyzeLabels(labels, baseFontSize, fontFamily, fontWeight, letterSpacing);
 
         if (labels.length === 0 || !analysis.longestLabel) {
             return {
@@ -334,7 +342,9 @@ export class SmartLabelWrapper {
                     availableForLabels,
                     baseFontSize,
                     fontFamily,
-                    fontWeight
+                    fontWeight,
+                    MAX_WORDS_PER_LINE, // defaulting
+                    letterSpacing
                 ).lines
             );
 

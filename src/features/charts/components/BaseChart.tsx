@@ -73,8 +73,9 @@ export function BaseChart({ width, height, chartWidth, chartHeight, children, ty
                     maxWidth: isSide ? '30%' : '100%',
                     padding: isSide ? '0 8px' : '0',
                     // SUB-PROJECT 1.27: COMPACT LEGEND GRID
-                    maxHeight: isSide ? '100%' : '80px', // Prevent legend from eating entire chart
-                    overflowY: 'auto'
+                    // FIXED: Removed hardcoded 80px limit to prevent clipping. Engine handles height reservation.
+                    maxHeight: isSide ? '100%' : 'none',
+                    overflowY: isSide ? 'auto' : 'visible'
                 }}>
                     {legend}
                 </div>

@@ -11,6 +11,7 @@ export interface TextMetricsOptions {
     fontWeight?: string | number;
     text: string;
     target?: 'screen' | 'pdf'; // For PDF calibration
+    letterSpacing?: number; // Em units (e.g. 0.08)
 }
 
 export interface DetailedTextMetrics {
@@ -196,6 +197,14 @@ class TextMeasurementService {
         ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
         const metrics = ctx.measureText(text);
         let width = metrics.width;
+
+        // Apply letter spacing if provided (heuristic: width + charCount * spacing * fontSize)
+        if (options.letterSpacing) {
+            // -1 because spacing is between chars? Usually CSS applies to all. CSS letter-spacing adds to every character box in some implementations, but usually after.
+            // CSS: "length ... added to the default spacing between characters".
+            // Simplified: length * fontSize * spacing.
+            width += text.length * fontSize * options.letterSpacing;
+        }
 
         // Apply PDF calibration if needed
         if (target === 'pdf') {

@@ -78,7 +78,8 @@ export function BarChart({
             finalLegendPosition,
             gridConfig.baseFontSize || 11,
             style?.fontFamily || CHART_THEME.fonts.label || 'sans-serif',
-            isInfographic ? 'infographic' : 'classic'
+            isInfographic ? 'infographic' : 'classic',
+            width // FASE 1.4: Dynamic Width Support
         )
         : { width: 0, height: 0 };
 

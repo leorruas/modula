@@ -55,17 +55,26 @@ export class SmartLayoutEngine {
         const fontFamily = style?.fontFamily || 'Inter, sans-serif';
         const isInfographic = style?.mode === 'infographic';
         const fontWeight = isInfographic ? '700' : '500';
+        const letterSpacing = isInfographic ? 0.08 : 0; // FASE 4.5: Match Chart Rendering
 
+        // Calculate accurate font size matching BarChart logic
+        // BarChart uses 'medium' usually, or 'small' if specified. Assumes medium as base.
+        const effectiveLabelFontSize = getScaledFont(
+            baseFontSize,
+            baseFontUnit,
+            'medium',
+            isInfographic
+        ) * (isInfographic ? 0.85 : 1); // Match BarChart scaling approach
 
-
-        // Measure category label widths
+        // Measure category label widths with accurate metrics
         const maxLabelWidthPx = categories.length > 0
             ? Math.max(...categories.map(label =>
                 textMeasurementService.measureTextWidth({
                     text: label,
-                    fontSize: baseFontSize,
+                    fontSize: effectiveLabelFontSize,
                     fontFamily,
-                    fontWeight
+                    fontWeight,
+                    letterSpacing
                 })
             ))
             : 0;
@@ -230,7 +239,8 @@ export class SmartLayoutEngine {
                 legendPosition,
                 baseFontSize,
                 fontFamily,
-                analysis.mode
+                analysis.mode,
+                analysis.availableSpace.width // Pass container width
             );
 
             if (legendPosition === 'bottom') {
@@ -415,7 +425,8 @@ export class SmartLayoutEngine {
         legendPosition: 'top' | 'bottom' | 'left' | 'right' | 'none',
         baseFontSize: number,
         fontFamily: string,
-        mode: 'classic' | 'infographic'
+        mode: 'classic' | 'infographic',
+        containerWidth?: number // FASE 1.4: Dynamic Width Support
     ): { width: number; height: number } {
         if (legendPosition === 'none' || datasets.length === 0) {
             return { width: 0, height: 0 };
@@ -441,13 +452,27 @@ export class SmartLayoutEngine {
 
         if (legendPosition === 'top' || legendPosition === 'bottom') {
             // Horizontal layout: items in a row (or wrapped)
-            const containerWidth = 600; // Assume typical chart width
-            const itemsPerRow = Math.max(1, Math.floor(containerWidth / (maxItemWidth + LEGEND_ITEM_PADDING)));
-            const rows = Math.ceil(datasets.length / itemsPerRow);
+            // Use actual container width or fallback to 600, but ensuring it's not too small
+            const availableWidth = Math.max(containerWidth || 600, 100);
+
+            // Accurate wrapping calculation
+            let rows = 1;
+            let currentLineWidth = 0;
+
+            // Iterate items to calculate real wrapping based on accumulated width
+            for (let i = 0; i < itemWidths.length; i++) {
+                const itemW = itemWidths[i] + LEGEND_ITEM_PADDING;
+                if (currentLineWidth + itemW > availableWidth) {
+                    rows++;
+                    currentLineWidth = itemW;
+                } else {
+                    currentLineWidth += itemW;
+                }
+            }
 
             return {
-                width: Math.min(totalItemWidth + (datasets.length * LEGEND_ITEM_PADDING), containerWidth),
-                height: (rows * itemFontSize * 1.2) + ((rows - 1) * LEGEND_VERTICAL_GAP) + 12
+                width: Math.min(totalItemWidth + (datasets.length * LEGEND_ITEM_PADDING), availableWidth),
+                height: (rows * itemFontSize * 1.5) + ((rows - 1) * LEGEND_VERTICAL_GAP) + 12 // Increased line-height multiplier 1.2 -> 1.5 for breathing room
             };
         } else {
             // Vertical layout (left/right): items stacked
@@ -562,15 +587,27 @@ export class SmartLayoutEngine {
                 // Stacked Layout: Labels are on top, so left margin is just padding
                 // But we still need to calculate wrapped labels for the FULL WIDTH
 
+                // FASE 4.5: Proper Metric Passing
+                const isInfographic = analysis.mode === 'infographic';
+                const effectiveFontWeight = isInfographic ? '700' : '400';
+                const letterSpacing = isInfographic ? 0.08 : 0;
+                const effectiveFontSize = getScaledFont(
+                    baseFontSize,
+                    'pt', // assume default or from gridConfig if available (but margins uses baseFontSize arg)
+                    'medium',
+                    isInfographic
+                ) * (isInfographic ? 0.85 : 1);
+
                 const smartResult = SmartLabelWrapper.calculateSmartMargin(
                     labels,
                     analysis.availableSpace.width,
-                    baseFontSize,
+                    effectiveFontSize,
                     fontFamily,
-                    '400',
+                    effectiveFontWeight,
                     target,
                     analysis.chartType,
-                    true // isStacked = true
+                    true, // isStacked = true
+                    letterSpacing
                 );
 
                 wrappedLabels = smartResult.wrappedLabels;
@@ -586,15 +623,27 @@ export class SmartLayoutEngine {
                 // No, symmetry is good.
             } else {
                 // Horizontal Layout: Labels in left margin
+                // Horizontal Layout: Labels in left margin
+                const isInfographic = analysis.mode === 'infographic';
+                const effectiveFontWeight = isInfographic ? '700' : '400';
+                const letterSpacing = isInfographic ? 0.08 : 0;
+                const effectiveFontSize = getScaledFont(
+                    baseFontSize,
+                    'pt',
+                    'medium',
+                    isInfographic
+                ) * (isInfographic ? 0.85 : 1);
+
                 const smartResult = SmartLabelWrapper.calculateSmartMargin(
                     labels,
                     analysis.availableSpace.width,
-                    baseFontSize,
+                    effectiveFontSize,
                     fontFamily,
-                    '400',
+                    effectiveFontWeight,
                     target,
                     analysis.chartType,
-                    false
+                    false,
+                    letterSpacing
                 );
 
                 wrappedLabels = smartResult.wrappedLabels;  // Keep intelligent wrapping
@@ -623,7 +672,8 @@ export class SmartLayoutEngine {
                 'bottom',
                 baseFontSize,
                 fontFamily,
-                analysis.mode
+                analysis.mode,
+                analysis.availableSpace.width // Pass container width
             );
             marginBottom = legendDims.height + 10; // legend + gap
         } else {

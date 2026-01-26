@@ -311,6 +311,10 @@ export function GridConfigModal({ isOpen, onClose, project, onUpdate }: GridConf
                                 <input type="number" className="grid-input" value={columns} onChange={e => setColumns(Number(e.target.value))} />
                             </div>
                             <div style={{ marginBottom: 20 }}>
+                                <label className="grid-label">Número de Linhas</label>
+                                <input type="number" className="grid-input" value={rows} onChange={e => setRows(Number(e.target.value))} />
+                            </div>
+                            <div style={{ marginBottom: 20 }}>
                                 <label className="grid-label">Gutter ({dimensionUnit})</label>
                                 <input type="number" step="0.1" className="grid-input" value={gutter} onChange={e => setGutter(Number(e.target.value))} />
                             </div>
