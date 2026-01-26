@@ -4,7 +4,7 @@ import { Project, Chart } from '@/types';
 
 
 export class PDFExportService {
-    static async exportProject(project: Project, charts: Chart[], canvasRef: HTMLDivElement): Promise<void> {
+    static async exportProject(project: Project, charts: Chart[], canvasRef: HTMLDivElement, activePage?: number): Promise<void> {
         // Create a new PDF document
         const orientation = project.gridConfig.orientation;
         const pageFormat = project.gridConfig.pageFormat;
@@ -13,11 +13,6 @@ export class PDFExportService {
 
         if (pageFormat === 'Custom') {
             // Use exact custom dimensions from config (in mm)
-            // Ensure we pass [width, height] regardless of orientation setting in jsPDF, 
-            // as jsPDF handles orientation swapping internally if 'landscape' is set. 
-            // However, passing specific numbers usually implies the page size *in that orientation*.
-            // Safest: pass [width, height] matching the orientation? 
-            // Actually, for custom, we can just pass [width, height] as units.
             format = [project.gridConfig.width, project.gridConfig.height];
         } else {
             format = pageFormat.toLowerCase();
@@ -112,8 +107,8 @@ export class PDFExportService {
                     const xMm = (safeX * scaleFactor) - paddingScaledMm;
                     const yMm = (safeY * scaleFactor) - paddingScaledMm;
 
-                    const wMm = capturedW * scaleFactor; // Captured Dimensions (Fixed Squishing)
-                    const hMm = capturedH * scaleFactor;
+                    const wMm = (capturedW + (PADDING * 2)) * scaleFactor; // Corrected: Include padding in target dims
+                    const hMm = (capturedH + (PADDING * 2)) * scaleFactor;
 
                     if (isNaN(xMm) || isNaN(yMm) || isNaN(wMm) || isNaN(hMm)) {
                         console.error(`Calculated invalid PDF coordinates for chart ${chart.id}`, { xMm, yMm, wMm, hMm });
@@ -137,13 +132,19 @@ export class PDFExportService {
 
         // Determine Filename
         let filename = project.name;
+        const targetPage = activePage || 1;
 
-        if (charts.length > 0 && project.useChapters && project.chapters) {
-            const pageNum = charts[0].page || 1;
-            const currentChapter = project.chapters.slice().reverse().find(c => c.startPage <= pageNum);
+        if (project.useChapters && project.chapters) {
+            const currentChapter = project.chapters.slice().reverse().find(c => c.startPage <= targetPage);
 
             if (currentChapter) {
-                filename = `${currentChapter.startPage}. ${currentChapter.title}`;
+                const chapterPrefix = `${currentChapter.startPage}. ${currentChapter.title}`;
+
+                // Find charts on this page to get a specific name
+                const pageCharts = charts.filter(c => (c.page || 1) === targetPage);
+                const chartName = pageCharts.length > 0 ? (pageCharts[0].name || "Gráfico") : "";
+
+                filename = chartName ? `${chapterPrefix} - ${chartName}` : chapterPrefix;
             }
         }
 

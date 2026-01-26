@@ -167,7 +167,7 @@ export function Canvas({ project }: CanvasProps) {
                 // It is the first child of containerRef
                 const contentDiv = containerRef.current.children[0] as HTMLDivElement;
                 if (contentDiv) {
-                    await PDFExportService.exportProject(project, charts, contentDiv as any); // Type cast for simplicity
+                    await PDFExportService.exportProject(project, charts, contentDiv as any, activePage); // Type cast for simplicity
                 }
             }
         };

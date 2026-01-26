@@ -20,15 +20,28 @@ import { exportChartToPng } from '@/utils/exportUtils';
 import { useBulkExport } from '../hooks/useBulkExport';
 import { BulkExportProgressModal } from './BulkExportProgressModal';
 
-function ExportPngButton({ onClose }: { onClose: () => void }) {
+function ExportPngButton({ onClose, project }: { onClose: () => void; project: Project }) {
     const { editingChartId } = useEditorStore();
 
     if (!editingChartId) return null;
 
     return (
         <button
-            onClick={() => {
-                exportChartToPng(editingChartId, { removeWhitespace: true });
+            onClick={async () => {
+                // Fetch chart details to generate filename
+                const charts = await import('@/services/chartService').then(m => m.chartService.getProjectCharts(project.id));
+                const chart = charts.find(c => c.id === editingChartId);
+
+                let fileName = `chart-${editingChartId}`;
+
+                if (chart) {
+                    const chapter = project.chapters?.slice().reverse().find(c => c.startPage <= (chart.page || 1));
+                    const chapterPrefix = chapter ? `${chapter.startPage}. ${chapter.title}` : `Page ${chart.page || 1}`;
+                    const chartName = chart.name || "Gráfico";
+                    fileName = `${chapterPrefix} - ${chartName}`;
+                }
+
+                exportChartToPng(editingChartId, { removeWhitespace: true, fileName });
                 onClose();
             }}
             style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, background: 'none', borderTop: '1px solid #eee', borderLeft: 'none', borderRight: 'none', borderBottom: 'none', cursor: 'pointer', color: '#333', display: 'flex', alignItems: 'center', gap: 8 }}
@@ -211,7 +224,7 @@ export function EditorLayout({ project, children }: EditorLayoutProps) {
                                         <FileText size={16} /> Página Atual (PDF)
                                     </button>
 
-                                    <ExportPngButton onClose={() => setIsExportMenuOpen(false)} />
+                                    <ExportPngButton onClose={() => setIsExportMenuOpen(false)} project={project} />
                                 </div>
                             </>
                         )}

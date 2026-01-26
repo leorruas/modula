@@ -99,7 +99,7 @@ export async function generateChartImage(
 /**
  * Exports a chart to PNG format.
  */
-export async function exportChartToPng(chartId: string, options: { removeWhitespace?: boolean } = {}) {
+export async function exportChartToPng(chartId: string, options: { removeWhitespace?: boolean; fileName?: string } = {}) {
     const containerId = `chart-container-${chartId}`;
     const container = document.getElementById(containerId);
 
@@ -112,7 +112,10 @@ export async function exportChartToPng(chartId: string, options: { removeWhitesp
         const { dataUrl } = await generateChartImage(container);
 
         const link = document.createElement('a');
-        link.download = `chart-${chartId}.png`;
+        // Use provided fileName or fallback to chart ID
+        link.download = options.fileName
+            ? (options.fileName.endsWith('.png') ? options.fileName : `${options.fileName}.png`)
+            : `chart-${chartId}.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
