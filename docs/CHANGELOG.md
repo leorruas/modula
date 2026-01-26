@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-26T19-08-59 (2026-01-26)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- cast data to any in SimpleDataEditor to fix TS build error ([d3837e0](https://github.com/leorruas/modula/commit/d3837e0a50ae39d2ba65ebe8ccc046d266187947)) - *2026-01-26 16:01*
+
+#### 📝 Documentation
+
+- **changelog:** sync update sync-2026-01-26T18-59-57 ([7deccea](https://github.com/leorruas/modula/commit/7decceafba62ac499c6114adbb9746c95e9df280)) - *2026-01-26 15:59*
+
 ### 📤 sync-2026-01-26T18-59-57 (2026-01-26)
 
 > **GitHub Sync**: Changes pushed to the remote repository.
