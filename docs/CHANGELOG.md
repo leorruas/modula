@@ -3,11 +3,26 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
-### 🏆 Unreleased (2026-01-26)
+### 📤 sync-2026-01-26T17-48-30 (2026-01-26)
 
-### 📝 Documentation
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **charts:** integrate smart formatting and fix PDF clipping in infographic mode ([7da2c0b](https://github.com/leorruas/modula/commit/7da2c0b6cdce5a160d466025f567c8be287452cc)) - *2026-01-26 14:47*
+- Add Chart Value Formatting (Percentage, Currency, Number) support ([a96447e](https://github.com/leorruas/modula/commit/a96447e4153f44c584460793b1386858ff4c802e)) - *2026-01-26 12:56*
+
+#### 🐛 Bug Fixes
+
+- **editor:** Prevent data reset when adding items in Advanced Editor ([ca32ea1](https://github.com/leorruas/modula/commit/ca32ea1bf08047c2af04206c0ed7ec93f5736440)) - *2026-01-26 12:56*
+
+#### 📝 Documentation
 
 - **changelog:** sync update sync-2026-01-26T15-34-29 ([0e7556d](https://github.com/leorruas/modula/commit/0e7556d7ec938abab21276913b7a1be7dd9c574e)) - *2026-01-26 12:34*
+
+#### 🔧 Chores
+
+- Standardize Documentation Skill structure ([41cccb9](https://github.com/leorruas/modula/commit/41cccb9fe8d3cd2cb6fde038dcf3f4c004fc3d55)) - *2026-01-26 12:55*
 
 ### 📤 sync-2026-01-26T15-34-29 (2026-01-26)
 
