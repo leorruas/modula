@@ -180,7 +180,7 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }}>
                         <input
                             type="checkbox"
-                            checked={data.useDualAxis || (data as any).style?.useDualAxis || false}
+                            checked={(data as any).useDualAxis || (data as any).style?.useDualAxis || false}
                             onChange={(e) => {
                                 // Some charts keep style inside data or pass it separately
                                 // Based on ChartData type, useDualAxis is not there, so we update the parent via onChange
