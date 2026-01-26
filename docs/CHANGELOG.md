@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-01-26T14-54-45 (2026-01-26)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **charts:** resolve legend clipping and improve smart label wrapping ([0a1cddf](https://github.com/leorruas/modula/commit/0a1cddfd9db1bdbc576560361f110878c2618f26)) - *2026-01-26 11:54*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-01-26T13-06-09 ([2b5512c](https://github.com/leorruas/modula/commit/2b5512ce215272eca6d7c1cb4fcae2dce6a60438)) - *2026-01-26 10:06*
+
 ### 🚀 deploy-2026-01-26T13-06-09 (2026-01-26)
 
 > **Deployment**: Version sent to production environments.
