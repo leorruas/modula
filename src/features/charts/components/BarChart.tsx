@@ -594,6 +594,27 @@ export function BarChart({
                         {isInfographic ? data.xAxisLabel.toUpperCase() : data.xAxisLabel}
                     </text>
                 )}
+
+                {/* Value Axis Ticks (Pseudo-implementation for now as actual ticks are not rendered in this simplified view, 
+                    but if we had Y-axis numeric labels, they should be formatted here.
+                    Currently, this component renders "Axis Titles" (xAxisLabel, yAxisLabel), NOT the numeric ticks.
+                    
+                    Wait, looking at the code, it renders `yAxisLabel` (the title, e.g. "Revenue"), not the values (0, 10, 20...).
+                    It seems `BarChart.tsx` currently DOES NOT render numeric axis ticks at all?
+                    
+                    Line 169 in previous read showed "grid lines", but where are the labels?
+                    Line 569 draws the axis line.
+                    
+                    Ah, typically Bar Charts have the Category Axis (X) and Value Axis (Y).
+                    In this implementation (horizontal bars?), Categories are on the Left (rendered as text next to bars).
+                    Values are horizontal.
+                    
+                    The code does NOT seem to render a bottom X-axis with numeric ticks (0, 100, 200).
+                    If the user wants symbols "on the chart", and I already added them to the BAR LABELS (the values right next to bars),
+                    then `BarChart` is arguably correct for a "simple" chart that relies on direct labeling.
+                    
+                    However, let's double check `LineChart` and `AreaChart`. Those usually have a vertical Y-axis with numbers.
+                */}
                 {data.yAxisLabel && (
                     <text
                         transform="rotate(-90)"

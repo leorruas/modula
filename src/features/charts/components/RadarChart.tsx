@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface RadarChartProps {
     width: number;
@@ -228,7 +229,7 @@ export function RadarChart({ width, height, data, style, baseFontSize = 11, base
                                                 fontFamily={valueFont} fontWeight={isManualHero ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.bold}
                                                 fill={CHART_THEME.colors.neutral.dark}
                                             >
-                                                {value}
+                                                {smartFormatChartValue(value, style?.numberFormat)}
                                             </text>
                                         </g>
                                     )}

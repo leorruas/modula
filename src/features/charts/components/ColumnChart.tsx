@@ -2,6 +2,7 @@ import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 import { ensureDistinctColors } from '@/utils/colors';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface ColumnChartProps {
     width: number;
@@ -353,7 +354,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             opacity={heroOpacityBoost}
                                             style={{ textTransform: typo.textTransform }}
                                         >
-                                            {value}
+                                            {smartFormatChartValue(value, style?.numberFormat)}
                                             {isInfographic && finalShowDeltaPercent && (
                                                 <tspan
                                                     dx={8 * scaleFactor}

@@ -11,6 +11,7 @@ import { textMeasurementService } from './TextMeasurementService';
 import { SmartLabelWrapper } from './SmartLabelWrapper';
 import { ColorService } from '@/services/color/ColorService';
 import { getChartColor, getScaledFont } from '@/utils/chartTheme'; // Import helper
+import { smartFormatChartValue } from '@/utils/formatters';
 
 import {
     MODE_MULTIPLIERS,
@@ -91,21 +92,34 @@ export class SmartLayoutEngine {
             isInfographic
         );
 
-        // Max value (ratio 1.0) gets the largest multiplier in Infographic mode
-        const maxMult = isInfographic ? 2.0 : 1.0;
+        // Max value (ratio 1.0) gets the largest multiplier in Infographic mode (Hero 2.0x * 1.3x override)
+        const maxMult = isInfographic ? 2.6 : 1.0;
         const finalValueFontSize = effectiveFontSizePx * maxMult;
 
-        const maxValStr = String(Math.round(maxValue));
-        const maxValueWidthPx = textMeasurementService.measureTextWidth({
-            text: maxValStr,
+        // Format values for accurate measurement
+        const numberFormat = style?.numberFormat;
+        const formattedMax = smartFormatChartValue(maxValue, numberFormat);
+        const formattedMin = smartFormatChartValue(minValue, numberFormat);
+
+        // Measure both and take the wider one to be safe (unlikely min is wider unless negative with sign)
+        const maxValWidth = textMeasurementService.measureTextWidth({
+            text: formattedMax,
             fontSize: finalValueFontSize,
             fontFamily,
             fontWeight: isInfographic ? '900' : '600'
-        });
+        }) * EXPORT_DRIFT_BUFFER;
+
+        const minValWidth = textMeasurementService.measureTextWidth({
+            text: formattedMin,
+            fontSize: finalValueFontSize,
+            fontFamily,
+            fontWeight: isInfographic ? '900' : '600'
+        }) * EXPORT_DRIFT_BUFFER;
+
+        const maxValueWidthPx = Math.max(maxValWidth, minValWidth);
 
         // Determine mode
         const mode = style?.mode || 'classic';
-
 
 
         // Check if legend is needed
@@ -577,8 +591,10 @@ export class SmartLayoutEngine {
         // RIGHT: Based on value width (calculate first)
         if (rules.marginPriority.includes('right')) {
             // Add padding for "delta" or badges if needed, but start with the raw number width
-            // 40px base minimum + width + small gap
-            marginRight = Math.max(40, dataComplexity.maxValueWidthPx + 16);
+            // FASE 4.6: Expanded safety buffers (40px instead of 32px) for large infographic numbers
+            const isInfographicMode = analysis.mode === 'infographic';
+            const safetyGap = isInfographicMode ? 40 : 16;
+            marginRight = Math.max(40, dataComplexity.maxValueWidthPx + safetyGap);
         }
 
         // LEFT: Match right margin for symmetry OR use minimal for Stacked
@@ -678,6 +694,13 @@ export class SmartLayoutEngine {
             marginBottom = legendDims.height + 10; // legend + gap
         } else {
             marginBottom = 30;
+        }
+
+        // Apply symmetry for Bar Charts (User Request)
+        if (analysis.chartType === 'bar') {
+            const sideMargin = Math.max(marginLeft, marginRight);
+            marginLeft = sideMargin;
+            marginRight = sideMargin;
         }
 
         // Apply export buffer for PDF (FASE 1.2)
@@ -911,10 +934,25 @@ export class SmartLayoutEngine {
             }));
             const maxCategoryWidth = Math.max(...categoryWidths, 0);
 
-            // Measure Value
-            const percentage = ((val / total) * 100).toFixed(1);
+            // Measure Value (FASE 4: Formatting integration)
+            const numberFormat = chart.style?.numberFormat;
+            const percentageValue = (val / total) * 100;
+            const percentageText = `${percentageValue.toFixed(1)}%`;
+
+            // Format for actual measurement (could be currency/number if selected)
+            const formattedValue = smartFormatChartValue(val, numberFormat);
+
+            // For Pie/Donut labels, we use the formatted value if it's NOT percentage, 
+            // or the percentage if it IS percentage.
+            const textToMeasure = (numberFormat?.type === 'currency' || numberFormat?.type === 'number')
+                ? formattedValue
+                : percentageText;
+
             const valueMetrics = textMeasurementService.measureDetailedMetrics({
-                text: `${percentage}%`, fontSize: valueFontSize, fontFamily, fontWeight: '900'
+                text: textToMeasure,
+                fontSize: valueFontSize,
+                fontFamily,
+                fontWeight: '900'
             });
 
             // Total Block Dimensions
@@ -928,7 +966,7 @@ export class SmartLayoutEngine {
                 wrappedLines,
                 totalWidth,
                 totalHeight,
-                percentage,
+                formattedValue: textToMeasure,
                 valueMetrics,
                 maxCategoryWidth,
                 categoryHeight
@@ -936,8 +974,8 @@ export class SmartLayoutEngine {
         });
 
         // Determine margin needs based on wrapped widths
-        // Standard radius to test fit
-        const baseMargin = target === 'pdf' ? 60 : 40;
+        // Expanded margins for Infographic Mode in PDF
+        const baseMargin = target === 'pdf' ? 80 : 40;
         const testPlotSize = Math.min(width - (baseMargin * 2), height - (baseMargin * 2));
         const testOuterRadius = testPlotSize / 2;
         const testInnerRadius = chart.type === 'donut' ? testOuterRadius * 0.75 : 0;
@@ -1036,7 +1074,7 @@ export class SmartLayoutEngine {
                 y: strategy === 'internal' ? iy : spiderLabelY,
                 textAnchor: strategy === 'internal' ? 'middle' : textAnchor,
                 strategy,
-                percentage: measure.percentage,
+                formattedValue: measure.formattedValue,
                 color: ColorService.getBestContrastColor(datasetColors[i % datasetColors.length]),
                 wrappedLines: strategy === 'internal' ? [labels[i]] : measure.wrappedLines, // Use wrapped lines for external
                 height: measure.totalHeight, // for collision

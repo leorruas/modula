@@ -2,6 +2,7 @@ import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
 import { SmartLayoutEngine } from '@/services/smartLayout/SmartLayoutEngine';
+import { smartFormatChartValue } from '@/utils/formatters';
 import { useMemo } from 'react';
 
 interface ScatterChartProps {
@@ -179,7 +180,7 @@ export function ScatterChart({ width, height, data, style, baseFontSize = 11, ba
                             fontSize={getScaledFont(baseFontSize, baseFontUnit, isInfographic ? 'small' : 'tiny', isInfographic) * (lbl.isHero ? 1.1 : 1)}
                             fontFamily={valueFont} fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
                             fill={CHART_THEME.colors.neutral.dark} opacity={lbl.isHero ? 1 : 0.8}>
-                            {lbl.value}
+                            {smartFormatChartValue(lbl.value, style?.numberFormat)}
                         </text>
                     </g>
                 ))}

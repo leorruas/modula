@@ -60,10 +60,9 @@ Used inside the chart renders. The user can switch between these.
 *   **Monospace**: `monospace` (Data-heavy, Technical)
 
 ### Hierarchy (Infographic Mode - Proportional Scaling)
-- **High Values (80%+ of Max)**: **2.0x** relative size, `font-black`, `uppercase`, `tracking-tighter`.
+- **High Values (80%+ of Max)**: **2.6x** relative size (2.0x base * 1.3x Hero multiplier), `font-black`, `uppercase`, `tracking-tighter`.
 - **Medium Values (50-80% of Max)**: **1.5x** relative size, `font-semibold`, normal case.
 - **Low Values (<50% of Max)**: **1.0x** relative size, `font-normal`, muted opacity (0.6).
-- **Manual Hero Highlight**: **1.3x extra boost** over calculated hierarchy.
 - **Titles/Annotations**: `text-xs font-mono uppercase tracking-widest`.
 
 ---
@@ -99,6 +98,8 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Margin Left**: `140px` (Space for large category labels).
 *   **Line/Area Charts (Infographic)**:
     *   **Margin Top**: `60px` (Prevents hero numbers from clipping at the top).
+*   **Symmetry Rule (Bar Chart Infographic)**:
+    *   **Equal Margins**: Para manter o equilíbrio editorial, as margens esquerda e direita devem ser **idênticas**. O sistema reserva o mesmo espaço para os labels (esquerda) e para os valores (direita), centralizando visualmente o gráfico.
 *   **Mixed Charts (Gestalt Optimized)**:
     *   **Container Intelligence (Box Rule)**: As margens são calculadas dinamicamente (`5%` ou `minPadding`) em vez de fixas, adaptando-se a qualquer tamanho de container.
     *   **Proportional Spacing (Breath Rule)**: O espaçamento vertical é derivado do `fontSize` (ex: `1.5em`), garantindo que rótulos e gráficos mantenham distância segura ao escalar a fonte.

@@ -2,6 +2,7 @@ import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { getIconComponent } from '@/utils/iconLibrary';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface PictogramChartProps {
     width: number;
@@ -111,7 +112,7 @@ export function PictogramChart({ width, height, data, style, baseFontSize = 11, 
                             letterSpacing="0.05em"
                             style={{ textTransform: 'uppercase' }}
                         >
-                            Cada ícone = <tspan fontWeight={CHART_THEME.fontWeights.bold} fill={CHART_THEME.colors.neutral.dark}>{valuePerIcon.toLocaleString()}</tspan>
+                            Cada ícone = <tspan fontWeight={CHART_THEME.fontWeights.bold} fill={CHART_THEME.colors.neutral.dark}>{smartFormatChartValue(valuePerIcon, style?.numberFormat)}</tspan>
                         </text>
                     </g>
                 )}
@@ -125,7 +126,7 @@ export function PictogramChart({ width, height, data, style, baseFontSize = 11, 
                         fill={CHART_THEME.colors.neutral.medium}
                         fontStyle="italic"
                     >
-                        {`Cada ícone = ${valuePerIcon.toLocaleString()}`}
+                        {`Cada ícone = ${smartFormatChartValue(valuePerIcon, style?.numberFormat)}`}
                     </text>
                 )}
 
@@ -166,7 +167,7 @@ export function PictogramChart({ width, height, data, style, baseFontSize = 11, 
                                 fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.normal}
                                 fill={isInfographic ? rowColor : CHART_THEME.colors.neutral.medium}
                             >
-                                {value.toLocaleString()}
+                                {smartFormatChartValue(value, style?.numberFormat)}
                             </text>
 
                             {/* Separator Line */}

@@ -3,6 +3,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient, getChartColor } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface GaugeChartProps {
     width: number;
@@ -147,7 +148,7 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                         fontWeight={CHART_THEME.fontWeights.bold}
                         fill={CHART_THEME.colors.neutral.medium}
                     >
-                        {target}
+                        {smartFormatChartValue(target, style?.numberFormat)}
                     </text>
                 </>
             )}
@@ -181,7 +182,7 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                         fill: '#9ca3af'
                     }}
                 >
-                    {value} de {target}
+                    {smartFormatChartValue(value, style?.numberFormat)} de {smartFormatChartValue(target, style?.numberFormat)}
                 </text>
             )}
 
@@ -196,7 +197,7 @@ export function GaugeChart({ width, height, data, style, baseFontSize = 11, base
                     fill={color}
                     fontWeight={CHART_THEME.fontWeights.medium}
                 >
-                    {value} / {target}
+                    {smartFormatChartValue(value, style?.numberFormat)} / {smartFormatChartValue(target, style?.numberFormat)}
                 </text>
             )}
         </BaseChart>

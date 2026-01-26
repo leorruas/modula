@@ -3,6 +3,7 @@ import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createIOSGlassLineFilter, createGlassGradient, createMiniIOSGlassFilter } from '@/utils/chartTheme';
 import { getMixedChartDatasetType } from '@/utils/chartHelpers';
 import { ensureDistinctColors } from '@/utils/colors';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface MixedChartProps {
     width: number;
@@ -285,7 +286,7 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                                                     fontSize={fontSize * 0.8}
                                                     fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.bold}
                                                     fill={CHART_THEME.colors.neutral.dark} opacity={0.8}>
-                                                    {value}
+                                                    {smartFormatChartValue(value, style?.numberFormat)}
                                                 </text>
                                             )}
                                         </g>
@@ -337,7 +338,7 @@ export function MixedChart({ width, height, data, style, baseFontSize = 11, base
                                                 fontSize={fontSize * 0.9}
                                                 fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black}
                                                 fill={color} stroke="white" strokeWidth={3} paintOrder="stroke">
-                                                {ds.data[i]}
+                                                {smartFormatChartValue(ds.data[i], style?.numberFormat)}
                                             </text>
                                         )}
                                         {/* Editorial Badge for Hero in Mixed Chart */}

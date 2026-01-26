@@ -3,6 +3,7 @@ import { BaseChart } from './BaseChart';
 import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
 import { useSmartLayout } from '@/hooks/useSmartLayout';
 import { ComputedLayout } from '@/services/smartLayout/types';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface DonutChartProps {
     width: number;
@@ -178,7 +179,7 @@ export function DonutChart({
                                         </text>
                                     ))}
 
-                                    {/* Percentage Value */}
+                                    {/* Percentage or Formatted Value */}
                                     <text
                                         x={placement.x}
                                         y={placement.y + (placement.strategy === 'internal' ? 6 : 0)}
@@ -189,7 +190,10 @@ export function DonutChart({
                                         fontWeight={CHART_THEME.fontWeights.black}
                                         fill={placement.strategy === 'internal' ? placement.color : CHART_THEME.colors.neutral.dark}
                                     >
-                                        {placement.percentage}%
+                                        {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                                            ? smartFormatChartValue(value, style.numberFormat)
+                                            : placement.formattedValue // Uses Engine's pre-calculated %
+                                        }
                                     </text>
                                 </g>
                             )}
@@ -221,15 +225,18 @@ export function DonutChart({
                                     fontFamily={fontFamily} fill={CHART_THEME.colors.neutral.medium}>
                                     {labels[heroValueIndex]?.toUpperCase()}
                                 </text>
-                                <text y={5} textAnchor="middle" fontSize={innerRadius * 0.5}
+                                <text y={5} textAnchor="middle" fontSize={innerRadius * 0.35}
                                     fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                    {((dataset.data[heroValueIndex] / total) * 100).toFixed(0)}%
+                                    {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                                        ? smartFormatChartValue(dataset.data[heroValueIndex], style.numberFormat)
+                                        : `${((dataset.data[heroValueIndex] / total) * 100).toFixed(1)}%`
+                                    }
                                 </text>
                             </>
                         ) : (
                             <text y={5} textAnchor="middle" fontSize={innerRadius * 0.6}
                                 fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                {total}
+                                {smartFormatChartValue(total, style?.numberFormat)}
                             </text>
                         )}
                     </g>

@@ -517,8 +517,32 @@ describe('SmartLayoutEngine', () => {
 
             // Infographic margin should be significantly larger because:
             // 1. Font scale is larger (e.g. 'large' vs 'small')
-            // 2. Max value multiplier (2.0 vs 1.0)
+            // 2. Max value multiplier (2.6 vs 1.0)
             expect(infographicLayout.margins.right).toBeGreaterThan(classicLayout.margins.right + 10);
+        });
+
+        it('handles Worst-Case Formatting (Large Currency in PDF) with Symmetry to prevent clipping', () => {
+            const chart = createMockChart(
+                ['Category 1'],
+                [{ label: 'Series', data: [999999] }],
+                {
+                    mode: 'infographic',
+                    numberFormat: { type: 'currency', currency: 'BRL', decimals: 2 }
+                }
+            );
+
+            const layout = SmartLayoutEngine.computeLayout(
+                chart,
+                mockGridConfig,
+                { w: 1200, h: 400 }, // Use 1200px to avoid artificial capping by overflow risk (minPlotWidth)
+                'pdf'
+            );
+
+            // With 2.6x font multiplier and 1.25 buffer + 40px safety gap + 40px PDF export padding
+            // "R$ 999.999,00" should result in a large margin.
+            // And it should be symmetric for Bar Charts.
+            expect(layout.margins.right).toBeGreaterThan(250);
+            expect(layout.margins.left).toBeCloseTo(layout.margins.right, 0);
         });
     });
 });

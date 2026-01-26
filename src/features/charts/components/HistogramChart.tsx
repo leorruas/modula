@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface HistogramChartProps {
     width: number;
@@ -146,7 +147,7 @@ export function HistogramChart({ width, height, data, style, baseFontSize = 11, 
                                         fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * (isManualHero ? 0.6 : 0.5)}
                                         fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black}
                                         fill={isManualHero ? primaryColor : CHART_THEME.colors.neutral.dark}>
-                                        {value}
+                                        {smartFormatChartValue(value, style?.numberFormat)}
                                     </text>
 
                                     {isPeak && !isManualHero && (

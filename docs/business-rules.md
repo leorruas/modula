@@ -427,3 +427,22 @@ Para garantir consistência e agilidade, o sistema carrega estilos seguindo esta
 3.  **Preferências do Usuário**: Se o projeto não tem padrões, o sistema busca o `defaultStyle` no perfil do usuário (`/users/{userId}/preferences`).
 4.  **Sistema (Hardcoded Fallback)**: Se nenhuma preferência for encontrada, o sistema aplica o modo "Classic" com variações de Cinza.
 
+### 2.14. Formatação de Dados (Number Formatting)
+*   **Centralização**: Toda formatação numérica deve passar pelo utilitário `smartFormatChartValue` para garantir consistência.
+*   **Tipos Suportados**:
+    *   **Percentual**: Multiplica por 100 (se escala for 1) e adiciona `%`.
+    *   **Moeda**: Suporta BRL (R$), USD ($), EUR (€) e GBP (£).
+    *   **Número**: Formatação padrão com separadores de milhar.
+*   **Precisão**: Respeita o número de casas decimais definido no `style.numberFormat`.
+
+---
+
+### 4.5. Fidelidade de Exportação (Export Fidelity)
+Gráficos exportados para PDF devem manter 100% de integridade visual:
+*   **Drift Buffer**: Aplicar um multiplicador de **1.25x (25%)** em todas as medições de texto para compensar diferenças de renderização entre o browser (Canvas) e o motor de PDF.
+*   **Alinhamento de Multiplicadores**: Os multiplicadores de fonte do Layout Engine (ex: 2.6x para Hero numbers) devem ser idênticos aos usados no componente React.
+*   **Simetria em Gráficos de Barra**: Para garantir equilíbrio visual e evitar cortes, as margens esquerda e direita de um `BarChart` devem ser **sempre simétricas** (iguais ao maior valor medido entre labels e valores).
+
+### 4.6. Margens de Segurança (Safety Gaps)
+*   **Infográfico**: Adicionar um gap de segurança mínimo de **40px** na margem direita para acomodar símbolos de moeda ou porcentagem em fontes gigantes.
+*   **Calibração PDF**: Gráficos em PDF recebem um bônus fixo de **40px a 80px** em todas as margens para evitar cortes na borda do módulo.

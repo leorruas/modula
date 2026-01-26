@@ -6,7 +6,7 @@
 // Export Resolution Constants
 export const EXPORT_PIXEL_RATIO = 3.5; // High-res PDF export (300 DPI equivalent)
 export const EXPORT_SAFETY_PADDING = 40; // Fixed padding for PDF to prevent edge clipping
-export const EXPORT_DRIFT_BUFFER = 1.10; // 10% buffer for font rendering differences between screen and PDF
+export const EXPORT_DRIFT_BUFFER = 1.25; // 25% buffer for font rendering differences between screen and PDF
 
 // Font Stack for Export (must match exportUtils.ts)
 export const EXPORT_FONT_STACK = '"Inter", -apple-system, sans-serif';

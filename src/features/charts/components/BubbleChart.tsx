@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getChartColor, getScaledFont } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface BubbleChartProps {
     width: number;
@@ -147,7 +148,7 @@ export function BubbleChart({ width, height, data, style, baseFontSize = 11, bas
                                                 fontFamily={valueFont} fontWeight={isInfographic ? CHART_THEME.fontWeights.black : CHART_THEME.fontWeights.semibold}
                                                 fill={isInfographic ? "#fff" : CHART_THEME.colors.neutral.dark}
                                                 style={{ textShadow: isInfographic ? '0 1px 3px rgba(0,0,0,0.2)' : 'none' }}>
-                                                {v}
+                                                {smartFormatChartValue(v, style?.numberFormat)}
                                             </text>
 
                                             {isInfographic && dsIdx === 0 && labels[i] && (

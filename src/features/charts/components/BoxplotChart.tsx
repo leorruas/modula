@@ -1,6 +1,7 @@
 import { ChartData, ChartStyle } from '@/types';
 import { BaseChart } from './BaseChart';
 import { CHART_THEME, getScaledFont, getChartColor, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { smartFormatChartValue } from '@/utils/formatters';
 
 interface BoxplotChartProps {
     width: number;
@@ -122,19 +123,19 @@ export function BoxplotChart({ width, height, data, style, baseFontSize = 11, ba
                                     <text x={cx + boxWidth / 2 + 8} y={yMedian} dominantBaseline="middle"
                                         fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
                                         fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                        {medianValues[i]}
+                                        {smartFormatChartValue(medianValues[i], style?.numberFormat)}
                                     </text>
 
                                     {/* Top Label (Max) */}
                                     <text x={cx} y={yMax - 15} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
                                         fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium} letterSpacing="0.05em">
-                                        PICO {maxValues[i]}
+                                        PICO {smartFormatChartValue(maxValues[i], style?.numberFormat)}
                                     </text>
 
                                     {/* Bottom Label (Min) */}
                                     <text x={cx} y={yMin + 20} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
                                         fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium} letterSpacing="0.05em">
-                                        MIN {minValues[i]}
+                                        MIN {smartFormatChartValue(minValues[i], style?.numberFormat)}
                                     </text>
                                 </g>
                             )}

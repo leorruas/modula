@@ -296,7 +296,7 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                                             >
                                                 {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
                                                     ? smartFormatChartValue(value, style.numberFormat)
-                                                    : `${percentage}%`
+                                                    : smartFormatChartValue(value / total, { ...style?.numberFormat, type: 'percent', scale: 100 })
                                                 }
                                             </text>
 

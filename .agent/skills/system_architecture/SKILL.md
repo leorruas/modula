@@ -338,4 +338,27 @@ When applying this skill, also reference:
 - **componentization**: Structure components to consume Engine output
 - **advanced_analytics**: Add editorial intelligence features
 - **gestalt_grid**: Apply spacing and proximity principles
+### 7.7 Infographic Layout Calibration & Symmetry (Conversation 0907c312)
 
+**Problem**: Even with basic buffers, high-contrast infographic numbers were clipping in PDF exports.
+
+**Root Cause**:
+- Multiplier Mismatch: Engine measured fonts at 2.0x while component rendered at 2.6x (Hero + Multiplier).
+- Insufficient Buffer: 10% drift buffer wasn't enough for symbols like `%` and `R$` in large fonts.
+- Visual Imbalance: Asymmetric charts (long labels vs huge numbers) looked "unstable".
+
+**Solution Applied**:
+- Aligned multipliers (2.6x for both Engine and Component).
+- Increased `EXPORT_DRIFT_BUFFER` to 1.25x (25% safety).
+- Enforced side-margin symmetry for Bar Charts.
+- 40px safety gap for right-side values.
+
+**Key Learnings**:
+1. **Multipliers must be identical**: Any discrepancy between "Measurement Engine" and "Render Component" guarantees clipping.
+2. **Bold Fonts need more drift**: Thick black fonts expand more in PDF rendering than standard weights.
+3. **Symmetry == Stability**: In editorial design, balanced margins (left=right) project more authority and professional quality.
+
+**Applied to This Skill**:
+- Section 5.1 (Predictive Sizing) updated to recommend 1.25x buffer for high-contrast exports.
+- Section 5.3 (Export Fidelity) now mandates multiplier alignment verification.
+- Section 3.2 (Robustness) includes "Visual Symmetry" for bar-type layouts.

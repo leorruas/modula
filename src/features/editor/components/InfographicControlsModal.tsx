@@ -98,7 +98,8 @@ export function InfographicControlsModal({
                 setDatasetTypes(chartData.datasets.map((_, i) => (count > 1 && i === count - 1 ? 'line' : 'bar')));
             }
         }
-    }, [isOpen, currentConfig, chartData, chartType]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -332,13 +333,31 @@ export function InfographicControlsModal({
                                             <input
                                                 type="number"
                                                 min="0" max="4"
-                                                value={numberFormat?.decimals ?? (numberFormat?.type === 'percent' ? 0 : 0)}
-                                                onChange={e => setNumberFormat({ ...numberFormat, decimals: parseInt(e.target.value) })}
+                                                value={numberFormat?.decimals ?? ''}
+                                                onChange={e => {
+                                                    const val = parseInt(e.target.value);
+                                                    setNumberFormat({ ...numberFormat, decimals: isNaN(val) ? undefined : val });
+                                                }}
+                                                placeholder={numberFormat?.type === 'percent' ? "0" : "auto"}
                                                 style={{ width: '100%', padding: '6px', borderRadius: 6, border: '1px solid #ddd', fontSize: 12 }}
                                             />
                                         </div>
                                     )}
                                 </div>
+
+                                {numberFormat?.type === 'percent' && (
+                                    <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input
+                                            type="checkbox"
+                                            id="useScale"
+                                            checked={numberFormat?.scale === 0.01}
+                                            onChange={e => setNumberFormat({ ...numberFormat, scale: e.target.checked ? 0.01 : undefined })}
+                                        />
+                                        <label htmlFor="useScale" style={{ fontSize: 12, color: '#444', cursor: 'pointer' }}>
+                                            O valor já é porcentagem (ex: 50 = 50%)
+                                        </label>
+                                    </div>
+                                )}
                             </div>
 
 

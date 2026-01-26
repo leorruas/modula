@@ -4,7 +4,7 @@ import { useUserStore } from '@/store/userStore';
 import { chartService } from '@/services/chartService';
 import { projectService } from '@/services/projectService';
 import { userPreferencesService } from '@/services/userPreferencesService';
-import { ChartType } from '@/types';
+import { ChartType, NumberFormatConfig } from '@/types';
 import { toast } from 'sonner';
 import { DataEditorModal } from './DataEditorModal';
 import { InfographicControlsModal } from './InfographicControlsModal';
@@ -59,6 +59,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         datasetTypes?: ('bar' | 'line')[];
         stacked?: boolean;
     }>({});
+    const [numberFormat, setNumberFormat] = useState<NumberFormatConfig>({ type: 'number' });
 
     // Data Modal
     const [dataModalOpen, setDataModalOpen] = useState(false);
@@ -273,6 +274,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                     } else if (chart.style?.datasetTypes) {
                         setInfographicConfig(prev => ({ ...prev, datasetTypes: chart.style?.datasetTypes, stacked: chart.style?.stacked }));
                     }
+                    if (chart.style?.numberFormat) {
+                        setNumberFormat(chart.style.numberFormat);
+                    } else {
+                        setNumberFormat({ type: 'number' });
+                    }
                     setDataInput(JSON.stringify(chart.data, null, 2));
                     setChartName(chart.name || '');
                 }
@@ -416,7 +422,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         return rest;
                     })() : undefined,
                     datasetTypes: infographicConfig.datasetTypes,
-                    stacked: infographicConfig.stacked
+                    stacked: infographicConfig.stacked,
+                    numberFormat
                 }
             });
             triggerRefresh();
@@ -462,7 +469,8 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         return rest;
                     })() : undefined,
                     datasetTypes: infographicConfig.datasetTypes,
-                    stacked: infographicConfig.stacked
+                    stacked: infographicConfig.stacked,
+                    numberFormat
                 }
             });
             triggerRefresh();
@@ -1221,8 +1229,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                 onClose={() => setInfographicControlsOpen(false)}
                 chartData={JSON.parse(dataInput || '{"labels":[],"datasets":[]}')}
                 chartType={chartType}
-                currentConfig={infographicConfig}
-                onSave={(config) => setInfographicConfig(config)}
+                currentConfig={{ ...infographicConfig, numberFormat }}
+                onSave={(fullConfig) => {
+                    const { numberFormat: newFmt, ...rest } = fullConfig;
+                    setInfographicConfig(rest);
+                    if (newFmt) setNumberFormat(newFmt);
+                }}
             />
         </div >
     );
