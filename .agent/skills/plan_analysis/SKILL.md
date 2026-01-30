@@ -532,9 +532,9 @@ A good analysis should:
 
 ## Related Skills
 
-- **task_breakdown**: Use after analysis to create phased execution plan
-- **system_architecture**: Apply architectural principles to plan structure
-- **componentization**: Ensure plan respects separation of concerns
+- **task_breakdown**: Mandatory partner skill. Use plan analysis to validate the breakdown, ensuring complex tasks are decomposed safely.
+- **componentization**: Mandatory partner skill. Ensure the plan respects separation of concerns (Engine vs UI) and promotes reusable components.
+- **system_architecture**: Apply architectural principles to plan structure.
 
 ---
 

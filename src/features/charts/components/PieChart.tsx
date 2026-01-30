@@ -1,7 +1,8 @@
-import { ChartData, ChartStyle } from '@/types';
+import { ChartData, ChartStyle, GridConfig } from '@/types';
 import { BaseChart } from './BaseChart';
-import { generateMonochromaticPalette, ensureDistinctColors } from '@/utils/colors';
 import { CHART_THEME, getScaledFont, createIOSGlassFilter, createGlassGradient } from '@/utils/chartTheme';
+import { useSmartLayout } from '@/hooks/useSmartLayout';
+import { ComputedLayout } from '@/services/smartLayout/types';
 import { smartFormatChartValue } from '@/utils/formatters';
 
 interface PieChartProps {
@@ -11,35 +12,55 @@ interface PieChartProps {
     style?: ChartStyle;
     baseFontSize?: number;
     baseFontUnit?: 'pt' | 'px' | 'mm';
+    gridConfig?: GridConfig;
+    computedLayout?: ComputedLayout;
 }
 
-export function PieChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: PieChartProps) {
+export function PieChart({
+    width,
+    height,
+    data,
+    style,
+    baseFontSize = 11,
+    baseFontUnit = 'pt',
+    gridConfig,
+    computedLayout: propsComputedLayout
+}: PieChartProps) {
+    // 1. Hook into Smart Layout Engine
+    const smartLayout = useSmartLayout(
+        { type: 'pie', data, style },
+        gridConfig || { baseFontSize } as GridConfig,
+        { w: width, h: height }
+    );
+
+    const layout = propsComputedLayout || smartLayout;
+    // 2. Extract Geometry from Engine
+    const {
+        centerX = width / 2,
+        centerY = height / 2,
+        outerRadius = 0,
+        innerRadius = 0,
+        datasetColors,
+        labelPlacements, // Array of { x, y, textAnchor, strategy, sliceIndex, measure, ... }
+        spiderLegs,      // Array of { points, labelX, labelY, ... }
+        slices           // Array of { startAngle, endAngle, color, value, percent, originalIndex }
+    } = layout.typeSpecific || {};
+
     const dataset = data.datasets?.[0];
-    if (!dataset || !dataset.data || dataset.data.length === 0) {
+    if (!dataset || !dataset.data || dataset.data.length === 0 || !centerX) {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
-    // Data Preparation & Sorting
-    let values = [...dataset.data];
-    let labels = [...(data.labels || [])];
-    let metadata = dataset.metadata ? [...dataset.metadata] : undefined;
-    let originalIndices = values.map((_, i) => i);
 
-    if (style?.infographicConfig?.sortSlices) {
-        const indices = values.map((_, i) => i);
-        indices.sort((a, b) => values[b] - values[a]); // Descending
-
-        values = indices.map(i => dataset.data[i]);
-        labels = indices.map(i => (data.labels || [])[i]);
-        if (metadata) {
-            const originalMeta = dataset.metadata!;
-            metadata = indices.map(i => originalMeta[i]);
-        }
-        originalIndices = indices;
+    // Geometry check
+    if (!slices || slices.length === 0) {
+        // Fallback or loading state if engine fails for some reason
+        return null;
     }
 
+    const labels = data.labels || [];
     const isInfographic = style?.mode === 'infographic';
 
-    // Infographic Config (Phase 2 & 3)
+    // Infographic Config
     const infographicConfig = style?.infographicConfig || {};
     const heroValueIndex = infographicConfig.heroValueIndex;
     const finalShowValueAnnotations = infographicConfig.showValueAnnotations !== false;
@@ -48,53 +69,19 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
     const finalLegendPosition = infographicConfig.legendPosition || 'top';
     const finalShowExtremes = infographicConfig.showExtremes || false;
     const finalUseMetadata = infographicConfig.useMetadata || false;
-    const finalShowAllLabels = infographicConfig.showAllLabels || false;
-    const finalSortSlices = infographicConfig.sortSlices || false;
 
-    const total = values.reduce((a, b) => a + b, 0);
-    const avgValue = total / (values.length || 1);
-    const maxValue = Math.max(...values, 1);
-    const minValue = Math.min(...values, Infinity);
-
-    // Infographic needs space for wrapped external labels (approx 80px). Classic uses internal labels (10px padding).
-    const padding = isInfographic ? 60 : CHART_THEME.padding.small;
-    const baseRadius = (Math.min(width, height) / 2) - padding;
-    const centerX = width / 2;
-    const centerY = height / 2;
-
-    let colors = style?.colorPalette || ['#333', '#666', '#999', '#aaa'];
-    if (values.length > colors.length) {
-        if (colors.length === 1) {
-            colors = generateMonochromaticPalette(colors[0], values.length);
-        } else {
-            colors = ensureDistinctColors(colors, values.length);
-        }
-    }
+    const colors = datasetColors || style?.colorPalette || ['#333'];
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
-    const dataFont = isInfographic ? (CHART_THEME.fonts.data || CHART_THEME.fonts.number || 'sans-serif') : (CHART_THEME.fonts.number || 'sans-serif');
     const useGradient = style?.useGradient;
 
-    let startAngle = 0;
+    // Avg/Max for badges
+    const total = dataset.data.reduce((a, b) => a + b, 0);
+    const avgValue = total / (dataset.data.length || 1);
+    const maxValue = Math.max(...dataset.data);
+    const minValue = Math.min(...dataset.data);
 
-    // Wrapping logic for external labels
-    const wrapLabel = (text: string, maxChars: number = 18) => {
-        const words = text.split(' ');
-        const lines: string[] = [];
-        let cur = words[0] || '';
-        for (let i = 1; i < words.length; i++) {
-            if ((cur + ' ' + words[i]).length <= maxChars) {
-                cur += ' ' + words[i];
-            } else {
-                lines.push(cur);
-                cur = words[i];
-            }
-        }
-        lines.push(cur);
-        return lines.slice(0, 3);
-    };
-
-    // Refined Legend Component with Grid and Wrapping
-    const Legend = finalLegendPosition !== 'none' && values.length > 0 ? (
+    // Legend Component (Simplified extraction)
+    const Legend = finalLegendPosition !== 'none' && dataset.data.length > 0 ? (
         <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -151,190 +138,136 @@ export function PieChart({ width, height, data, style, baseFontSize = 11, baseFo
                     </>
                 )}
             </defs>
+
             <g transform={`translate(${centerX}, ${centerY})`}>
-                {values.map((value, i) => {
-                    const sliceAngle = (value / total) * 2 * Math.PI;
-                    const endAngle = startAngle + sliceAngle;
-                    const labelAngle = startAngle + sliceAngle / 2;
+                {/* 1. Slices Rendering */}
+                {slices.map((slice, i) => {
+                    const { startAngle, endAngle, value, originalIndex } = slice;
 
-                    // Proportional Scaling (Variable Radius / Rose Effect)
-                    // Min Radius: 15% (Slightly increased from 10% for better vis) | Max Radius: 100%
-                    const ratio = value / maxValue;
-                    const dynamicRadius = isInfographic ? baseRadius * (0.15 + (0.85 * ratio)) : baseRadius;
+                    const x1 = outerRadius * Math.cos(startAngle - Math.PI / 2);
+                    const y1 = outerRadius * Math.sin(startAngle - Math.PI / 2);
+                    const x2 = outerRadius * Math.cos(endAngle - Math.PI / 2);
+                    const y2 = outerRadius * Math.sin(endAngle - Math.PI / 2);
 
-                    // Hero Explosion (Phase 2)
-                    const isManualHero = heroValueIndex !== undefined && heroValueIndex === originalIndices[i];
-                    const explodeOffset = isInfographic && isManualHero ? 10 : 0;
-                    const ox = explodeOffset * Math.cos(labelAngle - Math.PI / 2);
-                    const oy = explodeOffset * Math.sin(labelAngle - Math.PI / 2);
-
-                    const x1 = dynamicRadius * Math.cos(startAngle - Math.PI / 2);
-                    const y1 = dynamicRadius * Math.sin(startAngle - Math.PI / 2);
-                    const x2 = dynamicRadius * Math.cos(endAngle - Math.PI / 2);
-                    const y2 = dynamicRadius * Math.sin(endAngle - Math.PI / 2);
-
-                    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+                    const largeArcFlag = (endAngle - startAngle) > Math.PI ? 1 : 0;
 
                     const pathData = [
                         `M 0 0`,
                         `L ${x1} ${y1}`,
-                        `A ${dynamicRadius} ${dynamicRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+                        `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
                         `Z`
                     ].join(' ');
 
-                    const percentage = ((value / total) * 100).toFixed(1);
+                    const isManualHero = heroValueIndex !== undefined && heroValueIndex === originalIndex;
 
-                    const getTypographyForValue = (ratio: number) => {
-                        if (!isInfographic) return { fontWeight: CHART_THEME.fontWeights.semibold, sizeMultiplier: 1 };
-                        if (ratio >= 0.8) return { fontWeight: CHART_THEME.fontWeights.black, sizeMultiplier: 2.0 };
-                        if (ratio >= 0.5) return { fontWeight: CHART_THEME.fontWeights.semibold, sizeMultiplier: 1.5 };
-                        return { fontWeight: CHART_THEME.fontWeights.normal, sizeMultiplier: 1.0 };
-                    };
-                    const typo = getTypographyForValue(ratio);
-
-                    const finalSizeMultiplier = isManualHero ? typo.sizeMultiplier * 1.2 : typo.sizeMultiplier;
-
-                    // Gestalt Proximity & Alignment Logic (Local to this slice loop)
-                    const normalizedAngle = labelAngle % (2 * Math.PI);
-                    const isRightSide = normalizedAngle < Math.PI;
-                    const isTop = normalizedAngle > 5.2 || normalizedAngle < 1.1;
-                    const isBottom = normalizedAngle > 2.0 && normalizedAngle < 4.2;
-
-                    let textAnchor: "start" | "end" | "middle" = "middle";
-                    if (isTop || isBottom) textAnchor = "middle";
-                    else textAnchor = isRightSide ? "start" : "end";
-
-                    // Hybrid Label Positioning (Smart Callout)
-                    // If ratio < 0.4 (small slice), force label to OUTER RIM (baseRadius + 35)
-                    // If ratio >= 0.4 (large slice), track the radius (dynamicRadius + 20)
-                    const isSmallSlice = ratio < 0.4;
-
-                    // Value stays with the slice
-                    const valueR = dynamicRadius - 25;
-
-                    // Label jumps out if small slice to avoid center clutter overlap
-                    const labelTextR = isSmallSlice
-                        ? baseRadius + 35
-                        : dynamicRadius + 20;
-
-                    const vx = (valueR + explodeOffset) * Math.cos(labelAngle - Math.PI / 2);
-                    const vy = (valueR + explodeOffset) * Math.sin(labelAngle - Math.PI / 2);
-                    const lx = (labelTextR + explodeOffset) * Math.cos(labelAngle - Math.PI / 2);
-                    const ly = (labelTextR + explodeOffset) * Math.sin(labelAngle - Math.PI / 2);
-
-                    const wrappedLabelLines = isInfographic ? wrapLabel(labels[i]) : [labels[i]];
-                    const shouldShowLabelBody = finalShowAllLabels || !isInfographic || (value / total >= 0.05) || isManualHero;
-
-                    startAngle += sliceAngle;
+                    // Explosion logic for Hero (if desired, needs manual offset)
+                    // Currently omitted to ensure label stability with Engine logic
+                    // If we want explosion, we should modify transform group, but Engine calculated labels based on (0,0) center.
+                    // Explosion moves everything by (ox, oy). Layout Engine assumes center.
+                    // We stick to standard circle for now.
 
                     return (
-                        <g key={i} transform={`translate(${ox}, ${oy})`}>
-                            <path
-                                d={pathData}
-                                fill={style?.finish === 'glass' ? `url(#glassGradient-${i % colors.length})` : (useGradient ? `url(#pieGradient-${i % colors.length})` : colors[i % colors.length])}
-                                // REMOVED FILTER
-                                filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
-                                stroke={style?.finish === 'glass' ? "none" : "#fff"}
-                                strokeWidth={isInfographic ? (isManualHero ? 2 : 0.5) : 1.5}
-                                strokeLinejoin="round"
-                                opacity={isInfographic && !isManualHero && heroValueIndex !== undefined ? 0.6 : 1}
-                            />
+                        <path
+                            key={i}
+                            d={pathData}
+                            fill={style?.finish === 'glass' ? `url(#glassGradient-${originalIndex % colors.length})` : (useGradient ? `url(#pieGradient-${originalIndex % colors.length})` : colors[originalIndex % colors.length])}
+                            filter={style?.finish === 'glass' ? "url(#iosGlassFilter)" : undefined}
+                            stroke={style?.finish === 'glass' ? "none" : "#fff"}
+                            strokeWidth={isInfographic ? (isManualHero ? 2 : 0.5) : 1.5}
+                            strokeLinejoin="round"
+                            opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.6 : 1}
+                        />
+                    );
+                })}
 
-                            {shouldShowLabelBody && (
-                                <>
-                                    {isInfographic ? (
-                                        <>
-                                            {/* Annotation Badge (Phase 2 & 3) */}
-                                            {(() => {
-                                                let badgeText = "";
-                                                let badgeColor = CHART_THEME.colors.neutral.medium;
-                                                let showBadge = false;
+                {/* 2. Spider Legs */}
+                {spiderLegs?.map((leg, idx) => (
+                    <polyline
+                        key={`leg-${idx}`}
+                        points={leg.points.join(' ')}
+                        fill="none"
+                        stroke={CHART_THEME.colors.neutral.medium}
+                        strokeWidth={0.5}
+                        strokeDasharray="2,2"
+                    />
+                ))}
 
-                                                if (finalShowValueAnnotations && isManualHero) {
-                                                    badgeText = finalAnnotationLabels?.[i] || "HERO";
-                                                    showBadge = true;
-                                                } else if (finalUseMetadata && metadata && metadata[i]) {
-                                                    badgeText = metadata[i];
-                                                    badgeColor = colors[i % colors.length];
-                                                    showBadge = true;
-                                                } else if (finalShowExtremes && !isManualHero) {
-                                                    if (value === maxValue && value > avgValue) {
-                                                        badgeText = "🏆 LÍDER";
-                                                        badgeColor = '#d97706';
-                                                        showBadge = true;
-                                                    } else if (value === minValue && value < avgValue) {
-                                                        badgeText = "🔻 MIN";
-                                                        badgeColor = '#ef4444';
-                                                        showBadge = true;
-                                                    }
-                                                }
+                {/* 3. Labels */}
+                {labelPlacements?.map((placement, idx) => {
+                    if (placement.strategy === 'hidden') return null;
 
-                                                if (!showBadge) return null;
+                    const { x, y, textAnchor, color, sliceIndex, measure, strategy } = placement;
+                    const originalIndex = slices[sliceIndex]?.originalIndex ?? sliceIndex;
+                    const value = slices[sliceIndex]?.value;
+                    const labelText = labels[originalIndex] || '';
 
-                                                return (
-                                                    <text
-                                                        x={lx} y={ly - 45} textAnchor="middle"
-                                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                                        fontFamily={dataFont} fontWeight={CHART_THEME.fontWeights.black}
-                                                        letterSpacing="0.1em" fill={badgeColor} opacity={0.8}
-                                                    >
-                                                        {badgeText.toUpperCase()}
-                                                    </text>
-                                                );
-                                            })()}
+                    const isInternal = strategy === 'internal';
 
-                                            {/* Percentage */}
-                                            {/* Top Value Nudge: -10 */}
-                                            {/* Percentage or Formatted Value */}
-                                            {/* Top Value Nudge: -10 */}
-                                            <text
-                                                x={vx} y={vy - 15 + (isTop ? -10 : 0)}
-                                                textAnchor="middle" dominantBaseline="middle"
-                                                fontSize={getScaledFont(baseFontSize, baseFontUnit, 'huge', true) * finalSizeMultiplier * (style?.numberFormat?.type === 'currency' ? 0.5 : 0.7)}
-                                                fontFamily={CHART_THEME.fonts.number} fontWeight={typo.fontWeight}
-                                                fill={CHART_THEME.colors.neutral.dark}
-                                            >
-                                                {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
-                                                    ? smartFormatChartValue(value, style.numberFormat)
-                                                    : smartFormatChartValue(value / total, { ...style?.numberFormat, type: 'percent', scale: 100 })
-                                                }
-                                            </text>
+                    // Use measure.wrappedLines from engine
+                    const lines = measure?.wrappedLines || [];
 
-                                            {/* Label with Wrapping */}
-                                            {wrappedLabelLines.map((line, idx) => {
-                                                let vOffset = 0;
-                                                if (isTop) vOffset = -15 - (wrappedLabelLines.length * 5);
-                                                if (isBottom) vOffset = 15;
+                    // Determine typography
+                    const valueFont = isInfographic ? (CHART_THEME.fonts.data || 'monospace') : CHART_THEME.fonts.number;
+                    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInternal ? 'huge' : 'tiny', true);
 
-                                                return (
-                                                    <text
-                                                        key={idx}
-                                                        x={lx} y={ly + 8 + (idx * 12) + vOffset} textAnchor="middle"
-                                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                                        fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.medium}
-                                                        fill={CHART_THEME.colors.neutral.medium}
-                                                        style={{ textTransform: ratio >= 0.8 ? 'uppercase' : 'none' }}
-                                                    >
-                                                        {line}
-                                                        {idx === wrappedLabelLines.length - 1 && finalShowDeltaPercent && (
-                                                            <tspan dx={5} fontSize="0.8em" fill={value >= avgValue ? '#10b981' : '#ef4444'}>
-                                                                ({value >= avgValue ? '↑' : '↓'}{Math.abs(((value - avgValue) / (avgValue || 1)) * 100).toFixed(0)}%)
-                                                            </tspan>
-                                                        )}
-                                                    </text>
-                                                );
-                                            })}
-                                        </>
-                                    ) : (
-                                        <text
-                                            x={lx} y={ly} textAnchor="middle" alignmentBaseline="middle"
-                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'small')}
-                                            fontFamily={fontFamily} fill="#fff" fontWeight={CHART_THEME.fontWeights.semibold}
-                                        >
-                                            {`${labels[i]}\n${style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number' ? smartFormatChartValue(value, style.numberFormat) : `${percentage}%`}`}
-                                        </text>
-                                    )}
-                                </>
+                    // Value Formatted
+                    const formattedValue = style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                        ? smartFormatChartValue(value, style.numberFormat)
+                        : (measure?.formattedValue || `${((value / total) * 100).toFixed(1)}%`);
+
+                    // Badge Logic (if needed)
+                    // (Simplified logic here similar to Donut logic)
+                    const isManualHero = heroValueIndex === originalIndex;
+                    let badgeText = "";
+                    if (finalShowValueAnnotations && isManualHero) badgeText = finalAnnotationLabels?.[originalIndex] || "HERO";
+                    else if (finalShowExtremes && !isManualHero) {
+                        if (value === maxValue && value > avgValue) badgeText = "🏆";
+                        else if (value === minValue && value < avgValue) badgeText = "🔻";
+                    }
+
+                    return (
+                        <g key={idx}>
+                            {/* Badge (only if external or enough space) */}
+                            {badgeText && !isInternal && (
+                                <text x={x} y={y - (measure?.totalHeight ?? 20) / 2 - 10} textAnchor={textAnchor} fontSize={fontSize * 0.6} fill={color} fontWeight="bold">
+                                    {badgeText}
+                                </text>
+                            )}
+
+                            {/* Main Label Group */}
+                            <text
+                                x={x}
+                                y={y - (measure?.totalHeight ?? 24) / 2 + (fontSize * 0.8)}
+                                textAnchor={textAnchor}
+                                fontFamily={valueFont}
+                                fill={isInternal ? color : CHART_THEME.colors.neutral.dark}
+                            >
+                                {/* 1. The Value (Bold/Large) */}
+                                <tspan x={x} fontSize={fontSize} fontWeight={CHART_THEME.fontWeights.black}>
+                                    {formattedValue}
+                                </tspan>
+
+                                {/* 2. The Category lines (Regular/Small) */}
+                                {lines.map((line: string, i: number) => (
+                                    <tspan
+                                        key={i}
+                                        x={x}
+                                        dy={14} // Line height for category
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                        fontFamily={fontFamily}
+                                        fontWeight={400} // Regular
+                                        style={{ textTransform: 'uppercase', opacity: isInternal ? 0.8 : 0.7 }}
+                                    >
+                                        {line}
+                                    </tspan>
+                                ))}
+                            </text>
+
+                            {/* Delta Percent (if enabled and space permits) */}
+                            {finalShowDeltaPercent && !isInternal && (
+                                <text x={x} y={y + (measure?.totalHeight ?? 20) / 2 + 10} textAnchor={textAnchor} fontSize={fontSize * 0.5} fill={value >= avgValue ? '#10b981' : '#ef4444'}>
+                                    ({value >= avgValue ? '↑' : '↓'}{Math.abs(((value - avgValue) / (avgValue || 1)) * 100).toFixed(0)}%)
+                                </text>
                             )}
                         </g>
                     );

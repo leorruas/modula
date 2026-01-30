@@ -11,6 +11,7 @@ interface ColumnChartProps {
     style?: ChartStyle;
     baseFontSize?: number;
     baseFontUnit?: 'pt' | 'px' | 'mm';
+    gridConfig?: any; // Temporary loose type or import GridConfig
 }
 
 export function ColumnChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: ColumnChartProps) {

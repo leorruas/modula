@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### ✨ Radial Spatial Intelligence Overhaul (2026-01-30)
+
+> **Major Update**: Deep refactor of Pie and Donut charts spatial logic to eliminate clipping and maximize visual density.
+
+#### 🎨 Smart Layout Engine (Radial)
+- **Anti-Chaos Geometry**: Implemented strict Y-sorting and iterative relaxation algorithms to prevent spider leg crossing and label overlaps.
+- **Hybrid Positioning**: Automatic internal label placement for massive slices to declutter the container.
+- **Collapse & Expand Strategy**: Dynamic margin reclamation when external columns are redundant, allowing the chart to grow up to 30% larger.
+- **Legend-Sync**: Accurate legend zone calculation and area negotiation, ensuring the plot area is mathematically centered.
+- **Thickness Floor**: Enforce a 22% minimum slice thickness for Donut/Pie charts to maintain visibility of tiny values.
+- **Enhanced Visiblity**: Increased minimum visual angle for tiny slices to 20 degrees.
+
+#### 📝 Documentation & Standards
+- **Business Rules**: Explicitly codified radial intelligence and spatial constraints.
+- **Style Guide**: Standardized editorial label hierarchy (Black 900 values / Regular 400 categories).
+- **Architecture**: Documented the "Radial Logic" evolution within the Smart Layout Engine.
+
+---
+
 ### 🚀 deploy-2026-01-27T14-28-29 (2026-01-27)
 
 > **Deployment**: Version sent to production environments.

@@ -79,6 +79,18 @@ export interface ComputedLayout {
             points: string[]; // Points for polyline "spider leg"
             textAnchor: 'start' | 'end' | 'middle';
             sliceIndex: number;
+            color: string;
+        }>;
+        slices?: Array<{
+            startAngle: number;
+            endAngle: number;
+            midAngle: number;
+            innerRadius: number;
+            outerRadius: number;
+            color: string;
+            value: number;
+            percent: number;
+            originalIndex: number;
         }>;
         labelPlacements?: Array<{
             x: number;
@@ -89,6 +101,14 @@ export interface ComputedLayout {
             percentage: string;
             formattedValue: string;
             wrappedLines: string[];
+            sliceIndex: number;
+            measure?: {
+                wrappedLines: string[];
+                totalWidth: number;
+                totalHeight: number;
+                formattedValue: string;
+                [key: string]: any;
+            };
         }>;
 
         [key: string]: any;
@@ -98,6 +118,7 @@ export interface ComputedLayout {
         warnings: string[];
         appliedAdjustments: boolean;
     };
+    lod?: ChartLOD;
 }
 
 export interface LayoutRules {
@@ -112,4 +133,15 @@ export type ModeModifiers = {
     fontSizeMultiplier: number;
     marginMultiplier: number;
     strokeWidthMultiplier: number;
+};
+
+export type ChartLOD = 'tiny' | 'small' | 'normal' | 'detailed';
+
+export type ColumnarLayout = {
+    leftColumn: Array<{ y: number; sliceIndex: number }>;
+    rightColumn: Array<{ y: number; sliceIndex: number }>;
+    leftSpiders: Array<any>;
+    rightSpiders: Array<any>;
+    columnXLeft: number;
+    columnXRight: number;
 };

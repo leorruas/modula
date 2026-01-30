@@ -25,6 +25,8 @@ interface InfographicControlsModalProps {
         y2AxisLabel?: string;
         numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
         secondaryNumberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
+        labelLayout?: 'radial' | 'column-left' | 'column-right' | 'balanced';
+        showLabelsCategory?: boolean;
     };
     onSave: (config: {
         heroValueIndex?: number;
@@ -44,6 +46,8 @@ interface InfographicControlsModalProps {
         y2AxisLabel?: string;
         numberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
         secondaryNumberFormat?: { type: 'number' | 'percent' | 'currency'; currency?: 'BRL' | 'USD' | 'EUR' | 'GBP'; decimals?: number };
+        labelLayout?: 'radial' | 'column-left' | 'column-right' | 'balanced';
+        showLabelsCategory?: boolean;
     }) => void;
 }
 
@@ -70,6 +74,8 @@ export function InfographicControlsModal({
     const [y2AxisLabel, setY2AxisLabel] = useState(currentConfig.y2AxisLabel || '');
     const [numberFormat, setNumberFormat] = useState<NumberFormatConfig>(currentConfig.numberFormat || { type: 'number' });
     const [secondaryNumberFormat, setSecondaryNumberFormat] = useState<NumberFormatConfig>(currentConfig.secondaryNumberFormat || { type: 'percent' });
+    const [labelLayout, setLabelLayout] = useState<'radial' | 'column-left' | 'column-right' | 'balanced'>(currentConfig.labelLayout || 'radial');
+    const [showLabelsCategory, setShowLabelsCategory] = useState(currentConfig.showLabelsCategory !== false);
 
 
     // Initialize with existing config OR fallback logic
@@ -102,6 +108,8 @@ export function InfographicControlsModal({
             setY2AxisLabel(currentConfig.y2AxisLabel || '');
             setNumberFormat(currentConfig.numberFormat || { type: 'number' });
             setSecondaryNumberFormat(currentConfig.secondaryNumberFormat || { type: 'percent' });
+            setLabelLayout(currentConfig.labelLayout || 'radial');
+            setShowLabelsCategory(currentConfig.showLabelsCategory !== false);
             if (currentConfig.datasetTypes) {
 
                 setDatasetTypes(currentConfig.datasetTypes);
@@ -131,8 +139,9 @@ export function InfographicControlsModal({
             stacked: chartType === 'mixed' ? stacked : undefined,
             useDualAxis: chartType === 'mixed' ? useDualAxis : undefined,
             y2AxisLabel: chartType === 'mixed' && useDualAxis ? y2AxisLabel : undefined,
-            numberFormat: numberFormat as any,
-            secondaryNumberFormat: (chartType === 'mixed' && useDualAxis) ? secondaryNumberFormat as any : undefined
+            secondaryNumberFormat: (chartType === 'mixed' && useDualAxis) ? secondaryNumberFormat as any : undefined,
+            labelLayout,
+            showLabelsCategory
         });
         onClose();
     };
@@ -700,6 +709,87 @@ export function InfographicControlsModal({
                                     ))}
                                 </div>
                             </div>
+
+                            {/* Label Layout (Pie/Donut Only) */}
+                            {(chartType.includes('pie') || chartType.includes('donut')) && (
+                                <div style={{ marginBottom: 24, marginTop: 24, borderTop: '1px solid #eee', paddingTop: 24 }}>
+                                    <label style={{ fontSize: 13, fontWeight: 700, color: '#444', marginBottom: 10, display: 'block' }}>
+                                        🕸️ Disposição dos Rótulos (Layout)
+                                    </label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                                        {[
+                                            { id: 'radial', label: 'Radial' },
+                                            { id: 'balanced', label: 'Balanc.' },
+                                            { id: 'column-left', label: 'Esq.' },
+                                            { id: 'column-right', label: 'Dir.' }
+                                        ].map((opt) => (
+                                            <button
+                                                key={opt.id}
+                                                onClick={() => setLabelLayout(opt.id as any)}
+                                                style={{
+                                                    padding: '8px 4px',
+                                                    fontSize: 12,
+                                                    fontWeight: 600,
+                                                    borderRadius: 8,
+                                                    border: '1px solid',
+                                                    borderColor: labelLayout === opt.id ? '#8b5cf6' : '#ddd',
+                                                    background: labelLayout === opt.id ? '#f5f3ff' : 'white',
+                                                    color: labelLayout === opt.id ? '#7c3aed' : '#666',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: labelLayout === opt.id ? '0 1px 2px rgba(139, 92, 246, 0.2)' : 'none'
+                                                }}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p style={{ fontSize: 11, color: '#666', marginTop: 6 }}>
+                                        Alternativa para gráficos com muitos dados pequenos ou rótulos longos.
+                                    </p>
+
+                                    {/* Show Category Toggle (Values Only Mode) */}
+                                    <div style={{
+                                        marginTop: 16,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '10px 12px',
+                                        background: '#f0f9ff',
+                                        borderRadius: 8,
+                                        border: '1px solid #bae6fd'
+                                    }}>
+                                        <div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#0369a1', display: 'block' }}>🏷️ Texto da Categoria</span>
+                                            <span style={{ fontSize: 11, color: '#0369a1', opacity: 0.8 }}>Ocultar para economizar espaço (Apenas Números)</span>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowLabelsCategory(!showLabelsCategory)}
+                                            style={{
+                                                position: 'relative',
+                                                width: 40,
+                                                height: 20,
+                                                background: showLabelsCategory ? '#0ea5e9' : '#cbd5e1',
+                                                border: 'none',
+                                                borderRadius: 10,
+                                                cursor: 'pointer',
+                                                padding: 0
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: 2,
+                                                left: showLabelsCategory ? 22 : 2,
+                                                width: 16,
+                                                height: 16,
+                                                background: 'white',
+                                                borderRadius: '50%',
+                                                transition: 'left 0.2s'
+                                            }} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Smart Toggles Section */}
                             <div style={{ marginTop: 32 }}>

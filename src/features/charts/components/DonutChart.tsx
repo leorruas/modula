@@ -34,6 +34,8 @@ export function DonutChart({
     );
 
     const layout = propsComputedLayout || smartLayout;
+
+    // 2. Extract Geometry from Engine
     const {
         centerX = width / 2,
         centerY = height / 2,
@@ -41,8 +43,9 @@ export function DonutChart({
         innerRadius = 0,
         innerRadii = [],
         datasetColors,
-        labelPlacements,
-        spiderLegs
+        labelPlacements, // Array of { x, y, textAnchor, strategy, sliceIndex, measure, ... }
+        spiderLegs,      // Array of { points, labelX, labelY, ... }
+        slices           // Visual Geometry
     } = layout.typeSpecific || {};
 
     const dataset = data.datasets?.[0];
@@ -50,18 +53,19 @@ export function DonutChart({
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999', fontSize: 12 }}>No data available</div>;
     }
 
-    const values = dataset.data;
+    if (!slices || slices.length === 0) return null;
+
     const labels = data.labels || [];
     const isInfographic = style?.mode === 'infographic';
-    const total = values.reduce((a, b) => a + b, 0);
+    const total = dataset.data.reduce((a, b) => a + b, 0);
 
     // Infographic Config
     const infographicConfig = style?.infographicConfig || {};
     const heroValueIndex = infographicConfig.heroValueIndex;
     const finalShowValueAnnotations = infographicConfig.showValueAnnotations !== false;
     const finalAnnotationLabels = infographicConfig.annotationLabels;
-    const finalShowExtremes = infographicConfig.showExtremes || false;
-    const finalUseMetadata = infographicConfig.useMetadata || false;
+    // const finalShowExtremes = infographicConfig.showExtremes || false; 
+    // const finalUseMetadata = infographicConfig.useMetadata || false;
     const finalLegendPosition = infographicConfig.legendPosition || 'top';
 
     const useGradient = style?.useGradient;
@@ -69,10 +73,8 @@ export function DonutChart({
     const fontFamily = style?.fontFamily || CHART_THEME.fonts.label;
     const valueFont = isInfographic ? (CHART_THEME.fonts.data || 'monospace') : CHART_THEME.fonts.number;
 
-    let startAngle = 0;
-
     // Legend Component (Simplified extraction)
-    const Legend = finalLegendPosition !== 'none' && values.length > 0 ? (
+    const Legend = finalLegendPosition !== 'none' && dataset.data.length > 0 ? (
         <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -116,9 +118,9 @@ export function DonutChart({
             </defs>
 
             <g transform={`translate(${centerX}, ${centerY})`}>
-                {values.map((value, i) => {
-                    const sliceAngle = (value / total) * 2 * Math.PI;
-                    const endAngle = startAngle + sliceAngle;
+                {/* 1. Slices Rendering using Engine Geometry */}
+                {slices.map((slice, i) => {
+                    const { startAngle, endAngle, value, originalIndex } = slice;
 
                     const currentInnerRadius = innerRadii?.[i] || innerRadius;
 
@@ -131,7 +133,8 @@ export function DonutChart({
                     const x4 = currentInnerRadius * Math.cos(startAngle - Math.PI / 2);
                     const y4 = currentInnerRadius * Math.sin(startAngle - Math.PI / 2);
 
-                    const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
+                    const largeArcFlag = (endAngle - startAngle) > Math.PI ? 1 : 0;
+
                     const pathData = [
                         `M ${x1} ${y1}`,
                         `A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
@@ -140,71 +143,22 @@ export function DonutChart({
                         `Z`
                     ].join(' ');
 
-                    const placement = labelPlacements?.[i];
-                    const isManualHero = heroValueIndex === i;
+                    const isManualHero = heroValueIndex === originalIndex;
 
-                    const sliceResult = (
+                    return (
                         <g key={i}>
                             <path
                                 d={pathData}
-                                fill={useGradient ? `url(#donutGradient-${i % colors.length})` : colors[i % colors.length]}
+                                fill={useGradient ? `url(#donutGradient-${originalIndex % colors.length})` : colors[originalIndex % colors.length]}
                                 stroke="#fff"
                                 strokeWidth={isInfographic ? (isManualHero ? 1 : 0.5) : 1}
                                 opacity={isInfographic && heroValueIndex !== undefined && !isManualHero ? 0.7 : 1}
                             />
-
-                            {placement && placement.strategy !== 'hidden' && (
-                                <g>
-                                    {/* Value Badge (Optional) */}
-                                    {isInfographic && isManualHero && finalShowValueAnnotations && (
-                                        <text x={placement.x} y={placement.y - 24} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                            fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium}>
-                                            {(finalAnnotationLabels?.[i] || "DESTAQUE").toUpperCase()}
-                                        </text>
-                                    )}
-
-                                    {/* Category Label */}
-                                    {placement.wrappedLines.map((line, idx) => (
-                                        <text
-                                            key={idx}
-                                            x={placement.x}
-                                            y={placement.y + (placement.strategy === 'internal' ? -12 : 12) + (idx * 12)}
-                                            textAnchor={placement.textAnchor}
-                                            fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                            fontFamily={fontFamily}
-                                            fill={placement.strategy === 'internal' ? placement.color : CHART_THEME.colors.neutral.dark}
-                                            style={{ textTransform: 'uppercase', opacity: placement.strategy === 'internal' ? 0.8 : 1 }}
-                                        >
-                                            {line}
-                                        </text>
-                                    ))}
-
-                                    {/* Percentage or Formatted Value */}
-                                    <text
-                                        x={placement.x}
-                                        y={placement.y + (placement.strategy === 'internal' ? 6 : 0)}
-                                        textAnchor={placement.textAnchor}
-                                        dominantBaseline="middle"
-                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, placement.strategy === 'internal' ? 'huge' : 'tiny', true)}
-                                        fontFamily={valueFont}
-                                        fontWeight={CHART_THEME.fontWeights.black}
-                                        fill={placement.strategy === 'internal' ? placement.color : CHART_THEME.colors.neutral.dark}
-                                    >
-                                        {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
-                                            ? smartFormatChartValue(value, style.numberFormat)
-                                            : placement.formattedValue // Uses Engine's pre-calculated %
-                                        }
-                                    </text>
-                                </g>
-                            )}
                         </g>
                     );
-
-                    startAngle += sliceAngle;
-                    return sliceResult;
                 })}
 
-                {/* Spider Legs Rendering */}
+                {/* 2. Spider Legs */}
                 {spiderLegs?.map((leg, idx) => (
                     <polyline
                         key={`leg-${idx}`}
@@ -216,31 +170,134 @@ export function DonutChart({
                     />
                 ))}
 
-                {/* Center Hero Narrative */}
-                {isInfographic && innerRadius > 0 && (
-                    <g pointerEvents="none">
-                        {heroValueIndex !== undefined ? (
-                            <>
-                                <text y={-innerRadius * 0.4} textAnchor="middle" fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
-                                    fontFamily={fontFamily} fill={CHART_THEME.colors.neutral.medium}>
-                                    {labels[heroValueIndex]?.toUpperCase()}
+                {/* 3. Labels */}
+                {labelPlacements?.map((placement, idx) => {
+                    if (placement.strategy === 'hidden') return null;
+
+                    const { x, y, textAnchor, color, sliceIndex, measure, strategy } = placement;
+                    const originalIndex = slices[sliceIndex]?.originalIndex ?? sliceIndex;
+                    const value = slices[sliceIndex]?.value;
+                    const labelText = labels[originalIndex] || '';
+
+                    // Badge Logic
+                    const isManualHero = heroValueIndex === originalIndex;
+                    const badgeText = (finalShowValueAnnotations && isManualHero) ? (finalAnnotationLabels?.[originalIndex] || "DESTAQUE") : "";
+
+                    const isInternal = strategy === 'internal';
+                    const lines = measure?.wrappedLines || [];
+
+                    const fontSize = getScaledFont(baseFontSize, baseFontUnit, isInternal ? 'huge' : 'tiny', true);
+
+                    const formattedValue = style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                        ? smartFormatChartValue(value, style.numberFormat)
+                        : (measure?.formattedValue || `${((value / total) * 100).toFixed(1)}%`);
+
+                    return (
+                        <g key={idx}>
+                            {/* Value Badge (Optional) */}
+                            {badgeText && (
+                                <text x={x} y={y - (measure?.totalHeight ?? 24) / 2 - 12} textAnchor={textAnchor} fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                    fontFamily={fontFamily} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.medium}>
+                                    {badgeText.toUpperCase()}
                                 </text>
-                                <text y={5} textAnchor="middle" fontSize={innerRadius * 0.35}
-                                    fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                    {style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
-                                        ? smartFormatChartValue(dataset.data[heroValueIndex], style.numberFormat)
-                                        : `${((dataset.data[heroValueIndex] / total) * 100).toFixed(1)}%`
-                                    }
-                                </text>
-                            </>
-                        ) : (
-                            <text y={5} textAnchor="middle" fontSize={innerRadius * 0.6}
-                                fontFamily={valueFont} fontWeight={CHART_THEME.fontWeights.black} fill={CHART_THEME.colors.neutral.dark}>
-                                {smartFormatChartValue(total, style?.numberFormat)}
+                            )}
+
+                            {/* Main Label Group */}
+                            <text
+                                x={x}
+                                y={y - (measure?.totalHeight ?? 24) / 2 + (fontSize * 0.8)}
+                                textAnchor={textAnchor}
+                                fontFamily={valueFont}
+                                fill={isInternal ? color : CHART_THEME.colors.neutral.dark}
+                            >
+                                {/* 1. The Value (Bold/Large) */}
+                                <tspan x={x} fontSize={fontSize} fontWeight={CHART_THEME.fontWeights.black}>
+                                    {formattedValue}
+                                </tspan>
+
+                                {/* 2. The Category lines (Regular/Small) */}
+                                {lines.map((line: string, i: number) => (
+                                    <tspan
+                                        key={i}
+                                        x={x}
+                                        dy={14} // Line height for category
+                                        fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                        fontFamily={fontFamily}
+                                        fontWeight={400} // Regular
+                                        style={{ textTransform: 'uppercase', opacity: isInternal ? 0.8 : 0.7 }}
+                                    >
+                                        {line}
+                                    </tspan>
+                                ))}
                             </text>
-                        )}
-                    </g>
-                )}
+                        </g>
+                    );
+                })}
+
+                {/* 4. Center Hero Narrative (Improved Typography & Wrapping) */}
+                {isInfographic && innerRadius > 0 && (() => {
+                    const heroText = heroValueIndex !== undefined ? labels[heroValueIndex] : (dataset.label || "TOTAL");
+                    const heroValueText = heroValueIndex !== undefined
+                        ? (style?.numberFormat?.type === 'currency' || style?.numberFormat?.type === 'number'
+                            ? smartFormatChartValue(dataset.data[heroValueIndex], style.numberFormat)
+                            : `${((dataset.data[heroValueIndex] / total) * 100).toFixed(1)}%`)
+                        : smartFormatChartValue(total, style?.numberFormat);
+
+                    // Simplified dynamic wrapping for center
+                    const maxCharsPerLine = Math.floor(innerRadius / (baseFontSize * 0.4));
+                    const words = (heroText || "").toUpperCase().split(/\s+/);
+                    const wrappedLines: string[] = [];
+                    let currentLine = "";
+
+                    words.forEach(word => {
+                        if ((currentLine + " " + word).trim().length <= maxCharsPerLine) {
+                            currentLine = (currentLine + " " + word).trim();
+                        } else {
+                            if (currentLine) wrappedLines.push(currentLine);
+                            currentLine = word;
+                        }
+                    });
+                    if (currentLine) wrappedLines.push(currentLine);
+
+                    // Limit to 2 lines for center to avoid vertical overflow
+                    const displayLines = wrappedLines.slice(0, 2);
+
+                    return (
+                        <g pointerEvents="none">
+                            {/* The Big Number (Value) */}
+                            <text
+                                y={heroValueIndex !== undefined ? 5 : 8}
+                                textAnchor="middle"
+                                fontSize={heroValueIndex !== undefined ? innerRadius * 0.35 : innerRadius * 0.55}
+                                style={{ letterSpacing: '-0.02em' }}
+                                fontFamily={valueFont}
+                                fontWeight={CHART_THEME.fontWeights.extraBold || 800}
+                                fill={CHART_THEME.colors.neutral.dark}
+                            >
+                                {heroValueText}
+                            </text>
+
+                            {/* The Label (Category or "Total") */}
+                            {displayLines.map((line, i) => (
+                                <text
+                                    key={i}
+                                    y={heroValueIndex !== undefined
+                                        ? (-innerRadius * 0.45 + (i * 12)) // Above if hero
+                                        : (innerRadius * 0.55 + 10 + (i * 12)) // Below if total
+                                    }
+                                    textAnchor="middle"
+                                    fontSize={getScaledFont(baseFontSize, baseFontUnit, 'tiny')}
+                                    fontFamily={fontFamily}
+                                    fontWeight={600}
+                                    fill={CHART_THEME.colors.neutral.medium}
+                                    style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                >
+                                    {line}
+                                </text>
+                            ))}
+                        </g>
+                    );
+                })()}
             </g>
         </BaseChart>
     );

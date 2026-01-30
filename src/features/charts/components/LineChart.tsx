@@ -11,6 +11,7 @@ interface LineChartProps {
     style?: ChartStyle;
     baseFontSize?: number;
     baseFontUnit?: 'pt' | 'px' | 'mm';
+    gridConfig?: any;
 }
 
 export function LineChart({ width, height, data, style, baseFontSize = 11, baseFontUnit = 'pt' }: LineChartProps) {

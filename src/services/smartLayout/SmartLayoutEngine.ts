@@ -206,7 +206,8 @@ export class SmartLayoutEngine {
                 baseFontSize,
                 fontFamily,
                 target,
-                datasetColors
+                datasetColors,
+                marginsResult
             );
         }
 
@@ -256,6 +257,14 @@ export class SmartLayoutEngine {
                 analysis.mode,
                 analysis.availableSpace.width // Pass container width
             );
+
+            // LOD Check: If Legend Only mode (Small), forbid legend from being hidden unless explicit?
+            // Actually, if LOD is small, we force legend ON because we hide labels.
+            // But we handle this in radial layout or here? 
+            // In Radial layout we decide labels. Here we reserve space.
+            // If LOD says "Labels Hidden, Legend Required", we must ensure space.
+            // Let's deduce LOD here quickly or defer?
+            // Safer to do standard calculation, and Radial Layout overrides if needed.
 
             if (legendPosition === 'bottom') {
                 legendZone = {
@@ -555,8 +564,9 @@ export class SmartLayoutEngine {
         dataComplexity: ChartAnalysis['dataComplexity']
     ): { top: number; right: number; bottom: number; left: number; wrappedLabels: string[][]; isStacked: boolean } {
         // Base margins
-        let marginLeft = 40;
-        let marginRight = 40;
+        const isRadial = analysis.chartType === 'pie' || analysis.chartType === 'donut';
+        let marginLeft = isRadial ? 20 : 40;
+        let marginRight = isRadial ? 20 : 40;
         let marginTop = 20;
         let marginBottom = 20;
         let wrappedLabels: string[][] = [];
@@ -876,28 +886,91 @@ export class SmartLayoutEngine {
         baseFontSize: number,
         fontFamily: string,
         target: 'screen' | 'pdf',
-        datasetColors: string[]
+        datasetColors: string[],
+        marginsResult: { top: number; right: number; bottom: number; left: number }
     ): ComputedLayout {
         const width = analysis.availableSpace.width;
         const height = analysis.availableSpace.height;
 
+        // FASE 5.1: Level of Detail (LOD) System
+        const sizeDim = Math.min(width, height);
+        let lod: 'tiny' | 'small' | 'normal' | 'detailed' = 'normal';
+
+        if (sizeDim < 150) lod = 'tiny';
+        else if (sizeDim < 300) lod = 'small';
+
+        // Override LOD if "Show All Labels" is requested
+        const forcedShowAll = chart.style?.infographicConfig?.showAllLabels;
+        if (forcedShowAll) {
+            lod = 'detailed'; // Force detailed
+        }
+
+        // FASE 5.2: Minimum Slice Angle Calculation (Visual Distortion)
         const dataset = chart.data.datasets?.[0];
-        const values = dataset?.data || [];
-        const total = values.reduce((a, b) => a + b, 0);
-        const maxValue = Math.max(...values);
+        const rawValues = dataset?.data || [];
+        const total = rawValues.reduce((a, b) => a + b, 0);
+
+        // Define minimum degrees for visibility (increased for better "Projetos" clarity)
+        const MIN_SLICE_DEGREES = 20;
+        const MIN_SLICE_RAD = (MIN_SLICE_DEGREES * Math.PI) / 180;
+
+        // 1. Identify "Tiny" slices
+        const tinyIndices: number[] = [];
+        let largeSum = 0;
+
+        rawValues.forEach((val, i) => {
+            const ratio = val / total;
+            const degrees = ratio * 360;
+            if (degrees < MIN_SLICE_DEGREES && val > 0) {
+                tinyIndices.push(i);
+            } else {
+                largeSum += val;
+            }
+        });
+
+        // 2. Distribute visual angles
+        const reservedDegrees = tinyIndices.length * MIN_SLICE_DEGREES;
+        const remainingDegrees = 360 - reservedDegrees;
+
+        // Helper to get visual angle for index
+        const getVisualAngle = (index: number): number => {
+            if (tinyIndices.length === 0 || remainingDegrees <= 0) {
+                return (rawValues[index] / total) * 2 * Math.PI;
+            }
+            if (tinyIndices.includes(index)) {
+                return MIN_SLICE_RAD;
+            }
+            // Scale down large slices
+            // Re-normalize: (val / largeSum) * remainingDegrees
+            return (rawValues[index] / largeSum) * (remainingDegrees * Math.PI / 180);
+        };
+
+        const maxValue = Math.max(...rawValues);
         const labels = chart.data.labels || [];
 
         // Constants for Radial Layout
-        const MAX_RADIAL_LABEL_WIDTH = 140;
+        // Constants for Radial Layout
+        // Dynamic Constraints based on container
+        const DYNAMIC_MAX_LABEL_WIDTH = Math.max(120, width * 0.28); // Dynamic wrap width (approx 28% of container)
         const SPIDER_LEG_X_EXTENSION = 40;
-        const MIN_VERTICAL_GAP = 4;
+        const MIN_VERTICAL_GAP = 12;
+        const MIN_RADIAL_THICKNESS_RATIO = 0.22; // Floor: 22% of radius must be filled even for smallest slices
 
         // 1. Pre-analysis: Wrap text and determine space needs
         let maxLabelWidthNeeded = 0;
-        let needsExternal = values.length > 8;
+        let needsExternal = rawValues.length > 8;
+
+        // Columnar Layout Request
+        const labelLayout = chart.style?.infographicConfig?.labelLayout || 'radial'; // 'radial', 'column-left', 'column-right'
+        const isColumnar = labelLayout === 'column-left' || labelLayout === 'column-right' || labelLayout === 'balanced'; // Added balanced
+        if (isColumnar) needsExternal = true; // Columns imply external labels
+
+        if (lod === 'tiny') {
+            needsExternal = false; // No labels in tiny mode
+        }
 
         // Store pre-calculated metrics to avoid re-measuring
-        const measuredLabels = values.map((val, i) => {
+        const measuredLabels = rawValues.map((val, i) => {
             const labelText = labels[i] || '';
 
             // Fonts
@@ -909,43 +982,47 @@ export class SmartLayoutEngine {
             // Since we don't have a robust helper exposed, we simulate it:
             const words = labelText.toUpperCase().split(/\s+/);
             let currentLine = words[0] || '';
+            const showLabelsCategory = chart.style?.infographicConfig?.showLabelsCategory !== false;
+
             const wrappedLines: string[] = [];
+            let maxCategoryWidth = 0;
+            let categoryHeight = 0;
 
-            for (let w = 1; w < words.length; w++) {
-                const testLine = currentLine + ' ' + words[w];
-                const testWidth = textMeasurementService.measureTextWidth({
-                    text: testLine,
-                    fontSize: categoryFontSize,
-                    fontFamily,
-                    fontWeight: '400'
-                });
-                if (testWidth <= MAX_RADIAL_LABEL_WIDTH) {
-                    currentLine = testLine;
-                } else {
-                    wrappedLines.push(currentLine);
-                    currentLine = words[w];
+            if (showLabelsCategory) {
+                for (let w = 1; w < words.length; w++) {
+                    const testLine = currentLine + ' ' + words[w];
+                    const testWidth = textMeasurementService.measureTextWidth({
+                        text: testLine,
+                        fontSize: categoryFontSize,
+                        fontFamily,
+                        fontWeight: '400'
+                    });
+                    if (testWidth <= DYNAMIC_MAX_LABEL_WIDTH) {
+                        currentLine = testLine;
+                    } else {
+                        wrappedLines.push(currentLine);
+                        currentLine = words[w];
+                    }
                 }
-            }
-            wrappedLines.push(currentLine);
+                wrappedLines.push(currentLine);
 
-            // Measure Dimensions
-            const categoryWidths = wrappedLines.map(line => textMeasurementService.measureTextWidth({
-                text: line, fontSize: categoryFontSize, fontFamily, fontWeight: '400'
-            }));
-            const maxCategoryWidth = Math.max(...categoryWidths, 0);
+                // Measure Dimensions
+                const categoryWidths = wrappedLines.map(line => textMeasurementService.measureTextWidth({
+                    text: line, fontSize: categoryFontSize, fontFamily, fontWeight: '400'
+                }));
+                maxCategoryWidth = Math.max(...categoryWidths, 0);
+                categoryHeight = wrappedLines.length * (categoryFontSize * 1.2);
+            }
 
             // Measure Value (FASE 4: Formatting integration)
             const numberFormat = chart.style?.numberFormat;
             const percentageValue = (val / total) * 100;
             const percentageText = `${percentageValue.toFixed(1)}%`;
 
-            // Format for actual measurement (could be currency/number if selected)
-            const formattedValue = smartFormatChartValue(val, numberFormat);
-
             // For Pie/Donut labels, we use the formatted value if it's NOT percentage, 
             // or the percentage if it IS percentage.
             const textToMeasure = (numberFormat?.type === 'currency' || numberFormat?.type === 'number')
-                ? formattedValue
+                ? smartFormatChartValue(val, numberFormat)
                 : percentageText;
 
             const valueMetrics = textMeasurementService.measureDetailedMetrics({
@@ -958,9 +1035,7 @@ export class SmartLayoutEngine {
             // Total Block Dimensions
             const totalWidth = Math.max(maxCategoryWidth, valueMetrics.width);
             // Height: (Category Lines * LineHeight) + Value Height + Padding
-            // Assuming category line height ~1.2em
-            const categoryHeight = wrappedLines.length * (categoryFontSize * 1.2);
-            const totalHeight = categoryHeight + valueMetrics.height + 4; // 4px padding
+            const totalHeight = categoryHeight + valueMetrics.height + (showLabelsCategory ? 4 : 0);
 
             return {
                 wrappedLines,
@@ -972,89 +1047,229 @@ export class SmartLayoutEngine {
                 categoryHeight
             };
         });
+        // FASE 10: Inherit margins from computeDynamicMargins (handles Legend space)
+        const margins = {
+            top: marginsResult.top,
+            bottom: marginsResult.bottom,
+            left: marginsResult.left,
+            right: marginsResult.right
+        };
 
-        // Determine margin needs based on wrapped widths
-        // Expanded margins for Infographic Mode in PDF
-        const baseMargin = target === 'pdf' ? 80 : 40;
-        const testPlotSize = Math.min(width - (baseMargin * 2), height - (baseMargin * 2));
+        // Force larger margins if using columnar layout to accommodate text columns
+        const hasColumnarLayout = (chart.style?.infographicConfig?.labelLayout === 'column-left' ||
+            chart.style?.infographicConfig?.labelLayout === 'column-right' ||
+            chart.style?.infographicConfig?.labelLayout === 'balanced');
+
+        let safeDynamicMargin = 0;
+        if (hasColumnarLayout) {
+            let maxLabelWidth = 0;
+            measuredLabels.forEach(m => {
+                if (m.totalWidth > maxLabelWidth) maxLabelWidth = m.totalWidth;
+            });
+
+            // Required space for a column
+            const requiredSide = maxLabelWidth + 50;
+            const maxAllowedSide = width * 0.45; // Increased cap for wide text
+            safeDynamicMargin = Math.max(70, Math.min(requiredSide, maxAllowedSide));
+
+            if (labelLayout === 'column-left') {
+                margins.left = safeDynamicMargin;
+                margins.right = 30;
+            } else if (labelLayout === 'column-right') {
+                margins.right = safeDynamicMargin;
+                margins.left = 30;
+            } else {
+                margins.left = safeDynamicMargin;
+                margins.right = safeDynamicMargin;
+            }
+        }
+
+        // FASE 10: Margin Collapse (Reclaim space if no external labels needed)
+        if (!needsExternal && !lod.includes('tiny')) {
+            // If we don't need columns, check if we can shrink margins to defaults
+            // but keep the space reserved for the legend.
+            const minPadding = 20;
+            margins.left = Math.max(margins.left - safeDynamicMargin + minPadding, margins.left);
+            margins.right = Math.max(margins.right - safeDynamicMargin + minPadding, margins.right);
+
+            // If labels are internal and we were in columnar mode, we might have pushed 
+            // the chart too much. Let's force symmetry if it wasn't explicit.
+            if (!isColumnar) {
+                const sideMax = Math.max(margins.left, margins.right);
+                margins.left = sideMax;
+                margins.right = sideMax;
+            }
+        }
+
+        // FASE 9: Re-calculate available space using FINAL dynamic margins
+        const availableW = width;
+        const availableH = height;
+        const testPlotSize = Math.min(
+            availableW - (margins.left + margins.right),
+            availableH - (margins.top + margins.bottom)
+        );
+
         const testOuterRadius = testPlotSize / 2;
         const testInnerRadius = chart.type === 'donut' ? testOuterRadius * 0.75 : 0;
 
-        values.forEach((val, i) => {
-            const sliceAngle = (val / total) * 2 * Math.PI;
+        rawValues.forEach((val, i) => {
+            const sliceAngle = getVisualAngle(i);
             const sliceWidthAtCentroid = (testOuterRadius + testInnerRadius) / 2 * sliceAngle;
             const measure = measuredLabels[i];
 
-            // Decision: Internal or External?
-            const fitsInternal = sliceAngle >= (30 * Math.PI / 180) &&
-                sliceWidthAtCentroid > measure.totalWidth + 35 &&
-                (testOuterRadius - testInnerRadius) > measure.totalHeight + 20;
+            let fitsInternal = false;
 
-            if (!fitsInternal || needsExternal) {
+            if (lod === 'tiny') {
+                fitsInternal = true;
+            } else if (isColumnar) {
+                fitsInternal = sliceAngle >= (60 * Math.PI / 180) &&
+                    sliceWidthAtCentroid > measure.totalWidth + 40 &&
+                    (testOuterRadius - testInnerRadius) > measure.totalHeight + 25;
+            } else {
+                fitsInternal = sliceAngle >= (30 * Math.PI / 180) &&
+                    sliceWidthAtCentroid > measure.totalWidth + 35 &&
+                    (testOuterRadius - testInnerRadius) > measure.totalHeight + 20;
+            }
+
+            if ((!fitsInternal || needsExternal) && lod !== 'tiny') {
                 needsExternal = true;
-                // External need: Extension + Text Width + Safety
                 maxLabelWidthNeeded = Math.max(maxLabelWidthNeeded, measure.totalWidth + SPIDER_LEG_X_EXTENSION + 20);
             }
         });
 
-        // 2. Dynamic Margins (Safety Reservation)
-        const sideMargin = baseMargin + (needsExternal ? maxLabelWidthNeeded : 0);
-        const margins = {
-            top: baseMargin + 20,
-            right: sideMargin,
-            bottom: baseMargin + 20,
-            left: sideMargin
-        };
-
         // 3. Define Plot Zone
-        const availableWidth = width - (margins.left + margins.right);
-        const availableHeight = height - (margins.top + margins.bottom);
-        const plotSize = Math.max(20, Math.min(availableWidth, availableHeight));
-
         const plotZone: Zone = {
-            x: margins.left + (availableWidth - plotSize) / 2,
-            y: margins.top + (availableHeight - plotSize) / 2,
-            width: plotSize,
-            height: plotSize
+            x: margins.left + (availableW - (margins.left + margins.right) - testPlotSize) / 2,
+            y: margins.top + (availableH - (margins.top + margins.bottom) - testPlotSize) / 2,
+            width: testPlotSize,
+            height: testPlotSize
         };
 
-        const centerX = plotZone.x + plotSize / 2;
-        const centerY = plotZone.y + plotSize / 2;
-        const outerRadius = plotSize / 2;
-        const innerRadius = chart.type === 'donut' ? outerRadius * (analysis.mode === 'infographic' ? 0.75 : 0.6) : 0;
+        // Re-center or shift plot zone based on layout strategy if width > height
+        if (availableW > availableH) {
+            if (labelLayout === 'column-right') {
+                plotZone.x = margins.left;
+            } else if (labelLayout === 'column-left') {
+                plotZone.x = width - margins.right - testPlotSize;
+            }
+        }
 
-        const labelPlacements: any[] = [];
-        const spiderLegs: any[] = [];
+        // FASE 10: Accurate Legend Zone Calculation
+        let legendZone: Zone | null = null;
+        if (analysis.layoutRequirements.needsLegend) {
+            const legendPosition = analysis.layoutRequirements.userLegendPosition || rules.legendPosition;
+            const legendDims = this.calculateLegendDimensions(
+                chart.data.datasets || [],
+                legendPosition,
+                baseFontSize,
+                fontFamily,
+                analysis.mode,
+                width
+            );
+
+            if (legendPosition === 'bottom') {
+                legendZone = {
+                    x: margins.left,
+                    y: height - margins.bottom + 10,
+                    width: plotZone.width,
+                    height: legendDims.height
+                };
+            } else if (legendPosition === 'top') {
+                legendZone = {
+                    x: margins.left,
+                    y: 10,
+                    width: plotZone.width,
+                    height: legendDims.height
+                };
+            } else if (legendPosition === 'left') {
+                legendZone = {
+                    x: 10,
+                    y: margins.top,
+                    width: legendDims.width,
+                    height: plotZone.height
+                };
+            } else if (legendPosition === 'right') {
+                legendZone = {
+                    x: width - margins.right + 10,
+                    y: margins.top,
+                    width: legendDims.width,
+                    height: plotZone.height
+                };
+            }
+        }
+
+        const centerX = plotZone.x + plotZone.width / 2;
+        const centerY = plotZone.y + plotZone.height / 2;
+        const outerRadius = plotZone.width / 2;
+
+        // FASE 7: Thickness Integrity Floor
+        const baseThickness = outerRadius * (analysis.mode === 'infographic' ? 0.35 : 0.4);
+        const minThickness = outerRadius * MIN_RADIAL_THICKNESS_RATIO;
+        const innerRadius = chart.type === 'donut' ? (outerRadius - baseThickness) : 0;
+
+        const labelPlacements: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const spiderLegs: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const slices: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
         const innerRadii: number[] = [];
         let startAngle = 0;
 
         // Collect proposed external placements for relaxation
-        const rightSideLabels: any[] = [];
-        const leftSideLabels: any[] = [];
+        const rightSideLabels: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+        const leftSideLabels: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-        values.forEach((val, i) => {
-            const sliceAngle = (val / total) * 2 * Math.PI;
+        rawValues.forEach((val, i) => {
+            const sliceAngle = getVisualAngle(i);
             const labelAngle = startAngle + sliceAngle / 2;
             const measure = measuredLabels[i];
 
-            // Variable Thickness
+            // Variable Thickness with Integrity Floor
             let currentInnerRadius = innerRadius;
             if (analysis.mode === 'infographic' && chart.type === 'donut') {
                 const weight = val / maxValue;
-                const minHoleRadius = outerRadius * 0.7;
-                const maxHoleRadius = outerRadius * 0.99;
-                currentInnerRadius = maxHoleRadius - (weight * (maxHoleRadius - minHoleRadius));
+                const dynamicThickness = Math.max(minThickness, weight * baseThickness);
+                currentInnerRadius = outerRadius - dynamicThickness;
             }
             innerRadii.push(currentInnerRadius);
 
-            // Re-check geometric fit with FINAL radius
-            const sliceWidthAtCentroid = (outerRadius + currentInnerRadius) / 2 * sliceAngle;
-            const fitsWidth = sliceWidthAtCentroid > measure.totalWidth + 35;
-            const fitsDepth = (outerRadius - currentInnerRadius) > measure.totalHeight + 20;
-            const isNarrow = sliceAngle < (30 * Math.PI / 180);
-            const isCrowded = values.length > 8;
+            const endAngle = startAngle + sliceAngle;
+            const midAngle = startAngle + sliceAngle / 2;
 
-            let strategy: 'internal' | 'external' | 'hidden' = (isNarrow || isCrowded || !fitsWidth || !fitsDepth) ? 'external' : 'internal';
+            // Store Visual Geometry
+            slices.push({
+                startAngle,
+                endAngle,
+                midAngle,
+                innerRadius: currentInnerRadius,
+                outerRadius,
+                color: datasetColors[i % datasetColors.length],
+                value: val,
+                percent: (val / total) * 100,
+                originalIndex: i
+            });
+
+            // Re-check logic for this specific slice
+            const measureCheck = measuredLabels[i];
+            const sliceWidthAtCentroid = (outerRadius + currentInnerRadius) / 2 * sliceAngle;
+            const fitsWidth = sliceWidthAtCentroid > measureCheck.totalWidth + 35;
+            const fitsDepth = (outerRadius - currentInnerRadius) > measureCheck.totalHeight + 20;
+            const isNarrow = sliceAngle < (30 * Math.PI / 180);
+            const isCrowded = rawValues.length > 8;
+
+            let strategy: 'internal' | 'external' | 'hidden' = 'internal';
+
+            if (lod === 'tiny') {
+                strategy = 'hidden';
+            } else if (lod === 'small' && !forcedShowAll) {
+                strategy = 'hidden'; // Rely on Legend/Tooltip
+            } else if (fitsWidth && fitsDepth) {
+                // If it fits inside, stay inside regardless of columnar layout (Hybrid Strategy)
+                strategy = 'internal';
+            } else if (isColumnar) {
+                // Doesn't fit inside, and we want columns -> external
+                strategy = 'external';
+            } else if (isNarrow || isCrowded || !fitsWidth || !fitsDepth) {
+                strategy = 'external';
+            }
 
             // Internal Placement
             const internalR = (outerRadius + currentInnerRadius) / 2;
@@ -1063,9 +1278,20 @@ export class SmartLayoutEngine {
 
             // External Placement (Preliminary)
             const isRightSide = (labelAngle % (2 * Math.PI)) < Math.PI;
-            const textAnchor = isRightSide ? 'start' : 'end';
-            const spiderLabelX = isRightSide ? outerRadius + SPIDER_LEG_X_EXTENSION : -outerRadius - SPIDER_LEG_X_EXTENSION;
+            let textAnchor = isRightSide ? 'start' : 'end';
+            let spiderLabelX = isRightSide ? outerRadius + SPIDER_LEG_X_EXTENSION : -outerRadius - SPIDER_LEG_X_EXTENSION;
             const spiderLabelY = (outerRadius + 20) * Math.sin(labelAngle - Math.PI / 2);
+
+            // Columnar Overrides
+            if (strategy === 'external') {
+                if (labelLayout === 'column-right') {
+                    spiderLabelX = outerRadius + SPIDER_LEG_X_EXTENSION;
+                    textAnchor = 'start';
+                } else if (labelLayout === 'column-left') {
+                    spiderLabelX = -outerRadius - SPIDER_LEG_X_EXTENSION;
+                    textAnchor = 'end';
+                }
+            }
 
             // Store placement object
             const placement = {
@@ -1076,7 +1302,7 @@ export class SmartLayoutEngine {
                 strategy,
                 formattedValue: measure.formattedValue,
                 color: ColorService.getBestContrastColor(datasetColors[i % datasetColors.length]),
-                wrappedLines: strategy === 'internal' ? [labels[i]] : measure.wrappedLines, // Use wrapped lines for external
+                wrappedLines: measure.wrappedLines, // Respect toggle (don't fallback if empty)
                 height: measure.totalHeight, // for collision
                 labelAngle,
                 isRightSide,
@@ -1086,48 +1312,119 @@ export class SmartLayoutEngine {
 
             labelPlacements.push(placement);
 
+            // External Placement Logic
             if (strategy === 'external') {
-                if (isRightSide) {
-                    rightSideLabels.push(placement);
+                // Determine Side based on layout preference
+                let side: 'left' | 'right' = 'right';
+
+                if (labelLayout === 'column-left') side = 'left';
+                else if (labelLayout === 'column-right') side = 'right';
+                else if (labelLayout === 'balanced') {
+                    // Split by angle: Left (PI to 2PI), Right (0 to PI) assuming 12 o'clock start
+                    const mid = startAngle + sliceAngle / 2;
+                    const geometricAngle = mid - Math.PI / 2;
+                    side = Math.cos(geometricAngle) >= 0 ? 'right' : 'left';
                 } else {
-                    leftSideLabels.push(placement);
+                    // Classic Radial External
+                    // ... (omitted for columnar block)
+                    // If we are here, isColumnar or crowded.
+                    // If columnar, we should stick to columns.
+                    // If radial-crowded, do we use columns? No, radial explosion.
+                    // But this block is "External Placement Logic".
+                }
+
+                if (isColumnar) {
+                    // Center-Relative Y-coordinate
+                    const yPos = outerRadius * Math.sin(labelAngle - Math.PI / 2);
+
+                    if (side === 'left') {
+                        leftSideLabels.push({
+                            originalY: yPos,
+                            y: yPos,
+                            sliceIndex: i,
+                            measure,
+                            color: datasetColors[i % datasetColors.length],
+                            textAnchor: 'end', // Left side: end at margin, grow towards center
+                            xTarget: margins.left - centerX + 50, // Added safety offset from center
+                            totalHeight: measure.totalHeight
+                        });
+                    } else {
+                        rightSideLabels.push({
+                            originalY: yPos,
+                            y: yPos,
+                            sliceIndex: i,
+                            measure,
+                            color: datasetColors[i % datasetColors.length],
+                            textAnchor: 'start', // Right side: start at margin, grow towards center
+                            xTarget: (width - margins.right) - centerX - 50, // Added safety offset
+                            totalHeight: measure.totalHeight
+                        });
+                    }
+                    // Skip strict radial calculation for columnar
+                    startAngle += sliceAngle;
+                    return;
                 }
             }
-
             startAngle += sliceAngle;
         });
 
         // 4. Collision Resolution (Spider Leg Relaxation)
-        const relaxLabels = (items: any[]) => {
+        const relaxLabels = (items: any[]) => { // eslint-disable-line @typescript-eslint/no-explicit-any
             if (items.length <= 1) return;
-            // Sort by Y (top to bottom)
+            // Sort by originalY (top to bottom) to ensure no legs ever cross
             items.sort((a, b) => a.originalY - b.originalY);
 
+            const minY = margins.top - centerY + 10;
+            const maxY = (height - margins.bottom) - centerY - 10;
+
             // Forward pass (push down)
+            if (items[0].y < minY) items[0].y = minY;
+
             for (let i = 1; i < items.length; i++) {
                 const prev = items[i - 1];
                 const curr = items[i];
-                // Distance needed: half height of prev + half height of curr + gap
-                // Simplified: dist > 30px (approx height of 2 lines)
-                const requiredGap = (prev.height / 2) + (curr.height / 2) + MIN_VERTICAL_GAP;
+                const requiredGap = (prev.totalHeight / 2) + (curr.totalHeight / 2) + MIN_VERTICAL_GAP;
 
                 if (curr.y - prev.y < requiredGap) {
-                    // Push current down
                     curr.y = prev.y + requiredGap;
                 }
             }
 
-            // Backward pass (push up if pushing down caused overflow or just to center)
-            // Check if bottom-most element is too far down?
-            // For now, simple aggressive push down is better than overlap.
-            // We could center the group vertically if needed, but keeping them near radial ideal is best.
-            // Let's do a simple center correction if the whole group shifted too much?
-            // Skip for now, "Stack Down" is standard.
+            // Backward pass (push up to avoid bottom clipping)
+            let lastItem = items[items.length - 1];
+            if (lastItem.y + (lastItem.totalHeight / 2) > maxY) {
+                lastItem.y = maxY - (lastItem.totalHeight / 2);
+                for (let i = items.length - 2; i >= 0; i--) {
+                    const next = items[i + 1];
+                    const curr = items[i];
+                    const requiredGap = (curr.totalHeight / 2) + (next.totalHeight / 2) + MIN_VERTICAL_GAP;
+                    if (next.y - curr.y < requiredGap) {
+                        curr.y = next.y - requiredGap;
+                    }
+                }
+                if (items[0].y < minY) items[0].y = minY;
+            }
         };
 
         relaxLabels(rightSideLabels);
-        // Left side: Sort by Y (top to bottom) as well
         relaxLabels(leftSideLabels);
+
+        // Merge Back Columnar Labels into labelPlacements
+        if (isColumnar) {
+            [...leftSideLabels, ...rightSideLabels].forEach((p) => {
+                // Find existing placement (the internal one we pushed earlier)
+                const idx = labelPlacements.findIndex(lp => lp.sliceIndex === p.sliceIndex);
+                if (idx !== -1) {
+                    labelPlacements[idx] = {
+                        ...labelPlacements[idx],
+                        x: p.xTarget,
+                        y: p.y,
+                        textAnchor: p.textAnchor,
+                        strategy: 'external'
+                    };
+                }
+            });
+        }
 
         // Update Spider Legs based on relaxed positions
         labelPlacements.forEach((p) => {
@@ -1160,7 +1457,7 @@ export class SmartLayoutEngine {
 
         return {
             container: { width, height },
-            zones: { plot: plotZone, legend: null, xAxis: null, yAxis: null },
+            zones: { plot: plotZone, legend: legendZone, xAxis: null, yAxis: null },
             margins,
             scaling: { factor: 1.0, appliedTo: [] },
             typeSpecific: {
@@ -1171,7 +1468,9 @@ export class SmartLayoutEngine {
                 innerRadii,
                 datasetColors,
                 labelPlacements, // Contains the relaxed Y coordinates
-                spiderLegs
+                spiderLegs,
+                slices,
+                lod
             }
         };
     }

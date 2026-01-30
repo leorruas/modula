@@ -105,10 +105,14 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Legend Proximity (Gap Rule)**: A distância entre o gráfico e a legenda deve ser minimizada para garantir associação Gestalt. O `gap` é reduzido para **8px** (BaseChart) e margens internas do MixedChart são otimizadas para eliminar espaços em branco.
     *   **Proportional Spacing (Breath Rule)**: O espaçamento vertical é derivado do `fontSize` (ex: `1.5em`), garantindo que rótulos e gráficos mantenham distância segura ao escalar a fonte.
 *   **Pie/Donut Charts (Infographic)**:
-    *   **Padding**: Reduced to `60px` (Pie) and `40px` (Donut) to maximize chart scale.
+    *   **Padding**: Base de **20px** (Classic) e **40px** (Infographic) para maximizar a escala do chart.
     *   **Pie Style**: "Nightingale Rose" effect - Radius varies by value intensity.
-    *   **Donut Style**: "Variable Thickness" - Slice thickness varies by value (heavier values = thicker).
+    *   **Donut Style**: "Variable Thickness" - Slice thickness varies by value (heavier values = thicker). Espessura mínima garantida de **22%** (`Thickness Floor`) do raio para evitar fatias "invisíveis".
     *   **Sorting**: Optional "Largest to Smallest" sorting (Clockwise).
+    *   **Editorial Label Stack**:
+        - **Valores/Percentuais**: Topo, Peso **Black (900)** para impacto máximo.
+        - **Categorias (Metadata)**: Abaixo, Peso **Regular (400)**, servindo como rotulagem secundária.
+        - **SVG Unification**: Ambos renderizados em um único grupo SVG para alinhamento vertical rigoroso.
 
 ### 3.4. Advanced Layout Intelligence (The Brain)
 To maintain the "Editorial & Minimalist" look, the system follows these invisible rules:

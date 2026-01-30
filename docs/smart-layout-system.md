@@ -236,7 +236,7 @@ const CHART_TYPE_RULES: Record<ChartType, LayoutRules> = {
         legendPosition: 'top',
         marginPriority: ['all-equal'],
         minPlotWidth: 0.6,
-        labelStrategy: 'external-or-hide'
+        labelStrategy: 'hybrid-internal-or-column'
     },
     donut: {
         idealAspectRatio: 1,
@@ -244,7 +244,7 @@ const CHART_TYPE_RULES: Record<ChartType, LayoutRules> = {
         legendPosition: 'top',
         marginPriority: ['all-equal'],
         minPlotWidth: 0.6,
-        labelStrategy: 'external-or-hide'
+        labelStrategy: 'hybrid-internal-or-column'
     },
     radar: {
         idealAspectRatio: 1,
@@ -709,7 +709,7 @@ const LOD_RULES = {
         showAxis: false,
         showGrid: false,
         showLegends: false,
-        showValues: false,
+        showValues: 'internal-only', // Radial: fatias minúsculas sem legs
         strokeWidth: 2,
         simplifyData: true // Downsampling
     },
@@ -773,10 +773,10 @@ Para elementos que disputam o mesmo espaço (labels, anotações), o sistema dev
    - Tenta posições aleatórias e minimiza função de custo (sobreposição + distância do ponto).
    - *Uso: Mapas, diagramas de rede.*
 
-4. **Y-Axis Stacking** (Ordenado):
-   - Ordena labels por Y.
-   - Se sobrepõem, empurra o de baixo para baixo.
-   - *Uso: Listas de valores na direita de LineCharts.*
+4. **Y-Axis Stacking (Anti-Chaos)** (Ordenado):
+   - Ordena labels por coordenada Y.
+   - Aplica relaxamento iterativo (Push/Pull) para garantir distanciamento mínimo.
+   - *Uso: Eixos, Listas de valores na direita de LineCharts, Labels radiais externos.*
 
 ### 13.2 Configuração de Estratégia
 

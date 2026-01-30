@@ -82,6 +82,10 @@ export interface ChartStyle {
         sortSlices?: boolean; // Sort slices by value (Largest to Smallest)
         autoSort?: boolean;   // Phase 4: Smart Sorting for Bar/Column charts
         debugLayoutMode?: boolean; // SUB-PROJECT 1.12: Visual transparency
+        labelLayout?: 'radial' | 'column-left' | 'column-right' | 'balanced'; // Smart Column Layout (Spider Legs)
+        minSliceSize?: boolean; // Ensure small slices are visible
+        showLabelsCategory?: boolean; // Toggle category names in labels for high density
+
 
     };
     datasetTypes?: ('bar' | 'line')[]; // Explicit type definition for mixed charts

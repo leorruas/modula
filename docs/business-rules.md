@@ -188,7 +188,7 @@ O sistema deve suportar uma ampla gama de visualizações para cobrir necessidad
 *   **Heurísticas Implementadas**:
     *   **Boxplot**: Detecta múltiplos datasets numéricos (≥3) para comparação de distribuições.
     *   **Histogram**: Detecta grande quantidade de valores numéricos únicos (≥10) para visualizar distribuição.
-    *   **Pie/Donut**: Detecta poucos valores (≤6) que somam 100% ou próximo.
+    *   **Pie/Donut**: Detecta poucos valores (≤10) que somam 100%. Garante que fatias minúsculas tenham visibilidade mínima de **20 graus** (`MIN_SLICE_ANGLE`).
     *   **Line/Area**: Detecta séries temporais ou progressões ordenadas.
     *   **Scatter**: Detecta datasets com valores dispersos (alta variância).
     *   **Radar**: Detecta múltiplas métricas (3-8). Otimizado para ocupar o máximo de espaço modular disponível (Margens: 35px Classic / 60px Infographic).
@@ -419,6 +419,14 @@ Para evitar que labels se sobreponham, o sistema segue esta ordem de tentativa:
 ### 4.4. Vacuum-Seal (Elasticidade Total)
 - **Vertical Fill**: Se a altura dos dados for menor que a altura do container, o sistema expande a espessura das barras (até um cap de 120px) e o espaçamento entre elas para preencher o módulo completamente.
 - **Gravity Well**: Elementos como títulos e legendas "puxam" o gráfico para perto (proximidade de 24px), forçando o Plot Area a expandir no espaço restante.
+
+### 4.7. Inteligência Espacial Radial (Anti-Chaos)
+Gráficos de Pizza/Donut seguem regras rigorosas para gerir densidade e evitar colisões:
+- **Anti-Chaos Sorting**: As labels são rigorosamente ordenadas por coordenada Y antes do processamento. Isso garante que as "Spider Legs" (linhas conectoras) nunca se cruzem.
+- **Push & Pull Relaxation**: O sistema aplica um relaxamento de colisão em dois passes: empurra labels para baixo para evitar sobreposição e puxa para cima se houver risco de clipping na borda inferior.
+- **Hybrid Positioning**: O Engine prioriza labels **internas** para fatias grandes (ângulo > 30-60°). Labels externas são permitidas apenas quando o espaço interno é insuficiente, mantendo o gráfico "limpo".
+- **Collapse & Expand (Elasticidade Columnar)**: Em layouts de coluna, se todas as labels cabem internamente, o Engine colapsa as margens laterais reservadas para texto. O gráfico então expande imediatamente para ocupar o vácuo central.
+- **Âncoras de Inversão**: Labels no lado esquerdo do gráfico (x < 0) usam obrigatoriamente `text-anchor: end`, garantindo que o texto cresça para dentro do layout e nunca para fora do container.
 
 ---
 
