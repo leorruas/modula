@@ -41,7 +41,9 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
 
         // Try to sync to parent if it's a valid number
         // We allow intermediate states in the local key, but sync the parsed value
-        const numValue = parseFloat(value);
+        // Replace comma with dot for parsing
+        const normalizedValue = value.replace(/,/g, '.');
+        const numValue = parseFloat(normalizedValue);
         if (!isNaN(numValue)) {
             const newDatasets = data.datasets.map((ds, idx) => {
                 if (idx !== datasetIndex) return ds;
@@ -66,7 +68,8 @@ export function SimpleDataEditor({ data, onChange, chartType, datasetTypes, onDa
         const finalValue = editingCells[key];
 
         if (finalValue !== undefined) {
-            const numValue = parseFloat(finalValue);
+            const normalizedValue = finalValue.replace(/,/g, '.');
+            const numValue = parseFloat(normalizedValue);
             const newValue = isNaN(numValue) ? 0 : numValue;
 
             // Final sync to parent
