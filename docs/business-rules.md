@@ -129,6 +129,11 @@ O sistema deve oferecer um modo de visualização limpa para simular o resultado
 ### 2.7. Importação em Lote (Bulk Import)
 *   **Upload CSV/Excel**: O sistema deve permitir o upload de um arquivo contendo múltiplos datasets.
     *   **Drag & Drop**: A interface deve suportar arrastar e soltar arquivos CSV diretamente na sidebar para carregamento rápido.
+    *   **Robustez de Parsing**: O sistema deve suportar:
+        *   Delimitadores variados: Vírgula (`,`) e Ponto-e-vírgula (`;`) com detecção automática.
+        *   Valores com aspas: Campos contendo delimitadores devem estar entre aspas (ex: `"New, York"`).
+        *   Dados Numéricos: Suporte a decimais com ponto (`10.5`) ou vírgula (`10,5`), com ou sem separadores de milhar.
+        *   Linhas Irregulares (Jagged Rows): Tolerância a linhas com dados faltantes (preencher com 0) ou colunas extras (ignorar).
 *   **Fluxo de Mapeamento (Wizard)**: Após o upload, deve haver uma etapa intermediária obrigatória onde o usuário define para cada dataset identificado:
     1.  **Tipo de Gráfico**: (ex: Linha, Barras, Pizza).
     2.  **Ocupação Modular**: (ex: 2x2, 4x3, Largura Total).

@@ -13,6 +13,7 @@ import { generateMonochromaticPalette } from '@/utils/colors';
 import { COLOR_PRESETS, type ColorPresetKey } from '@/utils/chartTheme';
 import { IconSelectorModal } from './IconSelectorModal';
 import { exportChartToPng } from '@/utils/exportUtils';
+import { parseCSV } from '@/utils/csvParser';
 
 interface ChartSidebarProps {
     projectId: string;
@@ -306,29 +307,11 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         }
     };
 
-    const parseCSV = (csv: string) => {
+    const handleParseCSV = (csv: string) => {
         try {
-            const lines = csv.trim().split('\n');
-            if (lines.length < 2) return;
+            const { labels, datasets } = parseCSV(csv);
 
-            const headers = lines[0].split(',').map(h => h.trim());
-            const labels: string[] = [];
-            const datasetsData: number[][] = headers.slice(1).map(() => []);
-
-            for (let i = 1; i < lines.length; i++) {
-                const parts = lines[i].split(',').map(p => p.trim());
-                labels.push(parts[0]);
-                for (let j = 1; j < parts.length; j++) {
-                    if (datasetsData[j - 1]) {
-                        datasetsData[j - 1].push(Number(parts[j]) || 0);
-                    }
-                }
-            }
-
-            const datasets = headers.slice(1).map((header, index) => ({
-                label: header,
-                data: datasetsData[index]
-            }));
+            if (labels.length === 0 && datasets.length === 0) return;
 
             const data = { labels, datasets };
             setDataInput(JSON.stringify(data, null, 2));
@@ -701,7 +684,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                         reader.onload = (event) => {
                                             const text = event.target?.result as string;
                                             setCsvInput(text);
-                                            parseCSV(text);
+                                            handleParseCSV(text);
                                         };
                                         reader.readAsText(file);
                                     }
