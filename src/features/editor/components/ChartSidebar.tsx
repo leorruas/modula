@@ -351,7 +351,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             reader.onload = (event) => {
                 const text = event.target?.result as string;
                 setCsvInput(text);
-                parseCSV(text);
+                handleParseCSV(text);
             };
             reader.readAsText(file);
         } else {
