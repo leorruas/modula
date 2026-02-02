@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-02-02T13-30-45 (2026-02-02)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### ✨ New Features
+
+- **charts, docs:** implement robust CSV parser and update docs ([df9ccd0](https://github.com/leorruas/modula/commit/df9ccd0ef391b64ffc48248fe72ce07aa6fd2967)) - *2026-02-02 10:30*
+
+#### 🐛 Bug Fixes
+
+- **editor:** handle comma decimals in SimpleDataEditor ([3c51aff](https://github.com/leorruas/modula/commit/3c51aff9a92c29e8e2dd02a9df0ff3f5fb6e3209)) - *2026-02-02 10:30*
+
+#### 📝 Documentation
+
+- **changelog:** sync update sync-2026-02-02T13-16-04 ([5848283](https://github.com/leorruas/modula/commit/58482833138acc54ba525313e9949041fc09313a)) - *2026-02-02 10:16*
+
 ### 📤 sync-2026-02-02T13-16-04 (2026-02-02)
 
 > **GitHub Sync**: Changes pushed to the remote repository.
