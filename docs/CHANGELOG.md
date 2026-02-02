@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-02-02T13-34-57 (2026-02-02)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **editor:** fix csv drag and drop data update ([0a00206](https://github.com/leorruas/modula/commit/0a00206cf8fc1ff9e98a062a8607e0baad06a511)) - *2026-02-02 10:34*
+
+#### 📝 Documentation
+
+- add repro csv file to tracking ([9a00230](https://github.com/leorruas/modula/commit/9a00230d1466f735989e00c4d3db77c861f56fcb)) - *2026-02-02 10:34*
+- **changelog:** sync update sync-2026-02-02T13-30-45 ([cc321b5](https://github.com/leorruas/modula/commit/cc321b54e4c01a3d3921893c4d7cb44e45612ec8)) - *2026-02-02 10:30*
+
 ### 📤 sync-2026-02-02T13-30-45 (2026-02-02)
 
 > **GitHub Sync**: Changes pushed to the remote repository.
