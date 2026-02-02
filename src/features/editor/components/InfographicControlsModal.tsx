@@ -141,7 +141,8 @@ export function InfographicControlsModal({
             y2AxisLabel: chartType === 'mixed' && useDualAxis ? y2AxisLabel : undefined,
             secondaryNumberFormat: (chartType === 'mixed' && useDualAxis) ? secondaryNumberFormat as any : undefined,
             labelLayout,
-            showLabelsCategory
+            showLabelsCategory,
+            numberFormat  // Pass the updated numberFormat explicitly
         });
         onClose();
     };

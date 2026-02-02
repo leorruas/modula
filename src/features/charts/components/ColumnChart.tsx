@@ -41,7 +41,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
     const categoryCount = labels.length;
     const barsPerGroup = data.datasets.length;
 
-    const padding = isInfographic ? CHART_THEME.padding.large : CHART_THEME.padding.small;
+    const padding = isInfographic ? CHART_THEME.padding.small : CHART_THEME.padding.small;
 
     // --- PHASE 1 & 2: Natural Height & Scaling logic ---
     const baseFontSizeValue = getScaledFont(baseFontSize, baseFontUnit, isInfographic ? (barsPerGroup > 2 ? 'medium' : 'large') : 'small', isInfographic);
@@ -147,8 +147,10 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
         </div>
     ) : null;
 
+    const svgContentHeight = availableHeight + (padding * 2);
+
     return (
-        <BaseChart width={width} height={height} data={data} type="column" legend={Legend} legendPosition={finalLegendPosition}>
+        <BaseChart width={width} height={height} chartHeight={svgContentHeight} data={data} type="column" legend={Legend} legendPosition={finalLegendPosition}>
             <defs>
                 <filter id="colShadow" x="-50%" y="-50%" width="200%" height="200%">
                     <feGaussianBlur in="SourceAlpha" stdDeviation={CHART_THEME.effects.shadowBlur} />
@@ -219,9 +221,9 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                         {/* Leader Line for Staggered Items */}
                                         {showLeaderLine && (
                                             <line
-                                                x1={(groupWidth - groupGap) / 2}
+                                                x1={(groupWidth) / 2}
                                                 y1={effectiveChartHeight + (5 * scaleFactor)}
-                                                x2={(groupWidth - groupGap) / 2}
+                                                x2={(groupWidth) / 2}
                                                 y2={effectiveChartHeight + (15 * scaleFactor) + staggerOffset - (fontSize * scaleFactor)}
                                                 stroke={CHART_THEME.colors.neutral.medium}
                                                 strokeWidth={1}
@@ -231,7 +233,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                         )}
 
                                         <text
-                                            x={(groupWidth - groupGap) / 2}
+                                            x={(groupWidth) / 2}
                                             y={labelY}
                                             textAnchor="middle"
                                             fontSize={fontSize * (isInfographic ? 0.9 : 1) * scaleFactor}
@@ -245,7 +247,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                                             {wrappedLabels[i].map((line, lineIdx) => (
                                                 <tspan
                                                     key={lineIdx}
-                                                    x={(groupWidth - groupGap) / 2}
+                                                    x={(groupWidth) / 2}
                                                     dy={lineIdx === 0 ? 0 : fontSize * 1.2 * scaleFactor}
                                                 >
                                                     {isInfographic ? line.toUpperCase() : line}
@@ -260,7 +262,7 @@ export function ColumnChart({ width, height, data, style, baseFontSize = 11, bas
                             {data.datasets.map((dataset, dsIndex) => {
                                 const value = dataset.data[i] || 0;
                                 const barH = (value / maxValue) * (effectiveChartHeight);
-                                const x = dsIndex * colWidth;
+                                const x = (groupGap / 2) + dsIndex * colWidth + (colInnerGap / 2);
                                 const y = effectiveChartHeight - barH;
                                 const color = computedColors[dsIndex % computedColors.length];
 

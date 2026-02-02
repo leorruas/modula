@@ -100,6 +100,9 @@ The interface uses a depth-based layering system to ensure controls never overla
     *   **Margin Top**: `60px` (Prevents hero numbers from clipping at the top).
 *   **Symmetry Rule (Bar Chart Infographic)**:
     *   **Equal Margins**: Para manter o equilíbrio editorial, as margens esquerda e direita devem ser **idênticas**. O sistema reserva o mesmo espaço para os labels (esquerda) e para os valores (direita), centralizando visualmente o gráfico.
+*   **Symmetry Rule (Column Chart Infographic)**:
+    *   **Centered Groups**: O conteúdo (barras) deve ser centralizado geometricamente dentro do grupo, compensando o `groupGap` que naturalmente criaria assimetria à direita.
+    *   **Tight Padding**: O padding lateral é reduzido para **10px** (Small) para maximizar a área de dados.
 *   **Mixed Charts (Gestalt Optimized)**:
     *   **Container Intelligence (Box Rule)**: As margens são calculadas dinamicamente (`5%` ou `minPadding`) em vez de fixas, adaptando-se a qualquer tamanho de container.
     *   **Legend Proximity (Gap Rule)**: A distância entre o gráfico e a legenda deve ser minimizada para garantir associação Gestalt. O `gap` é reduzido para **8px** (BaseChart) e margens internas do MixedChart são otimizadas para eliminar espaços em branco.

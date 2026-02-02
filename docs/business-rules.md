@@ -225,7 +225,7 @@ O sistema suporta **dois modos de visualização** por chart, permitindo flexibi
 
 **Modo Infográfico**
 - **Zero grid** (opacity 0)
-- **Padding: 100px** (espaçamento editorial)
+- **Padding: 10px-25px** (Compacto/Tight para maximizar escala)
 - **Hero numbers: 56-96px** (font-weight 900)
 - Eixos invisíveis (opacity 0.1)
 - Stroke grosso (3-4px em linhas)
@@ -454,6 +454,7 @@ Gráficos exportados para PDF devem manter 100% de integridade visual:
 *   **Drift Buffer**: Aplicar um multiplicador de **1.25x (25%)** em todas as medições de texto para compensar diferenças de renderização entre o browser (Canvas) e o motor de PDF.
 *   **Alinhamento de Multiplicadores**: Os multiplicadores de fonte do Layout Engine (ex: 2.6x para Hero numbers) devem ser idênticos aos usados no componente React.
 *   **Simetria em Gráficos de Barra**: Para garantir equilíbrio visual e evitar cortes, as margens esquerda e direita de um `BarChart` devem ser **sempre simétricas** (iguais ao maior valor medido entre labels e valores).
+*   **Simetria em Gráficos de Coluna**: O conteúdo dos grupos deve ser centralizado geometricamente para distribuir o espaço em branco (gap) igualmente em ambos os lados.
 
 ### 4.6. Margens de Segurança (Safety Gaps)
 *   **Infográfico**: Adicionar um gap de segurança mínimo de **40px** na margem direita para acomodar símbolos de moeda ou porcentagem em fontes gigantes.
