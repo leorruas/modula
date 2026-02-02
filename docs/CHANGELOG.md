@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-02-02T13-16-04 (2026-02-02)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **charts:** improve ColumnChart symmetry and reduce infographic padding, update docs ([8740316](https://github.com/leorruas/modula/commit/8740316ad9dcf90193bd38bd6648eb8dbccb4af4)) - *2026-02-02 10:16*
+
+#### 📝 Documentation
+
+- **changelog:** update for deployment deploy-2026-02-02T11-04-35 ([e86eb3c](https://github.com/leorruas/modula/commit/e86eb3cfab92088bb385301d72c2fbd0bf513168)) - *2026-02-02 08:04*
+
 ### 🚀 deploy-2026-02-02T11-04-35 (2026-02-02)
 
 > **Deployment**: Version sent to production environments.
