@@ -1,6 +1,7 @@
 import { LayoutRules } from './types';
 import { barRules } from './rules/barRules';
 import { radialRules } from './rules/radialRules';
+import { treemapRules } from './rules/treemapRules';
 
 export function getRulesForType(chartType: string): LayoutRules {
     switch (chartType) {
@@ -9,6 +10,8 @@ export function getRulesForType(chartType: string): LayoutRules {
         case 'pie':
         case 'donut':
             return radialRules;
+        case 'treemap':
+            return treemapRules;
         default:
             // Default rules for unknown types
             return {

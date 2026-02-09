@@ -92,6 +92,34 @@ export interface ComputedLayout {
             percent: number;
             originalIndex: number;
         }>;
+        treemapPositions?: Array<{
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            color: string;
+            value: number;
+            percent?: number;
+            isHero?: boolean;
+            fontSize?: number; // Computed font size from engine
+            occupancyHeight?: number;
+            originalIndex: number;
+            label: string;
+            strategy: 'internal' | 'external' | 'hidden';
+            spiderLeg?: {
+                points: string[];
+                labelX: number;
+                labelY: number;
+                textAnchor: 'start' | 'end' | 'middle';
+                scaleFactor?: number;
+            };
+            measure?: {
+                wrappedLines: string[];
+                totalWidth: number;
+                totalHeight: number;
+                [key: string]: any;
+            };
+        }>;
         labelPlacements?: Array<{
             x: number;
             y: number;
@@ -102,6 +130,7 @@ export interface ComputedLayout {
             formattedValue: string;
             wrappedLines: string[];
             sliceIndex: number;
+            occupancyHeight?: number; // Used for greedy selection in vertical layouts
             measure?: {
                 wrappedLines: string[];
                 totalWidth: number;

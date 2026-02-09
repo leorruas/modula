@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 This file documents technical activity, including GitHub pushes (`📤 sync-*`) and production deployments (`🚀 deploy-*`).
 
+### 📤 sync-2026-02-09T13-00-00 (2026-02-09)
+
+> **GitHub Sync**: Changes pushed to the remote repository.
+
+#### 🐛 Bug Fixes
+
+- **export:** pivot to vector strategy (svg2pdf) for Treemap to fix white screen issues <!-- id: export-fix -->
+- **export:** enforce Helvetica font in vector PDF to prevent missing text <!-- id: font-fix -->
+- **export:** fix stale closure in filename generation logic <!-- id: filename-fix -->
+
 ### 🚀 deploy-2026-02-02T16-26-20 (2026-02-02)
 
 > **Deployment**: Version sent to production environments.

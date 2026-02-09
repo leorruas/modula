@@ -34,43 +34,50 @@ export async function generateChartImage(
             height: height,
             cacheBust: true,
             skipAutoScale: true,
-            // FONT SANITIZATION: html-to-image can crash if it finds CSS variables it can't resolve.
-            // We ensure that common chart elements have their font-family clamped to standard fallbacks.
-            // The library attempts to .trim() the font string; if it's undefined or malformed, it fails.
-            fontEmbedCSS: `
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
-                * { 
-                    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; 
+            // FALLBACK STRATEGY: Redundant for Vector charts but harmless for Raster
+            // We revert the aggressive 'important' patches as they pollute the codebase
+            // and vector strategy handles Treemaps now.
+            onClone: (clonedNode: HTMLElement | Node) => {
+                // QUICK FIX for Glassmorphism/Filter Issues in PDF Export
+                if (clonedNode instanceof HTMLElement) {
+                    const checkAndRemoveFilter = (el: HTMLElement) => {
+                        // Remove complex filters
+                        if (el.style && (el.style.filter || el.style.backdropFilter)) {
+                            // Target specifically the heavy glass filters or broad shadows
+                            if (el.style.filter.includes('url(#ig-') || el.style.filter.includes('treemap-glass-filter')) {
+                                el.style.filter = 'none';
+                                el.style.backdropFilter = 'none';
+                            }
+                        }
+
+                        // Also strip simple 'filter' attribute if present on SVG elements
+                        if (el.hasAttribute('filter')) {
+                            const val = el.getAttribute('filter') || '';
+                            if (val.includes('url(#ig-') || val.includes('treemap-glass-filter')) {
+                                el.removeAttribute('filter');
+                            }
+                        }
+
+                        Array.from(el.children).forEach(child => checkAndRemoveFilter(child as HTMLElement));
+                    };
+                    checkAndRemoveFilter(clonedNode);
                 }
-                .hero-number, .data-label { 
-                    font-family: "Courier New", Courier, monospace !important; 
-                }
-            `,
-            // FILTER: Exclude selection UI elements
-            filter: (node) => {
+            },
+            filter: (node: HTMLElement) => {
                 const el = node as HTMLElement;
                 if (!el) return true;
-
-                // Exclude selection border
                 if (el.classList && typeof el.classList.contains === 'function' && el.classList.contains('selection-outline')) return false;
-
-                // Exclude resize handles
                 if (el.style && el.style.cursor === 'se-resize') return false;
-
-                // Exclude validation messages
                 if (el.innerText && typeof el.innerText === 'string' && el.innerText.includes('Validation Issues')) return false;
-
                 return true;
             },
             style: {
                 transform: 'none',
                 margin: '0',
                 left: `${padding}px`, // Offset content by padding
-                top: `${padding}px`,
-                // Explicitly set font-family on the cloned style to prevent inheritance of broken vars
-                fontFamily: '-apple-system, sans-serif'
+                top: `${padding}px`
             },
-        });
+        } as any);
 
         if (!dataUrl || dataUrl.length < 100) {
             console.error("Export failure: Data URL is invalid", { dataUrlLength: dataUrl?.length });
@@ -94,6 +101,76 @@ export async function generateChartImage(
         }
         throw error;
     } // End try-catch
+}
+
+/**
+ * Exports an SVG element directly to PDF using vector commands.
+ * This bypasses html-to-image rasterization issues.
+ */
+export async function exportSvgToPdf(
+    svgElement: SVGElement,
+    doc: any, // type is jsPDF, but avoiding strict type deps here
+    x: number,
+    y: number,
+    width: number,
+    height: number
+) {
+    try {
+        // Dynamic import to avoid SSR issues if any
+        const { svg2pdf } = await import('svg2pdf.js');
+
+        // Create a distinct temp SVG to avoid mutating the DOM (if needed)
+        // For now, we pass the live element. svg2pdf is usually read-only.
+
+        // Force font fallback to Helvetica for text elements to prevent "missing font" errors in PDF
+        // causing garbled text.
+        // We clone it to mutate safely.
+        const clone = svgElement.cloneNode(true) as SVGElement;
+
+        // Helper to recursively set generic font-family and remove conflicting styles
+        const enforceSafeFonts = (node: Element) => {
+            if (node.tagName === 'text' || node.tagName === 'tspan') {
+                // Remove existing style attribute to prevent overrides
+                node.removeAttribute('style');
+
+                // Explicitly set font-family attribute (SVG standard)
+                node.setAttribute('font-family', 'Helvetica');
+                node.setAttribute('font-weight', 'bold'); // Force bold for visibility if needed, or keep original if mapped
+
+                // Force style property just in case
+                (node as SVGElement).style.fontFamily = 'Helvetica, sans-serif';
+            }
+            Array.from(node.children).forEach(enforceSafeFonts);
+        };
+        enforceSafeFonts(clone);
+
+        // We need to append the clone to document to get computed styles? 
+        // svg2pdf often needs the element to be in DOM or at least have styles.
+        // But let's try rendering directly.
+        // Usually creating a hidden container works best.
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.visibility = 'hidden';
+        tempContainer.appendChild(clone);
+        document.body.appendChild(tempContainer);
+
+        try {
+            await svg2pdf(clone, doc, {
+                x,
+                y,
+                width,
+                height,
+            });
+        } finally {
+            document.body.removeChild(tempContainer);
+        }
+
+        return true;
+    } catch (e) {
+        console.error('Vector Export Failed:', e);
+        throw e;
+    }
 }
 
 /**

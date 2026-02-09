@@ -12,6 +12,7 @@ import { HistogramChart } from '@/features/charts/components/HistogramChart';
 import { MixedChart } from '@/features/charts/components/MixedChart';
 import { BoxplotChart } from '@/features/charts/components/BoxplotChart';
 import { PictogramChart } from '@/features/charts/components/PictogramChart';
+import { TreemapChart } from '@/features/charts/components/TreemapChart';
 
 import { useEffect } from 'react';
 
@@ -67,6 +68,7 @@ export function OffScreenChartRenderer({ chart, width, height, gridConfig, id, o
                 {chart.type === 'boxplot' && <BoxplotChart width={width} height={height} data={chart.data} style={chart.style} />}
                 {chart.type === 'pictogram' && <PictogramChart width={width} height={height} data={chart.data} style={chart.style} />}
                 {chart.type === 'area' && <AreaChart width={width} height={height} data={chart.data} style={chart.style} />}
+                {chart.type === 'treemap' && <TreemapChart width={width} height={height} data={chart.data} style={chart.style} />}
             </div>
         </div>
     );

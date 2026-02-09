@@ -243,6 +243,18 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
             };
         }
 
+        if (type === 'treemap') {
+            return {
+                labels: ["EUA", "China", "Alemanha", "Japão", "Brasil", "Índia", "Reino Unido", "França", "Rússia", "Canadá", "Itália", "Coreia do Sul", "Austrália", "Espanha", "México"],
+                datasets: [
+                    {
+                        label: "PIB (Trilhões USD)",
+                        data: [26.9, 17.7, 4.4, 4.2, 2.1, 3.7, 3.3, 3.0, 1.9, 2.1, 2.2, 1.7, 1.6, 1.5, 1.6]
+                    }
+                ]
+            };
+        }
+
         // Default
         return {
             labels,
@@ -348,9 +360,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
         const file = e.dataTransfer.files[0];
         if (file && file.name.endsWith('.csv')) {
             const reader = new FileReader();
-            reader.onload = (event) => {
+            reader.onload = async (event) => {
                 const text = event.target?.result as string;
                 setCsvInput(text);
+                // Wait for layout/rendering/animations to stabilize
+                // Treemap has a 0.6s transition, so we wait 0.8s to be safe.
+                await new Promise(resolve => setTimeout(resolve, 800));
                 handleParseCSV(text);
             };
             reader.readAsText(file);
@@ -681,9 +696,12 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                                     const file = e.target.files?.[0];
                                     if (file) {
                                         const reader = new FileReader();
-                                        reader.onload = (event) => {
+                                        reader.onload = async (event) => {
                                             const text = event.target?.result as string;
                                             setCsvInput(text);
+                                            // Wait for layout/rendering/animations to stabilize
+                                            // Treemap has a 0.6s transition, so we wait 0.8s to be safe.
+                                            await new Promise(resolve => setTimeout(resolve, 800));
                                             handleParseCSV(text);
                                         };
                                         reader.readAsText(file);
@@ -798,6 +816,7 @@ export function ChartSidebar({ projectId }: ChartSidebarProps) {
                         <option value="pictogram">📊 Pictograma (Ícones)</option>
                         <option value="gauge">🎯 Gráfico de Metas (Gauge)</option>
                         <option value="boxplot">Boxplot</option>
+                        <option value="treemap">🌳 Treemap</option>
                     </select>
                 </div>
 

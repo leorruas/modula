@@ -11,6 +11,7 @@ import { RadarChart } from '@/features/charts/components/RadarChart';
 import { GaugeChart } from '@/features/charts/components/GaugeChart';
 import { MixedChart } from '@/features/charts/components/MixedChart';
 import { PictogramChart } from '@/features/charts/components/PictogramChart';
+import { TreemapChart } from '@/features/charts/components/TreemapChart';
 
 interface ChartItemProps {
     chart: Chart;
@@ -65,6 +66,8 @@ export function ChartItem({ chart, gridConfig, module }: ChartItemProps) {
             return <MixedChart {...commonProps} />;
         case 'pictogram':
             return <PictogramChart {...commonProps} />;
+        case 'treemap':
+            return <TreemapChart {...commonProps} />;
         default:
             return <div>Unsupported chart type: {chart.type}</div>;
     }

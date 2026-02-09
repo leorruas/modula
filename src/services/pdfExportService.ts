@@ -43,6 +43,7 @@ export class PDFExportService {
         // Data-Driven Approach: Iterate over the charts data to find their corresponding DOM elements.
         // We use the "Rasterization Strategy" here: Convert DOM (Container) to High-Resolution PNG -> Add to PDF.
         // html-to-image handles font embedding and style cloning.
+        // html-to-image handles font embedding and style cloning.
         const { generateChartImage } = await import('@/utils/exportUtils');
 
         for (const chart of charts) {
@@ -76,18 +77,53 @@ export class PDFExportService {
                 // We will use the captured dimensions from result later to avoid squishing
 
                 try {
-                    console.log(`Processing chart ${chart.id} for PDF (Raster). Absolute Pos: ${x}, ${y}`);
+                    console.log(`Processing chart ${chart.id} for PDF. Absolute Pos: ${x}, ${y}`);
 
-                    // Wait a tiny bit for any layout/rendering to stabilize
-                    await new Promise(resolve => setTimeout(resolve, 50));
+                    // Wait for layout/rendering/animations to stabilize
+                    await new Promise(resolve => setTimeout(resolve, 800));
 
-                    // RASTER STRATEGY: Use html-to-image to get high-res PNG
-                    // pixelRatio reduced from 6 to 3.5 to stay within canvas memory limits while maintaining high quality.
-                    const PADDING = 40; // Capture buffer for visual overflow (labels, shadows)
+                    const PADDING_PX = 40; // Capture buffer for visual overflow (labels, shadows)
+
+                    const isTreemap = chart.type === 'treemap';
+                    const hasSvg = child.querySelector('svg');
+
+                    // Calculate Base Coordinates (Screen -> PDF)
+                    const safeX = isNaN(x) ? 0 : x;
+                    const safeY = isNaN(y) ? 0 : y;
+
+                    // The visual content is padded by PADDING_PX in the raster/vector generation
+                    // So we must offset the PDF placement by the scaled padding to align the "content box"
+                    const paddingScaledMm = PADDING_PX * scaleFactor;
+                    const xMm = (safeX * scaleFactor) - paddingScaledMm;
+                    const yMm = (safeY * scaleFactor) - paddingScaledMm;
+
+                    // VECTOR STRATEGY: Treemaps (to fix White Screen)
+                    if (isTreemap && hasSvg) {
+                        const { exportSvgToPdf } = await import('@/utils/exportUtils');
+                        // For vector, we don't need the padding offset logic as we render the SVG rect directly?
+                        // Actually, we want to match the visual footprint.
+                        // Let's assume the SVG fills the container.
+                        // We use the simpler x/y/w/h of the container converted to mm.
+
+                        const vecX = safeX * scaleFactor;
+                        const vecY = safeY * scaleFactor;
+                        const vecW = (child.offsetWidth || 100) * scaleFactor;
+                        const vecH = (child.offsetHeight || 100) * scaleFactor;
+
+                        console.log(`Exporting Treemap ${chart.id} as Vector at ${vecX},${vecY} (${vecW}x${vecH}mm)`);
+                        await exportSvgToPdf(hasSvg, doc, vecX, vecY, vecW, vecH);
+
+                        console.log(`Added vector chart ${chart.id} to PDF`);
+                        continue; // Skip raster fallback
+                    }
+
+                    // RASTER STRATEGY: html-to-image (Default for others)
+                    // Note: Vector strategy (svg2pdf) is used for Treemap above.
+                    // We reverted to Raster with a background-rect fix in TreemapChart to ensure correct fonts.
                     const result = await generateChartImage(child as HTMLElement, {
-                        backgroundColor: '#ffffff', // Ensure white background for PDF rasterization
+                        backgroundColor: '#ffffff',
                         pixelRatio: 3.5,
-                        padding: PADDING
+                        padding: PADDING_PX
                     });
 
                     if (!result || !result.dataUrl) {
@@ -97,29 +133,16 @@ export class PDFExportService {
 
                     const { dataUrl, width: capturedW, height: capturedH } = result;
 
-                    const safeX = isNaN(x) ? 0 : x;
-                    const safeY = isNaN(y) ? 0 : y;
-
-                    // Convert screen pixels to PDF units (mm) using dynamic scaleFactor
-                    // Convert screen pixels to PDF units (mm) using dynamic scaleFactor
-                    // POSITION CORRECTION: Subtract scaled padding to align visual content to original (x,y)
-                    const paddingScaledMm = PADDING * scaleFactor;
-                    const xMm = (safeX * scaleFactor) - paddingScaledMm;
-                    const yMm = (safeY * scaleFactor) - paddingScaledMm;
-
-                    const wMm = (capturedW + (PADDING * 2)) * scaleFactor; // Corrected: Include padding in target dims
-                    const hMm = (capturedH + (PADDING * 2)) * scaleFactor;
+                    // capturedW already includes padding from generateChartImage
+                    const wMm = capturedW * scaleFactor;
+                    const hMm = capturedH * scaleFactor;
 
                     if (isNaN(xMm) || isNaN(yMm) || isNaN(wMm) || isNaN(hMm)) {
-                        console.error(`Calculated invalid PDF coordinates for chart ${chart.id}`, { xMm, yMm, wMm, hMm });
+                        console.error(`Calculated invalid PDF coordinates for raster chart ${chart.id}`, { xMm, yMm, wMm, hMm });
                         continue;
                     }
 
-                    // Add High-Res PNG to PDF
-                    // We use FAST compression to balance speed/quality for these large PNGs.
                     doc.addImage(dataUrl, 'PNG', xMm, yMm, wMm, hMm, undefined, 'FAST');
-                    console.log(`Added raster chart ${chart.id} to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
-
                     console.log(`Added raster chart ${chart.id} to PDF at ${xMm}, ${yMm} (${wMm}x${hMm}mm)`);
 
                 } catch (e) {
@@ -135,16 +158,38 @@ export class PDFExportService {
         const targetPage = activePage || 1;
 
         if (project.useChapters && project.chapters) {
-            const currentChapter = project.chapters.slice().reverse().find(c => c.startPage <= targetPage);
+            // Sort chapters by page (ascending) to safely find the range
+            const sortedChapters = project.chapters.slice().sort((a, b) => a.startPage - b.startPage);
+
+            // Find the chapter that contains the targetPage
+            // A chapter starts at `startPage`. It covers everything until the next chapter's startPage.
+            const currentChapter = sortedChapters.reverse().find(c => c.startPage <= targetPage);
+
+            console.log('📄 PDF Filename Debug:', {
+                targetPage,
+                foundChapter: currentChapter?.title,
+                chapterStart: currentChapter?.startPage
+            });
 
             if (currentChapter) {
-                const chapterPrefix = `${currentChapter.startPage}. ${currentChapter.title}`;
+                // Determine 'Index' of the chart relative to the chapter or project?
+                // User example: "34. 5.1". 
+                // "34" looks like the PAGE number. "5.1" looks like "Chapter 5, Item 1".
+
+                // Construct prefix: "{Page}. {ChapterTitle}"
+                // If the user wants "34. 5.1...", we need to know if "5.1" is the chapter title or generated.
+                // Assuming "5.1" is part of the Chapter Title (e.g. title="5.1 - Demografia").
+
+                const chapterPrefix = `${targetPage}. ${currentChapter.title}`;
 
                 // Find charts on this page to get a specific name
                 const pageCharts = charts.filter(c => (c.page || 1) === targetPage);
                 const chartName = pageCharts.length > 0 ? (pageCharts[0].name || "Gráfico") : "";
 
                 filename = chartName ? `${chapterPrefix} - ${chartName}` : chapterPrefix;
+            } else {
+                // Fallback if before first chapter
+                filename = `${targetPage}. ${filename}`;
             }
         }
 

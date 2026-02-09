@@ -54,12 +54,12 @@ export class SmartLayoutEngine {
         const baseFontSize = gridConfig.baseFontSize || 11;
         const baseFontUnit = gridConfig.baseFontUnit || 'pt';
         const fontFamily = style?.fontFamily || 'Inter, sans-serif';
+        // Calculate accurate font size matching BarChart logic
+        // BarChart uses 'medium' usually, or 'small' if specified. Assumes medium as base.
         const isInfographic = style?.mode === 'infographic';
         const fontWeight = isInfographic ? '700' : '500';
         const letterSpacing = isInfographic ? 0.08 : 0; // FASE 4.5: Match Chart Rendering
 
-        // Calculate accurate font size matching BarChart logic
-        // BarChart uses 'medium' usually, or 'small' if specified. Assumes medium as base.
         const effectiveLabelFontSize = getScaledFont(
             baseFontSize,
             baseFontUnit,
@@ -199,6 +199,21 @@ export class SmartLayoutEngine {
         // FASE 3: Radial Layout Expansion
         if (analysis.chartType === 'pie' || analysis.chartType === 'donut') {
             return this.computeRadialLayout(
+                chart,
+                analysis,
+                rules,
+                modeConfig,
+                baseFontSize,
+                fontFamily,
+                target,
+                datasetColors,
+                marginsResult
+            );
+        }
+
+        // FASE TREEMAP: Compute Treemap specific geometry
+        if (analysis.chartType === 'treemap') {
+            return this.computeTreemapLayout(
                 chart,
                 analysis,
                 rules,
@@ -1473,6 +1488,352 @@ export class SmartLayoutEngine {
                 lod
             }
         };
+    }
+
+    /**
+     * Phase 3: Treemap Layout Expansion
+     * Implements Squarified Treemap Algorithm
+     */
+    private static computeTreemapLayout(
+        chart: { type: string; data: ChartData; style?: ChartStyle },
+        analysis: ChartAnalysis,
+        rules: LayoutRules,
+        mode: ModeModifiers,
+        baseFontSize: number,
+        fontFamily: string,
+        target: 'screen' | 'pdf',
+        datasetColors: string[],
+        margins: { top: number; right: number; bottom: number; left: number }
+    ): ComputedLayout {
+        const { width, height } = analysis.availableSpace;
+        const labels = chart.data.labels || [];
+        const datasets = chart.data.datasets || [];
+        const dataset = datasets[0];
+
+        // 1. Calculate Plot Zone
+        // FASE SPATIAL: Asymmetric padding. 
+        // We typically need more space on the RIGHT for spider legs (minDist logic usually picks vertical or right edge).
+        // Using 10px on the left and 70px on the right to optimize center space usage.
+        const isInfographic = analysis.mode === 'infographic';
+        const paddingL = isInfographic ? 10 : 5;
+        const paddingR = isInfographic ? 75 : 10;
+
+        const plotZone: Zone = {
+            x: margins.left + paddingL,
+            y: margins.top,
+            width: width - margins.left - margins.right - paddingL - paddingR,
+            height: height - margins.top - margins.bottom
+        };
+
+        // 2. Legend Zone
+        let legendZone: Zone | null = null;
+        if (analysis.layoutRequirements.needsLegend) {
+            const legendPosition = analysis.layoutRequirements.userLegendPosition || rules.legendPosition;
+            const legendDims = this.calculateLegendDimensions(datasets, legendPosition, baseFontSize, fontFamily, analysis.mode, width);
+
+            if (legendPosition === 'bottom') {
+                legendZone = {
+                    x: margins.left,
+                    y: height - margins.bottom + 10,
+                    width: plotZone.width,
+                    height: legendDims.height
+                };
+            }
+        }
+
+        // 3. Squarified Treemap Algorithm Implementation
+        const rawData = dataset?.data || [];
+        // Map data to objects with index to track original labels/colors
+        const items = rawData.map((val, idx) => ({
+            value: val,
+            index: idx,
+            label: labels[idx] || `Item ${idx + 1}`
+        })).sort((a, b) => b.value - a.value);
+
+        const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+        const rects: Array<{ x: number, y: number, width: number, height: number, value: number, index: number, label: string }> = [];
+
+        if (totalValue > 0 && items.length > 0) {
+            const scale = (plotZone.width * plotZone.height) / totalValue;
+
+            // Let's use a simpler iterative squarify for easier index tracking
+            let remainingRect = { x: plotZone.x, y: plotZone.y, w: plotZone.width, h: plotZone.height };
+            let currentIndex = 0;
+
+            while (currentIndex < items.length) {
+                const row: number[] = [];
+                const rowItems: any[] = [];
+                let bestRatio = Infinity;
+
+                while (currentIndex < items.length) {
+                    const nextVal = items[currentIndex].value * scale;
+                    const newRow = [...row, nextVal];
+                    const newRatio = this.calculateMaxAspectRatio(newRow, Math.min(remainingRect.w, remainingRect.h));
+
+                    if (newRatio <= bestRatio) {
+                        row.push(nextVal);
+                        rowItems.push(items[currentIndex]);
+                        bestRatio = newRatio;
+                        currentIndex++;
+                    } else {
+                        break;
+                    }
+                }
+
+                // Finalize Row
+                const rowValueSum = row.reduce((a, b) => a + b, 0);
+                const isVertical = remainingRect.w >= remainingRect.h;
+                const rowWidth = isVertical ? rowValueSum / remainingRect.h : remainingRect.w;
+                const rowHeight = isVertical ? remainingRect.h : rowValueSum / remainingRect.w;
+
+                let currentPos = isVertical ? remainingRect.y : remainingRect.x;
+                for (let i = 0; i < row.length; i++) {
+                    const itemArea = row[i];
+                    const itemW = isVertical ? rowWidth : itemArea / rowHeight;
+                    const itemH = isVertical ? itemArea / rowWidth : rowHeight;
+
+                    rects.push({
+                        x: isVertical ? remainingRect.x : currentPos,
+                        y: isVertical ? currentPos : remainingRect.y,
+                        width: itemW,
+                        height: itemH,
+                        value: rowItems[i].value,
+                        index: rowItems[i].index,
+                        label: rowItems[i].label
+                    });
+
+                    currentPos += isVertical ? itemH : itemW;
+                }
+
+                // Update remaining rectangle
+                if (isVertical) {
+                    remainingRect.x += rowWidth;
+                    remainingRect.w -= rowWidth;
+                } else {
+                    remainingRect.y += rowHeight;
+                    remainingRect.h -= rowHeight;
+                }
+            }
+        }
+
+        // 4. Labeling Strategy (Internal vs External)
+        const treemapPositions = rects.map(rect => {
+            const isInfographic = analysis.mode === 'infographic';
+            const infographicConfig = chart.style?.infographicConfig || {};
+
+            // Hero defaults to the largest value (items[0]) if not specified
+            const heroValueIndex = infographicConfig.heroValueIndex !== undefined
+                ? infographicConfig.heroValueIndex
+                : items[0].index;
+
+            const isHero = rect.index === heroValueIndex;
+
+            // Define base variables for this rectangle
+            const baseSize = getScaledFont(baseFontSize, 'pt', isHero ? 'medium' : 'small', isInfographic);
+            const fontWeight = isInfographic ? '700' : '500';
+            const percent = totalValue > 0 ? (rect.value / totalValue) * 100 : 0;
+
+            // FASE HERO-FIT (Smart Internal Fit): Try progressively smaller sizes before ejecting
+            // Multipliers to try: Hero defaults (4.5 -> 3 -> 2), Standard (1.3 -> 1)
+            const multipliers = isHero
+                ? (isInfographic ? [4.5, 3, 2.2, 1.5] : [1.5, 1.2, 1])
+                : (isInfographic ? [1.3, 1.1, 1] : [1]);
+
+            let finalMultiplier = multipliers[multipliers.length - 1];
+            let strategy: 'internal' | 'external' | 'hidden' = 'hidden';
+            let bestWrapResult = null;
+            let finalFontSize = baseSize;
+
+            for (const m of multipliers) {
+                const fs = baseSize * m;
+                // fontWeight is defined above
+
+                const wrap = SmartLabelWrapper.calculateOptimalWrap(
+                    rect.label,
+                    rect.width - 10,
+                    fs,
+                    fontFamily,
+                    fontWeight
+                );
+
+                const totalH = wrap.lineCount * fs * 1.2;
+                const fits = wrap.requiredWidth <= rect.width - 10 && totalH <= rect.height - 10;
+
+                if (fits) {
+                    finalMultiplier = m;
+                    finalFontSize = fs;
+                    bestWrapResult = wrap;
+                    strategy = 'internal';
+                    break;
+                }
+
+                // Keep the last result as fallback (usually for external)
+                if (!bestWrapResult) {
+                    bestWrapResult = wrap;
+                    finalFontSize = fs;
+                }
+            }
+
+            // Force external if it didn't fit internally
+            const showAllLabels = infographicConfig.showAllLabels === true;
+            if (strategy !== 'internal') {
+                if (isHero || showAllLabels || (rect.width > 25 && rect.height > 12)) {
+                    strategy = 'external';
+                    // Reset font size for external (standard editorial size)
+                    // Hero External: 2.2, Standard External: 1.1
+                    finalMultiplier = isHero ? 2.2 : 1.1;
+                    finalFontSize = baseSize * finalMultiplier;
+
+                    // RE-MEASURE for external column width (approx 80px)
+                    // This ensures we have accurate height for the greedy limiter
+                    bestWrapResult = SmartLabelWrapper.calculateOptimalWrap(
+                        rect.label,
+                        80,
+                        finalFontSize,
+                        fontFamily,
+                        fontWeight
+                    );
+                }
+            }
+
+            let spiderLeg = undefined;
+            if (strategy === 'external') {
+                const cx = rect.x + rect.width / 2;
+                const cy = rect.y + rect.height / 2;
+                const distToLeft = cx - plotZone.x;
+                const distToRight = (plotZone.x + plotZone.width) - cx;
+                const distToTop = cy - plotZone.y;
+                const distToBottom = (plotZone.y + plotZone.height) - cy;
+                const minDist = Math.min(distToLeft, distToRight, distToTop, distToBottom);
+
+                let lx = cx, ly = cy, textAnchor: 'start' | 'end' | 'middle' = 'middle';
+                if (minDist === distToLeft) { lx = plotZone.x - 40; ly = cy; textAnchor = 'end'; }
+                else if (minDist === distToRight) { lx = plotZone.x + plotZone.width + 40; ly = cy; textAnchor = 'start'; }
+                else if (minDist === distToTop) { lx = cx; ly = plotZone.y - 30; textAnchor = 'middle'; }
+                else { lx = cx; ly = plotZone.y + plotZone.height + 30; textAnchor = 'middle'; }
+
+                spiderLeg = {
+                    labelX: lx,
+                    labelY: ly,
+                    points: [`${cx},${cy}`, `${lx},${ly}`],
+                    textAnchor
+                };
+            }
+
+            return {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height,
+                value: rect.value,
+                originalIndex: rect.index,
+                label: rect.label,
+                color: datasetColors[rect.index % datasetColors.length],
+                percent,
+                strategy,
+                spiderLeg,
+                measure: {
+                    wrappedLines: bestWrapResult ? bestWrapResult.lines : [rect.label],
+                    totalWidth: bestWrapResult ? bestWrapResult.requiredWidth : 0,
+                    totalHeight: bestWrapResult ? (bestWrapResult.lineCount * finalFontSize * 1.2) : 0
+                },
+                isHero,
+                fontSize: finalFontSize, // Return computed font size
+                occupancyHeight: undefined as number | undefined
+            };
+        });
+
+        // 5. COLUMNAR EXTERNAL LABELS (Editorial Density Limiter - Greedy Height)
+        // Measure accurate heights and accumulate until full. Quality > Quantity.
+        const extPositions = treemapPositions.filter(p => p.strategy === 'external' && p.spiderLeg);
+        if (extPositions.length > 0) {
+            const targetX = plotZone.x + plotZone.width + 10;
+            const availableHeight = plotZone.height;
+            const gap = 5; // Padding between items
+
+            // 1. Sort Candidates: Hero First, then Value Descending
+            const candidates = [...extPositions].sort((a, b) => {
+                if (a.isHero) return -1;
+                if (b.isHero) return 1;
+                return b.value - a.value;
+            });
+
+            // 2. Greedy Selection
+            const visibleItems: typeof candidates = [];
+            let usedHeight = 0;
+
+            candidates.forEach(p => {
+                // Height from re-measurement in map (or default)
+                // Use a min-height of 20px to ensure touch/visual target
+                const itemHeight = Math.max(20, p.measure?.totalHeight || 20);
+
+                if (usedHeight + itemHeight <= availableHeight) {
+                    visibleItems.push({ ...p, occupancyHeight: itemHeight });
+                    usedHeight += itemHeight + gap;
+                } else {
+                    // Start hiding
+                    p.strategy = 'hidden';
+                    p.spiderLeg = undefined;
+                }
+            });
+
+            // 3. Spatially Sort (Y) for clean lines
+            visibleItems.sort((a, b) => a.y - b.y);
+
+            // 4. Distribute Centered
+            // Recalculate exact total occupancy (sum heights + gaps)
+            const totalOccupancy = visibleItems.reduce((sum, p) => sum + (p.occupancyHeight || 0), 0) + (Math.max(0, visibleItems.length - 1) * gap);
+
+            const chartCenterY = plotZone.y + plotZone.height / 2;
+            let currentY = chartCenterY - (totalOccupancy / 2);
+
+            // Clamp top
+            if (currentY < plotZone.y) currentY = plotZone.y;
+
+            visibleItems.forEach(p => {
+                const height = p.occupancyHeight || 20;
+                const ly = currentY + (height / 2); // Center text in visual slot
+
+                if (p.spiderLeg) {
+                    p.spiderLeg.labelX = targetX;
+                    p.spiderLeg.labelY = ly;
+                    p.spiderLeg.textAnchor = 'start';
+                    (p.spiderLeg as any).scaleFactor = 1;
+
+                    const cx = p.x + p.width / 2;
+                    const cy = p.y + p.height / 2;
+
+                    p.spiderLeg.points = [
+                        `${cx},${cy}`,
+                        `${targetX - 5},${cy}`, // Elbow
+                        `${targetX},${ly}`
+                    ];
+                }
+                currentY += height + gap;
+            });
+        }
+
+        return {
+            container: { width: analysis.availableSpace.width, height: analysis.availableSpace.height },
+            zones: { plot: plotZone, legend: legendZone, xAxis: null, yAxis: null },
+            margins,
+            scaling: { factor: 1.0, appliedTo: [] },
+            typeSpecific: {
+                treemapPositions,
+                datasetColors
+            }
+        };
+    }
+
+    private static calculateMaxAspectRatio(row: number[], width: number): number {
+        if (row.length === 0) return Infinity;
+        const sum = row.reduce((a, b) => a + b, 0);
+        const s2 = sum * sum;
+        const w2 = width * width;
+        const rMax = Math.max(...row);
+        const rMin = Math.min(...row);
+
+        return Math.max((w2 * rMax) / s2, s2 / (w2 * rMin));
     }
 
     /**

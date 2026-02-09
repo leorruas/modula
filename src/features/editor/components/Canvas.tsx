@@ -19,6 +19,7 @@ import { MixedChart } from '@/features/charts/components/MixedChart';
 import { BoxplotChart } from '@/features/charts/components/BoxplotChart';
 import { PictogramChart } from '@/features/charts/components/PictogramChart';
 import { GaugeChart } from '@/features/charts/components/GaugeChart';
+import { TreemapChart } from '@/features/charts/components/TreemapChart';
 import { GenericChart } from '@/features/charts/components/GenericChart';
 
 
@@ -174,7 +175,7 @@ export function Canvas({ project }: CanvasProps) {
 
         window.addEventListener('trigger-pdf-export', handleExport);
         return () => window.removeEventListener('trigger-pdf-export', handleExport);
-    }, [project, charts]);
+    }, [project, charts, activePage]); // FIXED: Added activePage to dependencies to avoid stale closure (always exporting page 1)
 
     useEffect(() => {
         const loadCharts = async () => {
@@ -539,6 +540,7 @@ export function Canvas({ project }: CanvasProps) {
                                 {chart.type === 'pictogram' && <PictogramChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                                 {chart.type === 'area' && <AreaChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                                 {chart.type === 'gauge' && <GaugeChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
+                                {chart.type === 'treemap' && <TreemapChart width={w} height={h} data={chart.data} style={chart.style} baseFontSize={project.gridConfig.baseFontSize} baseFontUnit={project.gridConfig.baseFontUnit} />}
                             </div>
 
                             {/* Selection Outline when Editing */}

@@ -26,7 +26,7 @@ export interface ChartModule {
     h: number;
 }
 
-export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'pictogram' | 'gauge' | 'custom';
+export type ChartType = 'bar' | 'column' | 'line' | 'area' | 'pie' | 'donut' | 'scatter' | 'bubble' | 'radar' | 'mixed' | 'histogram' | 'boxplot' | 'pictogram' | 'gauge' | 'treemap' | 'custom';
 
 export interface ChartData {
     labels: string[];

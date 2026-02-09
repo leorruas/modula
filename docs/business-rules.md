@@ -461,6 +461,12 @@ Gráficos exportados para PDF devem manter 100% de integridade visual:
 *   **Simetria em Gráficos de Barra**: Para garantir equilíbrio visual e evitar cortes, as margens esquerda e direita de um `BarChart` devem ser **sempre simétricas** (iguais ao maior valor medido entre labels e valores).
 *   **Simetria em Gráficos de Coluna**: O conteúdo dos grupos deve ser centralizado geometricamente para distribuir o espaço em branco (gap) igualmente em ambos os lados.
 
+### 4.5.1. Estratégia Híbrida de Exportação (Hybrid Export Strategy)
+Para lidar com limitações de diferentes motores de renderização, o sistema utiliza uma abordagem híbrida:
+*   **Raster (html-to-image)**: Padrão para a maioria dos gráficos (Bar, Column, Pie, Donut, etc.). Captura fielmente efeitos visuais complexos como Glassmorphism, Sombras e Blur.
+*   **Vector (svg2pdf)**: Exclusivo para gráficos de alta densidade geométrica (**Treemap**) que sofrem com falhas de renderização em raster (White Screen).
+    *   **Restrição de Fontes**: No modo vetorial, todas as fontes devem ser convertidas explicitamente para **Helvetica** ou **Sans-Serif** padrão para garantir compatibilidade universal no PDF, já que fontes customizadas da web não são incorporadas nativamente.
+
 ### 4.6. Margens de Segurança (Safety Gaps)
 *   **Infográfico**: Adicionar um gap de segurança mínimo de **40px** na margem direita para acomodar símbolos de moeda ou porcentagem em fontes gigantes.
 *   **Calibração PDF**: Gráficos em PDF recebem um bônus fixo de **40px a 80px** em todas as margens para evitar cortes na borda do módulo.

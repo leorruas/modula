@@ -46,7 +46,7 @@ export function ensureDistinctColors(basePalette: string[], count: number): stri
     return extendedPalette;
 }
 
-function adjustBrightness(col: string, amt: number) {
+export function adjustBrightness(col: string, amt: number) {
     let usePound = false;
     if (col[0] == "#") {
         col = col.slice(1);
@@ -80,9 +80,14 @@ export function generateMonochromaticPalette(baseColor: string, count: number): 
  * Calculates the best text color (black or white) for a given background color.
  */
 export function getContrastColor(hex: string): string {
-    const r = parseInt(hex.substr(1, 2), 16);
-    const g = parseInt(hex.substr(3, 2), 16);
-    const b = parseInt(hex.substr(5, 2), 16);
+    if (!hex || typeof hex !== 'string') return '#000000';
+    let cleanHex = hex.replace('#', '');
+    if (cleanHex.length === 3) {
+        cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+    const r = parseInt(cleanHex.substr(0, 2), 16);
+    const g = parseInt(cleanHex.substr(2, 2), 16);
+    const b = parseInt(cleanHex.substr(4, 2), 16);
     const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return (yiq >= 128) ? '#000000' : '#ffffff';
+    return (yiq >= 160) ? '#000000' : '#ffffff'; // Even higher threshold for black text (Vibrant/Clear)
 }
