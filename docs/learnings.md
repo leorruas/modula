@@ -1,7 +1,3 @@
----
-description: Histórico de aprendizados arquiteturais para evitar regressões
----
-
 # 🧠 Modula: Aprendizados e Invariantes
 
 Este documento registra as "pegadinhas" e aprendizados recorrentes para garantir a estabilidade do app modula.
@@ -36,4 +32,4 @@ Este documento registra as "pegadinhas" e aprendizados recorrentes para garantir
 4.  **Nomes de Arquivo**: Ao gerar arquivos baseados em capítulos, use a página *alvo* (`targetPage`) como prefixo numérico (ex: "34."), e não a página de *início* do capítulo, para evitar confusão.
 
 ## 🚀 Workflows Relacionados
-- [/create_new_chart](file://.agent/workflows/create_new_chart.md): Como adicionar novos tipos seguindo estes padrões.
+- [/create_new_chart](../.agent/workflows/create_new_chart.md): Como adicionar novos tipos seguindo estes padrões.

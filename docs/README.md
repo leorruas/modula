@@ -10,6 +10,7 @@ Welcome to the **Modula** documentation hub. This directory contains all the kno
 ## 🧠 Knowledge Base
 - **[Business Rules](./business-rules.md)**: The source of truth for logic, constraints, and product requirements.
 - **[Style Guide](./style-guide.md)**: Visual standards, UI patterns, and design tokens.
+- **[Learnings](./learnings.md)**: Technical learnings, gotchas, and architectural invariants.
 - **[Modifications](./coisas-a-alterar.md)**: Tracking of ongoing changes and legacy tasks.
 
 > **Note**: For strictly technical task tracking, please refer to the active `.agent/task.md` managed by the agent.
